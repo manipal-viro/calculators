@@ -60,7 +60,7 @@
 
     <!-- Recent History Panel -->
     <details id="historySection" open>
-      <summary>Recent Runs (Last 5)</summary>
+      <summary>Recent Runs (Last 10 Samples - Click to Copy Any)</summary>
       <div id="historyList" class="history-list">
         <p class="sub-text" style="margin-top:8px;">No samples calculated yet.</p>
       </div>
@@ -88,7 +88,7 @@
       <div id="presetList"></div>
     </details>
 
-    <div class="version-tag">Viro Calculator • v2.5 Live Sync</div>
+    <div class="version-tag">Viro Calculator • v2.8 Live Sync</div>
   </div>
 
   <script>
@@ -125,6 +125,13 @@
       localStorage.setItem('virocalc_history', JSON.stringify(runHistory));
     }
 
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'virocalc_history') {
+        runHistory = JSON.parse(e.newValue) || [];
+        renderHistory();
+      }
+    });
+
     function renderMethods() {
       methodSelect.innerHTML = '';
       const presetList = document.getElementById('presetList');
@@ -157,12 +164,13 @@
         historyList.innerHTML = '<p class="sub-text" style="margin-top:8px;">No samples calculated yet.</p>';
         return;
       }
-      historyList.innerHTML = runHistory.map(item => `
+      historyList.innerHTML = runHistory.map((item, idx) => `
         <div class="history-item">
-          <div>
-            <strong>Viral load- ${item.plain}</strong> <span class="badge">Log10: ${item.log}</span>
+          <div style="flex: 1; padding-right: 8px;">
+            <strong>#${idx+1}: Viral load- ${item.plain}</strong> <span class="badge">Log10: ${item.log}</span>
             <div class="history-meta">PCR: ${item.pcr} IU/µL (${item.vols}) • ${item.time}</div>
           </div>
+          <button type="button" style="width: auto; padding: 6px 10px; font-size: 0.75rem;" onclick="copySpecific(${idx})">Copy</button>
         </div>
       `).join('');
     }
@@ -235,7 +243,7 @@
       };
       if (runHistory.length === 0 || runHistory[0].pcr !== entry.pcr || runHistory[0].plain !== entry.plain) {
         runHistory.unshift(entry);
-        if (runHistory.length > 5) runHistory.pop();
+        if (runHistory.length > 10) runHistory.pop();
         saveState();
         renderHistory();
       }
@@ -253,6 +261,15 @@
           copyBtn.textContent = origText;
           copyBtn.style.background = '';
         }, 1200);
+      });
+    }
+
+    function copySpecific(index) {
+      const item = runHistory[index];
+      if (!item) return;
+      const copyText = `Viral load- ${item.plain}`;
+      navigator.clipboard.writeText(copyText).then(() => {
+        alert(`Copied to clipboard: "${copyText}"`);
       });
     }
 
