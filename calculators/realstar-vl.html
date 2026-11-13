@@ -86,7 +86,7 @@
       <div id="presetList"></div>
     </details>
 
-    <div class="version-tag">Viro Calc • v2.2 Live Sync</div>
+    <div class="version-tag">Viro Calc • v2.3 Live Sync</div>
   </div>
 
   <script>
@@ -157,7 +157,7 @@
       historyList.innerHTML = runHistory.map(item => `
         <div class="history-item">
           <div>
-            <strong>${item.result}</strong> <span class="badge">Log₁₀: ${item.log}</span>
+            <strong>Viral load- ${item.result}</strong> <span class="badge">Log10: ${item.log}</span>
             <div class="history-meta">PCR: ${item.pcr} IU/µL (${item.vols}) • ${item.time}</div>
           </div>
         </div>
@@ -221,7 +221,6 @@
         vols: `${sampleInput.value}/${elutionInput.value}µL`,
         time: timeStr
       };
-      // Avoid duplicate consecutive entries with identical values
       if (runHistory.length === 0 || runHistory[0].pcr !== entry.pcr || runHistory[0].result !== entry.result) {
         runHistory.unshift(entry);
         if (runHistory.length > 5) runHistory.pop();
@@ -233,7 +232,7 @@
     function copyAndLog() {
       if (!currentFormatted) return;
       logRun();
-      const copyText = `${currentFormatted} (Log10: ${currentLog})`;
+      const copyText = `Viral load- ${currentFormatted} (Log10: ${currentLog})`;
       navigator.clipboard.writeText(copyText).then(() => {
         const origText = copyBtn.textContent;
         copyBtn.textContent = 'Copied ✓';
@@ -258,7 +257,6 @@
       renderHistory();
     }
 
-    // Keyboard shortcut: Enter inside PCR input copies & logs result
     pcrInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -332,7 +330,6 @@
       applyLockState();
     }
 
-    // Init
     renderMethods();
     renderHistory();
     applyLockState();
