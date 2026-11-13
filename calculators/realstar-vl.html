@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RealStar Viral Load Calculator</title>
+  <title>RealStar Viral Load — Viro Calc</title>
   <link rel="manifest" href="../manifest.json" />
   <meta name="theme-color" content="#0f4c81" />
   <link rel="stylesheet" href="../css/main.css" />
 </head>
 <body>
   <div class="container">
-    <a href="../index.html" class="back-link">← Back to Calculators</a>
-    <h1>Altona RealStar® Viral Load Calc</h1>
+    <a href="../index.html" class="back-link">← Back to Viro Calc</a>
+    <h1>Altona RealStar® Viral Load</h1>
 
     <!-- Extraction Method Selector -->
     <div class="field">
@@ -40,15 +40,30 @@
     <!-- PCR Result Input -->
     <div class="field">
       <label for="pcrResult">PCR Result (IU/µL or copies/µL)</label>
-      <input type="number" id="pcrResult" step="any" placeholder="Enter instrument value" autofocus />
+      <input type="number" id="pcrResult" step="any" placeholder="Enter value & press Enter" autofocus />
     </div>
 
-    <!-- Output -->
+    <!-- Output Box -->
     <div class="result-box">
       <div class="sub">Final Viral Load</div>
       <div class="val" id="finalResult">0 IU/mL</div>
       <div class="sub" id="logResult">Log₁₀: —</div>
     </div>
+
+    <!-- Quick Action Buttons -->
+    <div class="action-row">
+      <button type="button" id="copyBtn" onclick="copyAndLog()">Copy Result</button>
+      <button type="button" class="secondary" onclick="nextSample()">Next Sample</button>
+    </div>
+
+    <!-- Recent History Panel -->
+    <details id="historySection" open>
+      <summary>Recent Runs (Last 5)</summary>
+      <div id="historyList" class="history-list">
+        <p class="sub-text" style="margin-top:8px;">No samples calculated yet.</p>
+      </div>
+      <button type="button" class="text-btn" onclick="clearHistory()">Clear History</button>
+    </details>
 
     <!-- Manage Presets Section -->
     <details>
@@ -70,6 +85,8 @@
       <h2>Saved Methods</h2>
       <div id="presetList"></div>
     </details>
+
+    <div class="version-tag">Viro Calc • v2.2 Live Sync</div>
   </div>
 
   <script>
@@ -79,23 +96,30 @@
       { id: 'default-3', name: 'QIAamp Mini (140 µL / 60 µL)', sample: 140, elution: 60 }
     ];
 
-    let methods = JSON.parse(localStorage.getItem('altona_methods')) || DEFAULT_METHODS;
-    let settings = JSON.parse(localStorage.getItem('altona_settings')) || {
+    let methods = JSON.parse(localStorage.getItem('virocalc_methods')) || DEFAULT_METHODS;
+    let settings = JSON.parse(localStorage.getItem('virocalc_settings')) || {
       selectedMethodId: 'default-1',
       locked: false,
       sampleVol: 200,
       elutionVol: 60
     };
+    let runHistory = JSON.parse(localStorage.getItem('virocalc_history')) || [];
 
     const methodSelect = document.getElementById('methodSelect');
     const lockCheckbox = document.getElementById('lockVolumes');
     const sampleInput = document.getElementById('sampleVol');
     const elutionInput = document.getElementById('elutionVol');
     const pcrInput = document.getElementById('pcrResult');
+    const copyBtn = document.getElementById('copyBtn');
+
+    let currentFormatted = '';
+    let currentLog = '';
+    let currentPcr = null;
 
     function saveState() {
-      localStorage.setItem('altona_methods', JSON.stringify(methods));
-      localStorage.setItem('altona_settings', JSON.stringify(settings));
+      localStorage.setItem('virocalc_methods', JSON.stringify(methods));
+      localStorage.setItem('virocalc_settings', JSON.stringify(settings));
+      localStorage.setItem('virocalc_history', JSON.stringify(runHistory));
     }
 
     function renderMethods() {
@@ -124,6 +148,22 @@
       });
     }
 
+    function renderHistory() {
+      const historyList = document.getElementById('historyList');
+      if (runHistory.length === 0) {
+        historyList.innerHTML = '<p class="sub-text" style="margin-top:8px;">No samples calculated yet.</p>';
+        return;
+      }
+      historyList.innerHTML = runHistory.map(item => `
+        <div class="history-item">
+          <div>
+            <strong>${item.result}</strong> <span class="badge">Log₁₀: ${item.log}</span>
+            <div class="history-meta">PCR: ${item.pcr} IU/µL (${item.vols}) • ${item.time}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
     function applyLockState() {
       lockCheckbox.checked = settings.locked;
       sampleInput.disabled = settings.locked;
@@ -142,10 +182,12 @@
       if (!sVol || !eVol || isNaN(pcr) || sVol <= 0) {
         document.getElementById('finalResult').textContent = '0 IU/mL';
         document.getElementById('logResult').textContent = 'Log₁₀: —';
+        currentFormatted = '';
+        currentLog = '';
+        currentPcr = null;
         return;
       }
 
-      // Formula: (PCR [IU/uL] * Elution [uL] * 1000) / Sample [uL]
       const viralLoad = (pcr * eVol * 1000) / sVol;
       const logVal = viralLoad > 0 ? Math.log10(viralLoad).toFixed(2) : '—';
 
@@ -155,17 +197,74 @@
       } else {
         const exponent = Math.floor(Math.log10(viralLoad));
         const coefficient = (viralLoad / Math.pow(10, exponent)).toFixed(1);
-        
-        // Convert exponent number to superscript
         const superscripts = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
         const expStr = String(exponent).split('').map(char => superscripts[char] || char).join('');
-        
         formattedResult = `${coefficient} × 10${expStr} IU/mL`;
       }
+
+      currentFormatted = formattedResult;
+      currentLog = logVal;
+      currentPcr = pcr;
 
       document.getElementById('finalResult').textContent = formattedResult;
       document.getElementById('logResult').textContent = `Log₁₀: ${logVal}`;
     }
+
+    function logRun() {
+      if (!currentFormatted || currentPcr === null) return;
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const entry = {
+        result: currentFormatted,
+        log: currentLog,
+        pcr: currentPcr,
+        vols: `${sampleInput.value}/${elutionInput.value}µL`,
+        time: timeStr
+      };
+      // Avoid duplicate consecutive entries with identical values
+      if (runHistory.length === 0 || runHistory[0].pcr !== entry.pcr || runHistory[0].result !== entry.result) {
+        runHistory.unshift(entry);
+        if (runHistory.length > 5) runHistory.pop();
+        saveState();
+        renderHistory();
+      }
+    }
+
+    function copyAndLog() {
+      if (!currentFormatted) return;
+      logRun();
+      const copyText = `${currentFormatted} (Log10: ${currentLog})`;
+      navigator.clipboard.writeText(copyText).then(() => {
+        const origText = copyBtn.textContent;
+        copyBtn.textContent = 'Copied ✓';
+        copyBtn.style.background = '#15803d';
+        setTimeout(() => {
+          copyBtn.textContent = origText;
+          copyBtn.style.background = '';
+        }, 1200);
+      });
+    }
+
+    function nextSample() {
+      if (currentFormatted) logRun();
+      pcrInput.value = '';
+      calculate();
+      pcrInput.focus();
+    }
+
+    function clearHistory() {
+      runHistory = [];
+      saveState();
+      renderHistory();
+    }
+
+    // Keyboard shortcut: Enter inside PCR input copies & logs result
+    pcrInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        copyAndLog();
+      }
+    });
 
     methodSelect.addEventListener('change', (e) => {
       const chosen = methods.find(m => m.id === e.target.value);
@@ -235,9 +334,9 @@
 
     // Init
     renderMethods();
+    renderHistory();
     applyLockState();
 
-    // Register Network-First Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('../sw.js');
     }
