@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RealStar Viral Load Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back-link">← Back to Calculators</a>
+    <h1>Altona RealStar® Viral Load Calc</h1>
+
+    <!-- Extraction Method Selector -->
+    <div class="field">
+      <label for="methodSelect">Extraction Method Preset</label>
+      <select id="methodSelect"></select>
+    </div>
+
+    <!-- Lock Volumes Checkbox -->
+    <div class="checkbox-row">
+      <input type="checkbox" id="lockVolumes" />
+      <label for="lockVolumes" style="margin:0; font-weight:500;">Keep Sample & Elution volumes same for all runs</label>
+    </div>
+
+    <!-- Volume Inputs -->
+    <div class="row">
+      <div class="field">
+        <label for="sampleVol">Sample Input (µL)</label>
+        <input type="number" id="sampleVol" step="any" placeholder="e.g. 200" />
+      </div>
+      <div class="field">
+        <label for="elutionVol">Elution Vol (µL)</label>
+        <input type="number" id="elutionVol" step="any" placeholder="e.g. 60" />
+      </div>
+    </div>
+
+    <!-- PCR Result Input -->
+    <div class="field">
+      <label for="pcrResult">PCR Result (IU/µL or copies/µL)</label>
+      <input type="number" id="pcrResult" step="any" placeholder="Enter instrument value" autofocus />
+    </div>
+
+    <!-- Output -->
+    <div class="result-box">
+      <div class="sub">Final Viral Load</div>
+      <div class="val" id="finalResult">0 IU/mL</div>
+      <div class="sub" id="logResult">Log₁₀: —</div>
+    </div>
+
+    <!-- Manage Presets Section -->
+    <details>
+      <summary>Manage Extraction Methods & Defaults</summary>
+      <h2>Add New Extraction Method</h2>
+      <div class="field">
+        <input type="text" id="newMethodName" placeholder="Method Name (e.g., AltoStar AM16)" />
+      </div>
+      <div class="row">
+        <div class="field">
+          <input type="number" id="newSampleVol" placeholder="Sample (µL)" />
+        </div>
+        <div class="field">
+          <input type="number" id="newElutionVol" placeholder="Elution (µL)" />
+        </div>
+      </div>
+      <button type="button" onclick="addMethod()">Save Method to Device</button>
+
+      <h2>Saved Methods</h2>
+      <div id="presetList"></div>
+    </details>
+  </div>
+
+  <script>
+    const DEFAULT_METHODS = [
+      { id: 'default-1', name: 'Standard (200 µL / 60 µL)', sample: 200, elution: 60 },
+      { id: 'default-2', name: 'AltoStar AM16 (500 µL / 80 µL)', sample: 500, elution: 80 },
+      { id: 'default-3', name: 'QIAamp Mini (140 µL / 60 µL)', sample: 140, elution: 60 }
+    ];
+
+    let methods = JSON.parse(localStorage.getItem('altona_methods')) || DEFAULT_METHODS;
+    let settings = JSON.parse(localStorage.getItem('altona_settings')) || {
+      selectedMethodId: 'default-1',
+      locked: false,
+      sampleVol: 200,
+      elutionVol: 60
+    };
+
+    const methodSelect = document.getElementById('methodSelect');
+    const lockCheckbox = document.getElementById('lockVolumes');
+    const sampleInput = document.getElementById('sampleVol');
+    const elutionInput = document.getElementById('elutionVol');
+    const pcrInput = document.getElementById('pcrResult');
+
+    function saveState() {
+      localStorage.setItem('altona_methods', JSON.stringify(methods));
+      localStorage.setItem('altona_settings', JSON.stringify(settings));
+    }
+
+    function renderMethods() {
+      methodSelect.innerHTML = '';
+      const presetList = document.getElementById('presetList');
+      presetList.innerHTML = '';
+
+      methods.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `${m.name} (${m.sample}µL → ${m.elution}µL)`;
+        if (m.id === settings.selectedMethodId) opt.selected = true;
+        methodSelect.appendChild(opt);
+
+        const div = document.createElement('div');
+        div.className = 'preset-item';
+        div.innerHTML = `<span><strong>${m.name}</strong><br>${m.sample} µL input / ${m.elution} µL elution</span>`;
+        if (!m.id.startsWith('default-')) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'danger';
+          delBtn.textContent = 'Delete';
+          delBtn.onclick = () => deleteMethod(m.id);
+          div.appendChild(delBtn);
+        }
+        presetList.appendChild(div);
+      });
+    }
+
+    function applyLockState() {
+      lockCheckbox.checked = settings.locked;
+      sampleInput.disabled = settings.locked;
+      elutionInput.disabled = settings.locked;
+      methodSelect.disabled = settings.locked;
+      sampleInput.value = settings.sampleVol;
+      elutionInput.value = settings.elutionVol;
+      calculate();
+    }
+
+    function calculate() {
+      const sVol = parseFloat(sampleInput.value);
+      const eVol = parseFloat(elutionInput.value);
+      const pcr = parseFloat(pcrInput.value);
+
+      if (!sVol || !eVol || isNaN(pcr) || sVol <= 0) {
+        document.getElementById('finalResult').textContent = '0 IU/mL';
+        document.getElementById('logResult').textContent = 'Log₁₀: —';
+        return;
+      }
+
+      // Formula: (PCR [IU/uL] * Elution [uL]) / (Sample [uL] / 1000)
+      const viralLoad = (pcr * eVol * 1000) / sVol;
+      const logVal = viralLoad > 0 ? Math.log10(viralLoad).toFixed(2) : '—';
+
+      document.getElementById('finalResult').textContent = 
+        `${Math.round(viralLoad).toLocaleString('en-IN')} IU/mL`;
+      document.getElementById('logResult').textContent = `Log₁₀: ${logVal}`;
+    }
+
+    methodSelect.addEventListener('change', (e) => {
+      const chosen = methods.find(m => m.id === e.target.value);
+      if (chosen) {
+        settings.selectedMethodId = chosen.id;
+        settings.sampleVol = chosen.sample;
+        settings.elutionVol = chosen.elution;
+        sampleInput.value = chosen.sample;
+        elutionInput.value = chosen.elution;
+        saveState();
+        calculate();
+      }
+    });
+
+    lockCheckbox.addEventListener('change', (e) => {
+      settings.locked = e.target.checked;
+      settings.sampleVol = parseFloat(sampleInput.value) || 200;
+      settings.elutionVol = parseFloat(elutionInput.value) || 60;
+      saveState();
+      applyLockState();
+    });
+
+    [sampleInput, elutionInput].forEach(el => {
+      el.addEventListener('input', () => {
+        settings.sampleVol = parseFloat(sampleInput.value) || 0;
+        settings.elutionVol = parseFloat(elutionInput.value) || 0;
+        saveState();
+        calculate();
+      });
+    });
+
+    pcrInput.addEventListener('input', calculate);
+
+    function addMethod() {
+      const name = document.getElementById('newMethodName').value.trim();
+      const sample = parseFloat(document.getElementById('newSampleVol').value);
+      const elution = parseFloat(document.getElementById('newElutionVol').value);
+
+      if (!name || !sample || !elution) return alert('Fill all fields');
+
+      const newMethod = { id: 'custom-' + Date.now(), name, sample, elution };
+      methods.push(newMethod);
+      settings.selectedMethodId = newMethod.id;
+      settings.sampleVol = sample;
+      settings.elutionVol = elution;
+
+      document.getElementById('newMethodName').value = '';
+      document.getElementById('newSampleVol').value = '';
+      document.getElementById('newElutionVol').value = '';
+
+      saveState();
+      renderMethods();
+      applyLockState();
+    }
+
+    function deleteMethod(id) {
+      methods = methods.filter(m => m.id !== id);
+      if (settings.selectedMethodId === id) {
+        settings.selectedMethodId = methods[0].id;
+        settings.sampleVol = methods[0].sample;
+        settings.elutionVol = methods[0].elution;
+      }
+      saveState();
+      renderMethods();
+      applyLockState();
+    }
+
+    // Init
+    renderMethods();
+    applyLockState();
+
+    // Register Network-First Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js');
+    }
+  </script>
+</body>
+</html>
