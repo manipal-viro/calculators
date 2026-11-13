@@ -10,22 +10,38 @@
   <link rel="stylesheet" href="css/main.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Viro Calculator</h1>
-    <p class="sub-text">Select a molecular & clinical calculator module:</p>
-    
-    <div class="menu-list">
-      <a href="calculators/realstar-vl.html" class="menu-card">
-        <h3>RealStar® Viral Load Calculator</h3>
-        <p>Altona PCR result conversion with extraction presets, scientific formatting & history.</p>
-      </a>
-      <a href="calculators/altona-mastermix.html" class="menu-card">
-        <h3>Altona Master Mix Prep Calculator</h3>
-        <p>Calculate exact Master A & B volumes and tube counts (12 rxns/tube).</p>
-      </a>
+  <div class="app-layout">
+    <!-- Left Sidebar Branding -->
+    <div class="sidebar">
+      <div class="brand-badge">🧬</div>
+      <h1>Viro Calculator</h1>
+      <p>Select a molecular & clinical calculator module:</p>
     </div>
 
-    <div class="version-tag">Viro Calculator v2.5 • Live Network Sync</div>
+    <!-- Right Content Panel -->
+    <div class="content-panel">
+      <div class="menu-list">
+        <a href="calculators/realstar-vl.html" class="menu-card">
+          <div class="card-number">01</div>
+          <div class="card-info">
+            <h3>RealStar® Viral Load Calculator</h3>
+            <p>Altona PCR result conversion with extraction presets, scientific formatting & history.</p>
+          </div>
+          <span class="arrow">→</span>
+        </a>
+
+        <a href="calculators/altona-mastermix.html" class="menu-card">
+          <div class="card-number">02</div>
+          <div class="card-info">
+            <h3>Altona Master Mix Prep Calculator</h3>
+            <p>Calculate exact Master A & B volumes and tube counts (12 rxns/tube).</p>
+          </div>
+          <span class="arrow">→</span>
+        </a>
+      </div>
+
+      <div class="version-tag">Viro Calculator v2.6 • Live Network Sync</div>
+    </div>
   </div>
 
   <script>
