@@ -15,10 +15,16 @@
     <h1>Viro Calculator</h1>
     <p class="sub-text" style="margin-top:-10px; margin-bottom:14px; font-weight:600; color:var(--primary);">Neubauer Chamber & Cell Splitting</p>
 
-    <!-- Step 1: Cell Counting & Concentration Determination -->
+    <!-- Step 1: Cell Counting & Concentration Determination with Formula Display -->
     <details open>
-      <summary>Step 1: Calculate Concentration (Hemocytometer)</summary>
-      <div class="field" style="margin-top: 10px;">
+      <summary>Step 1: Hemocytometer Calculation Method & Formula</summary>
+      <div style="background: #f8fafc; border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 0.85rem; line-height: 1.5;">
+        <strong>Calculation Method:</strong><br>
+        Concentration (cells/mL) = (Total Cells Counted ÷ Squares Counted) × Dilution Factor × 10⁴
+        <p style="margin: 6px 0 0; color: var(--muted);">Standard Neubauer chamber depth is 0.1 mm, giving a conversion factor of 10⁴ ($10\mu L$ volume per large square).</p>
+      </div>
+      
+      <div class="field">
         <label for="totalCells">Total Cells Counted (All squares)</label>
         <input type="number" id="totalCells" min="0" step="1" placeholder="e.g. 150" />
       </div>
@@ -57,14 +63,14 @@
     <!-- Result Display -->
     <div class="result-box" style="text-align: left; padding: 16px;">
       <div style="font-weight: 700; margin-bottom: 8px; font-size: 0.95rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 6px;">
-        Pipetting Instruction
+        Pipetting Instruction (C₁V₁ = C₂V₂)
       </div>
       <div id="instructionText" style="font-size: 0.95rem; line-height: 1.5; text-align: center;">
         Enter valid concentration parameters above.
       </div>
     </div>
 
-    <div class="version-tag">Viro Calculator • v2.7 Live Sync</div>
+    <div class="version-tag">Viro Calculator • v2.8 Live Sync</div>
   </div>
 
   <script>
