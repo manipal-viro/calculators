@@ -145,12 +145,25 @@
         return;
       }
 
-      // Formula: (PCR [IU/uL] * Elution [uL]) / (Sample [uL] / 1000)
+      // Formula: (PCR [IU/uL] * Elution [uL] * 1000) / Sample [uL]
       const viralLoad = (pcr * eVol * 1000) / sVol;
       const logVal = viralLoad > 0 ? Math.log10(viralLoad).toFixed(2) : '—';
 
-      document.getElementById('finalResult').textContent = 
-        `${Math.round(viralLoad).toLocaleString('en-IN')} IU/mL`;
+      let formattedResult = '';
+      if (viralLoad < 1000) {
+        formattedResult = `${Math.round(viralLoad).toLocaleString('en-IN')} IU/mL`;
+      } else {
+        const exponent = Math.floor(Math.log10(viralLoad));
+        const coefficient = (viralLoad / Math.pow(10, exponent)).toFixed(1);
+        
+        // Convert exponent number to superscript
+        const superscripts = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+        const expStr = String(exponent).split('').map(char => superscripts[char] || char).join('');
+        
+        formattedResult = `${coefficient} × 10${expStr} IU/mL`;
+      }
+
+      document.getElementById('finalResult').textContent = formattedResult;
       document.getElementById('logResult').textContent = `Log₁₀: ${logVal}`;
     }
 
