@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fumigation Calculator — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icon.png" type="image/png" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <h1>Viro Calculator</h1>
+    <p class="sub-text" style="margin-top:-10px; margin-bottom:14px; font-weight:600; color:var(--primary);">Room Fumigation Calculator</p>
+
+    <!-- Room Dimensions Input -->
+    <div class="row">
+      <div class="field">
+        <label for="roomLength">Length (ft)</label>
+        <input type="number" id="roomLength" step="any" placeholder="e.g. 10" autofocus />
+      </div>
+      <div class="field">
+        <label for="roomWidth">Breadth / Width (ft)</label>
+        <input type="number" id="roomWidth" step="any" placeholder="e.g. 10" />
+      </div>
+      <div class="field">
+        <label for="roomHeight">Height (ft)</label>
+        <input type="number" id="roomHeight" step="any" placeholder="e.g. 10" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="cubicFeet">Calculated Volume (Cubic Feet)</label>
+      <input type="number" id="cubicFeet" step="any" placeholder="Auto-calculated from L x B x H" />
+    </div>
+
+    <!-- Results Display -->
+    <div class="result-box" style="text-align: left; padding: 16px;">
+      <div style="font-weight: 700; margin-bottom: 10px; font-size: 1rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 6px;">
+        Required Reagents
+      </div>
+      
+      <div style="margin-bottom: 12px;">
+        <div style="font-size: 0.82rem; opacity: 0.9;">Formalin (37-40%):</div>
+        <div class="val" id="resFormalin" style="font-size: 1.3rem;">0.0 mL</div>
+        <div class="sub">Rate: 35 mL per 100 cu. ft.</div>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <div style="font-size: 0.82rem; opacity: 0.9;">Potassium Permanganate (KMnO₄):</div>
+        <div class="val" id="resKMnO4" style="font-size: 1.3rem;">0.0 g</div>
+        <div class="sub">Rate: 17.5 g per 100 cu. ft.</div>
+      </div>
+
+      <div>
+        <div style="font-size: 0.82rem; opacity: 0.9;">Ammonia Solution (25% Neutralizer):</div>
+        <div class="val" id="resAmmonia" style="font-size: 1.3rem;">0.0 mL</div>
+        <div class="sub">Rate: 40 mL per 100 cu. ft.</div>
+      </div>
+    </div>
+
+    <div class="version-tag">Viro Calculator • v2.7 Live Sync</div>
+  </div>
+
+  <script>
+    const lenInput = document.getElementById('roomLength');
+    const widthInput = document.getElementById('roomWidth');
+    const heightInput = document.getElementById('roomHeight');
+    const cuFtInput = document.getElementById('cubicFeet');
+
+    function calculateFumigation(fromDimensions = true) {
+      let cuFt = 0;
+      if (fromDimensions) {
+        const l = parseFloat(lenInput.value) || 0;
+        const b = parseFloat(widthInput.value) || 0;
+        const h = parseFloat(heightInput.value) || 0;
+        cuFt = l * b * h;
+        cuFtInput.value = cuFt > 0 ? cuFt.toFixed(2) : '';
+      } else {
+        cuFt = parseFloat(cuFtInput.value) || 0;
+      }
+
+      if (cuFt <= 0) {
+        document.getElementById('resFormalin').textContent = '0.0 mL';
+        document.getElementById('resKMnO4').textContent = '0.0 g';
+        document.getElementById('resAmmonia').textContent = '0.0 mL';
+        return;
+      }
+
+      const formalin = cuFt * 0.35;
+      const kmno4 = cuFt * 0.175;
+      const ammonia = cuFt * 0.40;
+
+      document.getElementById('resFormalin').textContent = `${formalin.toFixed(1)} mL`;
+      document.getElementById('resKMnO4').textContent = `${kmno4.toFixed(1)} g`;
+      document.getElementById('resAmmonia').textContent = `${ammonia.toFixed(1)} mL`;
+    }
+
+    [lenInput, widthInput, heightInput].forEach(el => {
+      el.addEventListener('input', () => calculateFumigation(true));
+    });
+
+    cuFtInput.addEventListener('input', () => {
+      lenInput.value = '';
+      widthInput.value = '';
+      heightInput.value = '';
+      calculateFumigation(false);
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js');
+    }
+  </script>
+</body>
+</html>
