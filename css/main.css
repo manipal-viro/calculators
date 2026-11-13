@@ -2,7 +2,7 @@
   --primary: #0f4c81; 
   --primary-dark: #0a355c; 
   --bg: #f4f7f9; 
-  --card: rgba(255, 255, 255, 0.95); 
+  --card: rgba(255, 255, 255, 0.96); 
   --border: #d1d9e0; 
   --success: #15803d; 
 }
@@ -17,22 +17,70 @@ body {
   background-attachment: fixed;
   color: #1e293b; 
   margin: 0; 
-  padding: 16px; 
+  padding: 20px; 
   display: flex; 
   justify-content: center; 
+  align-items: center;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
-.container { 
-  max-width: 480px; 
-  width: 100%; 
-  background: var(--card); 
-  padding: 20px; 
-  border-radius: 12px; 
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25); 
-  backdrop-filter: blur(8px);
-  height: fit-content;
+/* Split Layout Container */
+.app-layout {
+  max-width: 760px;
+  width: 100%;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.3);
+  backdrop-filter: blur(10px);
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  overflow: hidden;
+}
+
+@media (max-width: 680px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+  }
+}
+
+/* Sidebar */
+.sidebar {
+  background: linear-gradient(135deg, #0f4c81 0%, #072b4c 100%);
+  color: white;
+  padding: 30px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.brand-badge {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.sidebar h1 {
+  font-size: 1.4rem;
+  color: white;
+  margin: 0 0 10px 0;
+  border: none;
+  padding: 0;
+}
+
+.sidebar p {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Content Panel */
+.content-panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 h1 { 
@@ -42,7 +90,6 @@ h1 {
   border-bottom: 2px solid #e2e8f0; 
   padding-bottom: 10px; 
   font-weight: 700;
-  letter-spacing: -0.01em;
 }
 
 h2 { 
@@ -52,11 +99,69 @@ h2 {
 }
 
 .sub-text { font-size: 0.85rem; color: #64748b; margin-top: 0; }
-.menu-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-.menu-card { display: block; background: #f8fafc; border: 1px solid var(--border); padding: 14px; border-radius: 8px; text-decoration: none; color: inherit; transition: all 0.2s; }
-.menu-card:hover { border-color: var(--primary); background: #eef6ff; }
-.menu-card h3 { margin: 0 0 4px; font-size: 1rem; color: var(--primary); }
-.menu-card p { margin: 0; font-size: 0.8rem; color: #475569; }
+
+.menu-list { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 14px; 
+}
+
+.menu-card { 
+  display: flex; 
+  align-items: center; 
+  gap: 14px;
+  background: #f8fafc; 
+  border: 1px solid var(--border); 
+  padding: 16px; 
+  border-radius: 10px; 
+  text-decoration: none; 
+  color: inherit; 
+  transition: all 0.2s; 
+}
+
+.menu-card:hover { 
+  border-color: var(--primary); 
+  background: #eef6ff; 
+  transform: translateY(-2px);
+}
+
+.card-number {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary);
+  background: #eef6ff;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.card-info {
+  flex: 1;
+}
+
+.menu-card h3 { 
+  margin: 0 0 4px; 
+  font-size: 0.95rem; 
+  color: var(--primary); 
+}
+
+.menu-card p { 
+  margin: 0; 
+  font-size: 0.78rem; 
+  color: #475569; 
+  line-height: 1.3;
+}
+
+.arrow {
+  font-size: 1.1rem;
+  color: var(--primary);
+  font-weight: bold;
+}
+
 .back-link { display: inline-block; margin-bottom: 14px; font-size: 0.85rem; color: var(--primary); text-decoration: none; font-weight: 600; }
 .field { margin-bottom: 14px; }
 label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; }
@@ -85,4 +190,4 @@ button.text-btn { background: transparent; color: #64748b; padding: 6px 0; font-
 .badge { background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 4px; }
 details { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 12px; }
 summary { font-weight: 600; cursor: pointer; color: var(--primary); font-size: 0.92rem; }
-.version-tag { text-align: center; font-size: 0.75rem; color: #94a3b8; margin-top: 24px; }
+.version-tag { text-align: center; font-size: 0.75rem; color: #94a3b8; margin-top: 20px; }
