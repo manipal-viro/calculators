@@ -20,15 +20,15 @@
       <input type="number" id="totalRxns" min="1" step="1" placeholder="e.g. 24" autofocus />
     </div>
 
-    <!-- Vol per reaction configuration (Default Altona standard: Master A = 7 µL, Master B = 1 µL) -->
+    <!-- Vol per reaction configuration (Defaults: Master A = 5 µL, Master B = 15 µL) -->
     <div class="row">
       <div class="field">
         <label for="volA">Master A per rxn (µL)</label>
-        <input type="number" id="volA" step="any" value="7" />
+        <input type="number" id="volA" step="any" value="5" />
       </div>
       <div class="field">
         <label for="volB">Master B per rxn (µL)</label>
-        <input type="number" id="volB" step="any" value="1" />
+        <input type="number" id="volB" step="any" value="15" />
       </div>
     </div>
 
@@ -39,19 +39,19 @@
       </div>
       
       <div style="margin-bottom: 14px;">
-        <div style="font-size: 0.85rem; opacity: 0.9;">Master A (Reagent A):</div>
+        <div style="font-size: 0.85rem; opacity: 0.9;">Master A:</div>
         <div class="val" id="resA" style="font-size: 1.4rem;">0.0 µL</div>
         <div class="sub" id="tubesA">Tubes required: 0 (12 rxns/tube)</div>
       </div>
 
       <div>
-        <div style="font-size: 0.85rem; opacity: 0.9;">Master B (Enzyme/IC Mix B):</div>
+        <div style="font-size: 0.85rem; opacity: 0.9;">Master B:</div>
         <div class="val" id="resB" style="font-size: 1.4rem;">0.0 µL</div>
         <div class="sub" id="tubesB">Tubes required: 0 (12 rxns/tube)</div>
       </div>
     </div>
 
-    <div class="version-tag">Viro Calc • v2.3 Live Sync</div>
+    <div class="version-tag">Viro Calc • v2.4 Live Sync</div>
   </div>
 
   <script>
@@ -76,7 +76,7 @@
       const totalVolA = rxns * vA * 1.1;
       const totalVolB = rxns * vB * 1.1;
 
-      // Each tube is 12 reactions capacity -> tubes needed based on reactions required
+      // Each tube is 12 reactions capacity
       const tubesNeeded = Math.ceil(rxns / 12);
 
       document.getElementById('resA').textContent = `${totalVolA.toFixed(1)} µL`;
