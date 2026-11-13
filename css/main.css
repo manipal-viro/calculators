@@ -2,18 +2,19 @@
   --primary: #0f4c81; 
   --primary-dark: #0a355c; 
   --bg: #f4f7f9; 
-  --card: #ffffff; 
+  --card: rgba(255, 255, 255, 0.95); 
   --border: #d1d9e0; 
   --success: #15803d; 
 }
 
-/* To use a custom background image, uncomment and place your image file in the repo root: */
 body { 
   font-family: system-ui, -apple-system, sans-serif; 
-  background-color: var(--bg); 
-  /* background-image: url('../background.jpg'); */
+  background-color: #0b1d3a; 
+  background-image: url('../background.png');
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: #1e293b; 
   margin: 0; 
   padding: 16px; 
@@ -29,7 +30,8 @@ body {
   background: var(--card); 
   padding: 20px; 
   border-radius: 12px; 
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25); 
+  backdrop-filter: blur(8px);
   height: fit-content;
 }
 
@@ -37,7 +39,7 @@ h1 {
   font-size: 1.35rem; 
   color: var(--primary); 
   margin: 0 0 16px; 
-  border-bottom: 2px solid var(--bg); 
+  border-bottom: 2px solid #e2e8f0; 
   padding-bottom: 10px; 
   font-weight: 700;
   letter-spacing: -0.01em;
