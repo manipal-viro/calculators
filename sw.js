@@ -1,11 +1,12 @@
-const CACHE_NAME = 'viro-calc-v2.2';
+const CACHE_NAME = 'viro-calc-v2.3';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.png',
   './css/main.css',
-  './calculators/realstar-vl.html'
+  './calculators/realstar-vl.html',
+  './calculators/altona-mastermix.html'
 ];
 
 self.addEventListener('install', (event) => {
@@ -24,7 +25,6 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-First Strategy: Always fetch fresh from GitHub; fallback to cache if offline
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
