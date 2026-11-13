@@ -1,6 +1,6 @@
 {
   "id": ".",
-  "name": "Viro Calc",
+  "name": "Viro Calculator",
   "short_name": "Viro Calc",
   "start_url": "./index.html",
   "display": "standalone",
