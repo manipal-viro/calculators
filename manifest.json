@@ -1,7 +1,7 @@
 {
-  "id": "/your-repo-name/",
-  "name": "Lab Calculator Suite",
-  "short_name": "Lab Calc",
+  "id": "/calculators/",
+  "name": "Viro Calc",
+  "short_name": "Viro Calc",
   "start_url": "/your-repo-name/index.html",
   "display": "standalone",
   "background_color": "#f4f7f9",
