@@ -1,4 +1,4 @@
-const CACHE_NAME = 'viro-calc-v2.5';
+const CACHE_NAME = 'viro-calc-v2.7';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,9 @@ const ASSETS = [
   './icon.png',
   './css/main.css',
   './calculators/realstar-vl.html',
-  './calculators/altona-mastermix.html'
+  './calculators/altona-mastermix.html',
+  './calculators/neubauer-calc.html',
+  './calculators/fumigation-calc.html'
 ];
 
 self.addEventListener('install', (event) => {
