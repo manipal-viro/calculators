@@ -1,8 +1,54 @@
-:root { --primary: #0f4c81; --bg: #f4f7f9; --card: #ffffff; --border: #d1d9e0; }
-body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #1e293b; margin: 0; padding: 16px; display: flex; justify-content: center; }
-.container { max-width: 480px; width: 100%; background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-h1 { font-size: 1.25rem; color: var(--primary); margin: 0 0 16px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
-h2 { font-size: 1rem; margin: 20px 0 10px; color: #334155; }
+:root { 
+  --primary: #0f4c81; 
+  --primary-dark: #0a355c; 
+  --bg: #f4f7f9; 
+  --card: #ffffff; 
+  --border: #d1d9e0; 
+  --success: #15803d; 
+}
+
+/* To use a custom background image, uncomment and place your image file in the repo root: */
+body { 
+  font-family: system-ui, -apple-system, sans-serif; 
+  background-color: var(--bg); 
+  /* background-image: url('../background.jpg'); */
+  background-size: cover;
+  background-position: center;
+  color: #1e293b; 
+  margin: 0; 
+  padding: 16px; 
+  display: flex; 
+  justify-content: center; 
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.container { 
+  max-width: 480px; 
+  width: 100%; 
+  background: var(--card); 
+  padding: 20px; 
+  border-radius: 12px; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+  height: fit-content;
+}
+
+h1 { 
+  font-size: 1.35rem; 
+  color: var(--primary); 
+  margin: 0 0 16px; 
+  border-bottom: 2px solid var(--bg); 
+  padding-bottom: 10px; 
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+h2 { 
+  font-size: 0.95rem; 
+  margin: 18px 0 10px; 
+  color: #334155; 
+}
+
 .sub-text { font-size: 0.85rem; color: #64748b; margin-top: 0; }
 .menu-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
 .menu-card { display: block; background: #f8fafc; border: 1px solid var(--border); padding: 14px; border-radius: 8px; text-decoration: none; color: inherit; transition: all 0.2s; }
@@ -15,7 +61,8 @@ label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px
 input[type="number"], input[type="text"], select {
   width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; box-sizing: border-box;
 }
-input:disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
+input:focus, select:focus { outline: 2px solid var(--primary); border-color: transparent; }
+input:disabled, select:disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
 .row, .action-row { display: flex; gap: 10px; }
 .row > div, .action-row > button { flex: 1; }
 .action-row { margin-top: 12px; }
@@ -24,9 +71,12 @@ input:disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
 .result-box .val { font-size: 1.65rem; font-weight: 700; margin: 4px 0; }
 .result-box .sub { font-size: 0.85rem; opacity: 0.9; }
 button { background: var(--primary); color: white; border: none; padding: 11px 14px; border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.15s; }
+button:hover { background: var(--primary-dark); }
 button.secondary { background: #475569; }
+button.secondary:hover { background: #334155; }
 button.danger { background: #dc2626; padding: 4px 8px; width: auto; font-size: 0.75rem; }
-button.text-btn { background: transparent; color: #64748b; padding: 6px 0; font-size: 0.8rem; text-align: right; margin-top: 4px; }
+button.danger:hover { background: #b91c1c; }
+button.text-btn { background: transparent; color: #64748b; padding: 6px 0; font-size: 0.8rem; text-align: right; margin-top: 4px; width: 100%; }
 .preset-item, .history-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
 .history-list { margin-top: 6px; }
 .history-meta { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
