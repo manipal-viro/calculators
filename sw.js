@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lab-calc-suite-v1';
+const CACHE_NAME = 'realstar-lab-suite-v1';
 const ASSETS = [
   './',
   './index.html',
