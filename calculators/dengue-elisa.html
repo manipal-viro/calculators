@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dengue ELISA Calculator — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icon.png" type="image/png" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    @media print {
+      body { background: white !important; padding: 0 !important; color: black !important; }
+      .app-layout, .sidebar, .back-link, button, details summary, .version-tag, .no-print, .tab-row { display: none !important; }
+      .container { max-width: 100% !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+      .print-report { display: block !important; }
+    }
+    .print-report { display: none; }
+    .grid-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.82rem; }
+    .grid-table th, .grid-table td { border: 1px solid var(--border); padding: 5px; text-align: center; }
+    .grid-table th { background: #f1f5f9; color: var(--text); font-weight: 700; }
+    .grid-table input { width: 100%; padding: 4px; text-align: center; font-size: 0.82rem; border: none; background: transparent; }
+    .grid-table input:focus { background: #eef6ff; outline: 1px solid var(--primary); }
+    .qc-box { background: #f8fafc; border: 2px solid var(--border); padding: 12px; border-radius: 8px; margin-top: 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem; }
+    .tab-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab-btn { flex: 1; padding: 10px; background: #e2e8f0; border: none; border-radius: 6px; font-weight: 700; color: var(--text); cursor: pointer; font-size: 0.9rem; }
+    .tab-btn.active { background: var(--primary); color: white; }
+  </style>
+</head>
+<body>
+  <div class="container" style="max-width: 760px;">
+    <a href="../index.html" class="back-link no-print">← Back to Viro Calculator</a>
+    <h1>Viro Calculator</h1>
+    <p class="sub-text no-print" style="margin-top:-10px; margin-bottom:14px; font-weight:600; color:var(--primary);">Dengue ELISA Dual Assay (IgM & NS1 Ag)</p>
+
+    <!-- Assay Selection Tabs -->
+    <div class="tab-row no-print">
+      <button type="button" class="tab-btn active" id="tabIgM" onclick="switchAssay('IgM')">Dengue IgM</button>
+      <button type="button" class="tab-btn" id="tabNS1" onclick="switchAssay('NS1')">Dengue NS1 Ag</button>
+    </div>
+
+    <!-- Calibration Factor Setup -->
+    <div class="field no-print">
+      <label id="calLabel" for="calFactor">Dengue IgM Calibration Factor (Empty by default)</label>
+      <input type="number" id="calFactor" step="any" placeholder="e.g. 0.83" value="" />
+    </div>
+
+    <p class="sub-text no-print">Paste your reader OD values for the active assay below:</p>
+
+    <!-- 96-Well Plate OD Matrix -->
+    <div style="overflow-x: auto;" class="no-print">
+      <table class="grid-table" id="odMatrixTable">
+        <thead>
+          <tr>
+            <th>Well</th>
+            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+            <th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th>
+          </tr>
+        </thead>
+        <tbody id="odMatrixBody"></tbody>
+      </table>
+    </div>
+
+    <!-- QC & Calculated Cutoff Summary -->
+    <div class="qc-box no-print">
+      <div><strong>Avg. Calibrator (CAL):</strong> <span id="avgCalVal">0.000</span></div>
+      <div><strong>Cutoff Value:</strong> <span id="cutoffVal">0.000</span></div>
+      <div><strong>1.5 × NC Absorbance:</strong> <span id="ncVal">0.000</span></div>
+      <div><strong>Formula:</strong> Ratio = (OD ÷ Cutoff) × 10</div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-row no-print" style="margin-top: 16px;">
+      <button type="button" onclick="calculateDengue()">Calculate Results</button>
+      <button type="button" class="secondary" onclick="window.print()">Print Report (B&W Optimized)</button>
+    </div>
+
+    <!-- Results Table Preview -->
+    <div style="margin-top: 20px;">
+      <h2 id="resultsTitle">Calculated Results — Dengue IgM</h2>
+      <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
+        <table class="grid-table" style="margin-top:0;">
+          <thead>
+            <tr>
+              <th>Well</th>
+              <th>Sample OD</th>
+              <th>Panbio Units (Ratio)</th>
+              <th>Interpretation</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr><td colspan="4" style="text-align:center; color:var(--muted);">Enter OD values and Calibration Factor above. Data is auto-saved locally.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="version-tag no-print">Viro Calculator • v3.2 Dual Assay & Auto-Save</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "",
+      authDomain: "viro-calculator.firebaseapp.com",
+      projectId: "viro-calculator",
+      storageBucket: "viro-calculator.firebasestorage.app",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const sessionDocRef = doc(db, "labSessions", "dengue_dual_run");
+
+    let currentAssay = 'IgM';
+    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const body = document.getElementById('odMatrixBody');
+
+    let assayData = JSON.parse(localStorage.getItem('viro_dengue_dual')) || {
+      IgM: { calFactor: '', grid: {} },
+      NS1: { calFactor: '', grid: {} }
+    };
+
+    rows.forEach((r, rIdx) => {
+      let tr = document.createElement('tr');
+      let th = document.createElement('th');
+      th.textContent = r;
+      tr.appendChild(th);
+      for (let c = 1; c <= 12; c++) {
+        let td = document.createElement('td');
+        let input = document.createElement('input');
+        input.type = 'number';
+        input.step = 'any';
+        input.id = `cell_${r}_${c}`;
+        if (rIdx === 0 && c === 1) input.placeholder = 'NC';
+        else if (rIdx === 1 && c === 1) input.placeholder = 'PC';
+        else if (rIdx >= 2 && rIdx <= 4 && c === 1) input.placeholder = 'CAL';
+        else input.placeholder = '0.000';
+        
+        input.addEventListener('input', () => {
+          storeCurrentGrid();
+          calculateDengue();
+          saveStateToCloud();
+        });
+        td.appendChild(input);
+        tr.appendChild(td);
+      }
+      body.appendChild(tr);
+    });
+
+    window.switchAssay = function(assay) {
+      storeCurrentGrid();
+      currentAssay = assay;
+
+      document.getElementById('tabIgM').className = assay === 'IgM' ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('tabNS1').className = assay === 'NS1' ? 'tab-btn active' : 'tab-btn';
+      
+      if (assay === 'IgM') {
+        document.getElementById('calLabel').textContent = 'Dengue IgM Calibration Factor (e.g. 0.83)';
+        document.getElementById('resultsTitle').textContent = 'Calculated Results — Dengue IgM';
+      } else {
+        document.getElementById('calLabel').textContent = 'Dengue NS1 Ag Calibration Factor (e.g. 0.56)';
+        document.getElementById('resultsTitle').textContent = 'Calculated Results — Dengue NS1 Ag';
+      }
+
+      document.getElementById('calFactor').value = assayData[assay].calFactor || '';
+      loadGridToUI();
+      calculateDengue();
+    }
+
+    function storeCurrentGrid() {
+      assayData[currentAssay].calFactor = document.getElementById('calFactor').value;
+      let grid = {};
+      rows.forEach(r => {
+        for (let c = 1; c <= 12; c++) {
+          grid[`${r}_${c}`] = document.getElementById(`cell_${r}_${c}`).value || '';
+        }
+      });
+      assayData[currentAssay].grid = grid;
+      localStorage.setItem('viro_dengue_dual', JSON.stringify(assayData));
+    }
+
+    function loadGridToUI() {
+      const grid = assayData[currentAssay].grid || {};
+      rows.forEach(r => {
+        for (let c = 1; c <= 12; c++) {
+          const el = document.getElementById(`cell_${r}_${c}`);
+          if (el) {
+            el.value = grid[`${r}_${c}`] || '';
+          }
+        }
+      });
+    }
+
+    window.calculateDengue = function() {
+      storeCurrentGrid();
+      const calFactor = parseFloat(document.getElementById('calFactor').value) || 0;
+      
+      const cal1 = parseFloat(document.getElementById('cell_C_1').value) || 0;
+      const cal2 = parseFloat(document.getElementById('cell_D_1').value) || 0;
+      const cal3 = parseFloat(document.getElementById('cell_E_1').value) || 0;
+      const ncVal = parseFloat(document.getElementById('cell_A_1').value) || 0;
+
+      const avgCal = (cal1 + cal2 + cal3) / ( (cal1 && cal2 && cal3) ? 3 : (cal1 && cal2 ? 2 : 1) );
+      const cutoff = avgCal * calFactor;
+      const ncTimes1_5 = ncVal * 1.5;
+
+      document.getElementById('avgCalVal').textContent = avgCal.toFixed(3);
+      document.getElementById('cutoffVal').textContent = cutoff.toFixed(3);
+      document.getElementById('ncVal').textContent = ncTimes1_5.toFixed(3);
+
+      const resultsBody = document.getElementById('resultsBody');
+      resultsBody.innerHTML = '';
+
+      let hasResults = false;
+
+      rows.forEach(r => {
+        for (let c = 1; c <= 12; c++) {
+          if ((r === 'A' || r === 'B' || r === 'C' || r === 'D' || r === 'E') && c === 1) continue;
+          
+          const val = parseFloat(document.getElementById(`cell_${r}_${c}`).value);
+          if (!isNaN(val) && cutoff > 0) {
+            hasResults = true;
+            const ratio = (val / cutoff) * 10;
+            
+            let interpretation = '';
+            let style = 'font-weight:700;';
+            if (ratio < 9) {
+              interpretation = 'Negative (< 9 Units)';
+              style += ' color: #0f172a; text-decoration: underline;';
+            } else if (ratio >= 9 && ratio <= 11) {
+              interpretation = 'Equivocal (9–11 Units)';
+              style += ' color: #334155; border: 1px dashed #334155; padding: 2px 4px;';
+            } else {
+              interpretation = 'Positive (> 11 Units)';
+              style += ' color: #0f172a; border: 2px solid #0f172a; padding: 2px 4px;';
+            }
+
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><strong>${r}${c}</strong></td>
+              <td>${val.toFixed(3)}</td>
+              <td><strong>${ratio.toFixed(1)}</strong></td>
+              <td style="${style}">${interpretation}</td>
+            `;
+            resultsBody.appendChild(tr);
+          }
+        }
+      });
+
+      if (!hasResults) {
+        resultsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted);">No valid sample OD values entered for ${currentAssay}. Auto-saved locally.</td></tr>`;
+      }
+    }
+
+    function saveStateToCloud() {
+      if (!firebaseConfig.apiKey) return;
+      setDoc(sessionDocRef, { data: assayData }, { merge: true }).catch(err => console.error("Sync error:", err));
+    }
+
+    if (firebaseConfig.apiKey) {
+      onSnapshot(sessionDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const remote = docSnap.data().data;
+          if (remote) {
+            assayData = remote;
+            localStorage.setItem('viro_dengue_dual', JSON.stringify(assayData));
+            loadGridToUI();
+            document.getElementById('calFactor').value = assayData[currentAssay].calFactor || '';
+            calculateDengue();
+          }
+        }
+      });
+    }
+
+    document.getElementById('calFactor').addEventListener('input', () => {
+      calculateDengue();
+      saveStateToCloud();
+    });
+
+    loadGridToUI();
+    calculateDengue();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js');
+    }
+  </script>
+</body>
+</html>
