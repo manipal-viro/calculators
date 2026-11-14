@@ -60,7 +60,7 @@
 
     <!-- Recent History Panel -->
     <details id="historySection" open>
-      <summary>Recent Runs (Last 10 Samples - Click to Copy Any)</summary>
+      <summary>Recent Runs (Last 10 Samples - Real-Time Cloud Sync)</summary>
       <div id="historyList" class="history-list">
         <p class="sub-text" style="margin-top:8px;">No samples calculated yet.</p>
       </div>
@@ -88,10 +88,29 @@
       <div id="presetList"></div>
     </details>
 
-    <div class="version-tag">Viro Calculator • v2.8 Live Sync</div>
+    <div class="version-tag">Viro Calculator • v2.9 Firebase Ready</div>
   </div>
 
-  <script>
+  <!-- Firebase Modular Scripts -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
+
+    // Your Firebase configuration (Add your keys here later)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCdl2Ds5b4Sn-KL94UQCifRZsg3_xU91oM",
+      authDomain: "viro-calculator.firebaseapp.com",
+      projectId: "viro-calculator",
+      storageBucket: "viro-calculator.firebasestorage.app",
+      messagingSenderId: "668811903388",
+      appId: "1:668811903388:web:e0b40f5f1f508091fd8859"
+    };
+
+    // Initialize Firebase & Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const sessionDocRef = doc(db, "labSessions", "active_run");
+
     const DEFAULT_METHODS = [
       { id: 'default-1', name: 'QIAamp Mini (140 µL / 60 µL)', sample: 140, elution: 60 },
       { id: 'default-2', name: 'Standard (200 µL / 60 µL)', sample: 200, elution: 60 },
@@ -105,7 +124,7 @@
       sampleVol: 140,
       elutionVol: 60
     };
-    let runHistory = JSON.parse(localStorage.getItem('virocalc_history')) || [];
+    window.runHistory = JSON.parse(localStorage.getItem('virocalc_history')) || [];
 
     const methodSelect = document.getElementById('methodSelect');
     const lockCheckbox = document.getElementById('lockVolumes');
@@ -119,20 +138,32 @@
     let currentLog = '';
     let currentPcr = null;
 
-    function saveState() {
+    window.saveState = function() {
       localStorage.setItem('virocalc_methods', JSON.stringify(methods));
       localStorage.setItem('virocalc_settings', JSON.stringify(settings));
-      localStorage.setItem('virocalc_history', JSON.stringify(runHistory));
+      localStorage.setItem('virocalc_history', JSON.stringify(window.runHistory));
+      
+      // Push to Firestore Cloud if configured
+      if (firebaseConfig.apiKey) {
+        setDoc(sessionDocRef, { history: window.runHistory }, { merge: true }).catch(err => console.error("Cloud sync error:", err));
+      }
     }
 
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'virocalc_history') {
-        runHistory = JSON.parse(e.newValue) || [];
-        renderHistory();
-      }
-    });
+    // Listen to real-time changes from Firestore (Computer A ⇄ Computer B sync)
+    if (firebaseConfig.apiKey) {
+      onSnapshot(sessionDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data && data.history) {
+            window.runHistory = data.history;
+            localStorage.setItem('virocalc_history', JSON.stringify(window.runHistory));
+            renderHistory();
+          }
+        }
+      });
+    }
 
-    function renderMethods() {
+    window.renderMethods = function() {
       methodSelect.innerHTML = '';
       const presetList = document.getElementById('presetList');
       presetList.innerHTML = '';
@@ -158,13 +189,13 @@
       });
     }
 
-    function renderHistory() {
+    window.renderHistory = function() {
       const historyList = document.getElementById('historyList');
-      if (runHistory.length === 0) {
+      if (window.runHistory.length === 0) {
         historyList.innerHTML = '<p class="sub-text" style="margin-top:8px;">No samples calculated yet.</p>';
         return;
       }
-      historyList.innerHTML = runHistory.map((item, idx) => `
+      historyList.innerHTML = window.runHistory.map((item, idx) => `
         <div class="history-item">
           <div style="flex: 1; padding-right: 8px;">
             <strong>#${idx+1}: Viral load- ${item.plain}</strong> <span class="badge">Log10: ${item.log}</span>
@@ -241,15 +272,15 @@
         vols: `${sampleInput.value}/${elutionInput.value}µL`,
         time: timeStr
       };
-      if (runHistory.length === 0 || runHistory[0].pcr !== entry.pcr || runHistory[0].plain !== entry.plain) {
-        runHistory.unshift(entry);
-        if (runHistory.length > 10) runHistory.pop();
+      if (window.runHistory.length === 0 || window.runHistory[0].pcr !== entry.pcr || window.runHistory[0].plain !== entry.plain) {
+        window.runHistory.unshift(entry);
+        if (window.runHistory.length > 10) window.runHistory.pop();
         saveState();
         renderHistory();
       }
     }
 
-    function copyAndLog() {
+    window.copyAndLog = function() {
       if (!currentFormattedPlain) return;
       logRun();
       const copyText = `Viral load- ${currentFormattedPlain}`;
@@ -264,8 +295,8 @@
       });
     }
 
-    function copySpecific(index) {
-      const item = runHistory[index];
+    window.copySpecific = function(index) {
+      const item = window.runHistory[index];
       if (!item) return;
       const copyText = `Viral load- ${item.plain}`;
       navigator.clipboard.writeText(copyText).then(() => {
@@ -273,15 +304,15 @@
       });
     }
 
-    function nextSample() {
+    window.nextSample = function() {
       if (currentFormattedPlain) logRun();
       pcrInput.value = '';
       calculate();
       pcrInput.focus();
     }
 
-    function clearHistory() {
-      runHistory = [];
+    window.clearHistory = function() {
+      window.runHistory = [];
       saveState();
       renderHistory();
     }
@@ -289,7 +320,7 @@
     pcrInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        copyAndLog();
+        window.copyAndLog();
       }
     });
 
@@ -325,7 +356,7 @@
 
     pcrInput.addEventListener('input', calculate);
 
-    function addMethod() {
+    window.addMethod = function() {
       const name = document.getElementById('newMethodName').value.trim();
       const sample = parseFloat(document.getElementById('newSampleVol').value);
       const elution = parseFloat(document.getElementById('newElutionVol').value);
@@ -347,7 +378,7 @@
       applyLockState();
     }
 
-    function deleteMethod(id) {
+    window.deleteMethod = function(id) {
       methods = methods.filter(m => m.id !== id);
       if (settings.selectedMethodId === id) {
         settings.selectedMethodId = methods[0].id;
