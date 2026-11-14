@@ -16,38 +16,38 @@
       .print-report { display: block !important; }
     }
     .print-report { display: none; }
-    .grid-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.82rem; }
-    .grid-table th, .grid-table td { border: 1px solid var(--border); padding: 5px; text-align: center; }
+    .grid-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+    .grid-table th, .grid-table td { border: 1px solid var(--border); padding: 6px; text-align: center; }
     .grid-table th { background: #f1f5f9; color: var(--text); font-weight: 700; }
-    .grid-table input { width: 100%; padding: 4px; text-align: center; font-size: 0.82rem; border: none; background: transparent; }
+    .grid-table input { width: 100%; padding: 6px; text-align: center; font-size: 0.9rem; border: none; background: transparent; }
     .grid-table input:focus { background: #eef6ff; outline: 1px solid var(--primary); }
-    .qc-box { background: #f8fafc; border: 2px solid var(--border); padding: 12px; border-radius: 8px; margin-top: 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem; }
-    .tab-row { display: flex; gap: 8px; margin-bottom: 16px; }
-    .tab-btn { flex: 1; padding: 10px; background: #e2e8f0; border: none; border-radius: 6px; font-weight: 700; color: var(--text); cursor: pointer; font-size: 0.9rem; }
+    .qc-box { background: #f8fafc; border: 2px solid var(--border); padding: 14px; border-radius: 8px; margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 0.9rem; }
+    .tab-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .tab-btn { flex: 1; padding: 12px; background: #e2e8f0; border: none; border-radius: 6px; font-weight: 700; color: var(--text); cursor: pointer; font-size: 1rem; }
     .tab-btn.active { background: var(--primary); color: white; }
   </style>
 </head>
 <body>
-  <div class="container" style="max-width: 760px;">
+  <div class="container" style="width: 100%;">
     <a href="../index.html" class="back-link no-print">← Back to Viro Calculator</a>
     <h1>Viro Calculator</h1>
-    <p class="sub-text no-print" style="margin-top:-10px; margin-bottom:14px; font-weight:600; color:var(--primary);">Dengue ELISA Dual Assay (IgM & NS1 Ag)</p>
+    <p class="sub-text no-print" style="margin-top:-10px; margin-bottom:14px; font-weight:600; color:var(--primary);">Dengue ELISA Dual Assay (IgM & NS1 Ag) — Full PC Workstation View</p>
 
     <!-- Assay Selection Tabs -->
     <div class="tab-row no-print">
-      <button type="button" class="tab-btn active" id="tabIgM" onclick="switchAssay('IgM')">Dengue IgM</button>
-      <button type="button" class="tab-btn" id="tabNS1" onclick="switchAssay('NS1')">Dengue NS1 Ag</button>
+      <button type="button" class="tab-btn active" id="tabIgM" onclick="switchAssay('IgM')">Dengue IgM ELISA</button>
+      <button type="button" class="tab-btn" id="tabNS1" onclick="switchAssay('NS1')">Dengue NS1 Ag ELISA</button>
     </div>
 
     <!-- Calibration Factor Setup -->
-    <div class="field no-print">
+    <div class="field no-print" style="max-width: 400px; margin-bottom: 16px;">
       <label id="calLabel" for="calFactor">Dengue IgM Calibration Factor (Empty by default)</label>
       <input type="number" id="calFactor" step="any" placeholder="e.g. 0.83" value="" />
     </div>
 
-    <p class="sub-text no-print">Paste your reader OD values for the active assay below:</p>
+    <p class="sub-text no-print">Paste your reader OD values below (Supports direct paste from reader software into Row A):</p>
 
-    <!-- 96-Well Plate OD Matrix -->
+    <!-- 96-Well Plate OD Matrix (Full Width) -->
     <div style="overflow-x: auto;" class="no-print">
       <table class="grid-table" id="odMatrixTable">
         <thead>
@@ -76,9 +76,9 @@
     </div>
 
     <!-- Results Table Preview -->
-    <div style="margin-top: 20px;">
+    <div style="margin-top: 24px;">
       <h2 id="resultsTitle">Calculated Results — Dengue IgM</h2>
-      <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
+      <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
         <table class="grid-table" style="margin-top:0;">
           <thead>
             <tr>
@@ -89,13 +89,13 @@
             </tr>
           </thead>
           <tbody id="resultsBody">
-            <tr><td colspan="4" style="text-align:center; color:var(--muted);">Enter OD values and Calibration Factor above. Data is auto-saved locally.</td></tr>
+            <tr><td colspan="4" style="text-align:center; color:var(--muted);">Enter OD values and Calibration Factor above. Auto-saved locally & cloud synced.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <div class="version-tag no-print">Viro Calculator • v3.2 Dual Assay & Auto-Save</div>
+    <div class="version-tag no-print">Viro Calculator • v3.3 Full Width PC Workstation Sync</div>
   </div>
 
   <script type="module">
@@ -104,11 +104,11 @@
 
     const firebaseConfig = {
       apiKey: "AIzaSyCdl2Ds5b4Sn-KL94UQCifRZsg3_xU91oM",
-      authDomain: "viro-calculator.firebaseapp.com",
-      projectId: "viro-calculator",
-      storageBucket: "viro-calculator.firebasestorage.app",
-      messagingSenderId: "668811903388",
-      appId: "1:668811903388:web:e0b40f5f1f508091fd8859"
+    authDomain: "viro-calculator.firebaseapp.com",
+    projectId: "viro-calculator",
+    storageBucket: "viro-calculator.firebasestorage.app",
+    messagingSenderId: "668811903388",
+    appId: "1:668811903388:web:e0b40f5f1f508091fd8859"
     };
 
     const app = initializeApp(firebaseConfig);
