@@ -9,29 +9,75 @@
   <meta name="theme-color" content="#0f4c81" />
   <link rel="stylesheet" href="../css/main.css" />
   <style>
-    @media print {
-      body { background: white !important; padding: 0 !important; color: black !important; }
-      .app-layout, .sidebar, .back-link, button, details summary, .version-tag, .no-print, .tab-row { display: none !important; }
-      .container { max-width: 100% !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
-      .print-report { display: block !important; }
-    }
+    body[data-theme="ns1"] { --accent: #4f46e5; --accent-dark: #312e81; --accent-soft: #e6e5fd; }
+
     .print-report { display: none; }
-    .grid-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
-    .grid-table th, .grid-table td { border: 1px solid var(--border); padding: 6px; text-align: center; }
-    .grid-table th { background: #f1f5f9; color: var(--text); font-weight: 700; }
-    .grid-table input { width: 100%; padding: 6px; text-align: center; font-size: 0.9rem; border: none; background: transparent; }
-    .grid-table input:focus { background: #eef6ff; outline: 1px solid var(--primary); }
-    .qc-box { background: #f8fafc; border: 2px solid var(--border); padding: 14px; border-radius: 8px; margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 0.9rem; }
-    .tab-row { display: flex; gap: 10px; margin-bottom: 16px; }
-    .tab-btn { flex: 1; padding: 12px; background: #e2e8f0; border: none; border-radius: 6px; font-weight: 700; color: var(--text); cursor: pointer; font-size: 1rem; }
-    .tab-btn.active { background: var(--primary); color: white; }
+    .grid-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; font-size: 0.9rem;
+                  border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #fff; }
+    .grid-table th, .grid-table td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 4px; text-align: center; }
+    .grid-table tr:last-child td, .grid-table tr:last-child th { border-bottom: none; }
+    .grid-table th:last-child, .grid-table td:last-child { border-right: none; }
+    .grid-table thead th { background: linear-gradient(135deg, var(--accent-dark), var(--accent)); color: #fff; font-weight: 700; padding: 9px 4px; }
+    .grid-table tbody th { background: var(--accent-soft); color: var(--accent-dark); font-weight: 800; width: 44px; }
+    .grid-table tbody tr:nth-child(even) td { background: #f8fbff; }
+    .grid-table input { width: 100%; min-width: 58px; padding: 9px 4px; text-align: center; font-size: 0.95rem; border: none; border-radius: 0; background: transparent; box-shadow: none; }
+    .grid-table input:focus { background: #fff8d6; outline: 2px solid var(--accent); outline-offset: -2px; box-shadow: none; }
+
+    /* control wells (column 1) */
+    td.ctl-nc  { background: #dcfce7 !important; }
+    td.ctl-pc  { background: #fee2e2 !important; }
+    td.ctl-cal { background: #fef3c7 !important; }
+    td.ctl-nc input::placeholder, td.ctl-pc input::placeholder, td.ctl-cal input::placeholder { font-weight: 800; opacity: .8; }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 10px; font-size: .78rem; font-weight: 700; }
+    .legend span { padding: 3px 12px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); }
+    .lg-nc { background: #dcfce7; color: #166534; } .lg-pc { background: #fee2e2; color: #991b1b; } .lg-cal { background: #fef3c7; color: #92400e; }
+
+    .qc-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; font-size: 0.9rem; }
+    .qc-box > div { background: #fff; border: 1px solid var(--border); border-top: 4px solid var(--accent); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+    .qc-box strong { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .qc-box span { font-size: 1.3rem; font-weight: 800; color: var(--accent-dark); }
+    .qc-box .formula { font-size: .9rem; font-weight: 700; color: var(--accent-dark); }
+
+    .tab-row { display: flex; gap: 12px; margin-bottom: 18px; }
+    .tab-btn { flex: 1; padding: 14px; background: #fff; border: 2px solid var(--border); border-radius: 12px; font-weight: 800; color: var(--muted); cursor: pointer; font-size: 1rem; box-shadow: none; }
+    .tab-btn:hover { border-color: var(--accent); color: var(--accent-dark); filter: none; }
+    .tab-btn.active { background: linear-gradient(135deg, var(--accent-dark), var(--accent)); color: #fff; border-color: transparent; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); }
+
+    .results-wrap { max-height: 460px; overflow-y: auto; border-radius: 12px; border: 1px solid var(--border); background: #fff; }
+    .results-wrap .grid-table { margin-top: 0; border: none; border-radius: 0; }
+    .results-wrap thead th { position: sticky; top: 0; z-index: 1; }
+
+    .pill { display: inline-block; font-weight: 800; padding: 4px 12px; border-radius: 999px; font-size: .82rem; }
+    .res-neg { background: #dcfce7; color: #166534; }
+    .res-eq  { background: #fef3c7; color: #92400e; }
+    .res-pos { background: #fee2e2; color: #991b1b; }
+
+    @media (max-width: 900px) { .qc-box { grid-template-columns: repeat(2, 1fr); } }
+
+    @media print {
+      .app-layout, .sidebar, .back-link, button, details summary, .version-tag, .no-print, .tab-row, .page-head img, .legend { display: none !important; }
+      .print-report { display: block !important; }
+      .grid-table thead th { background: #eee !important; color: #000 !important; }
+      .grid-table td, .grid-table th { border: 1px solid #000 !important; }
+      .results-wrap { max-height: none !important; overflow: visible !important; border: none !important; }
+      .page-chip { background: none !important; border: none !important; color: #000 !important; padding: 0 !important; }
+      .pill { background: none !important; color: #000 !important; border-radius: 0; padding: 2px 4px; }
+      .res-neg { text-decoration: underline; }
+      .res-eq  { border: 1px dashed #000; }
+      .res-pos { border: 2px solid #000; }
+    }
   </style>
 </head>
-<body>
-  <div class="container" style="width: 100%;">
+<body data-theme="dengue">
+  <div class="container wide">
     <a href="../index.html" class="back-link no-print">← Back to Viro Calculator</a>
-    <h1>Viro Calculator</h1>
-    <p class="sub-text no-print" style="margin-top:-10px; margin-bottom:14px; font-weight:600; color:var(--primary);">Dengue ELISA Dual Assay (IgM & NS1 Ag) — Full PC Workstation View</p>
+    <div class="page-head">
+      <img src="../icon.png" alt="" />
+      <div class="titles">
+        <h1>Viro Calculator</h1>
+        <span class="page-chip no-print">Dengue ELISA Dual Assay (IgM & NS1 Ag) — Full PC Workstation View</span>
+      </div>
+    </div>
 
     <!-- Assay Selection Tabs -->
     <div class="tab-row no-print">
@@ -46,6 +92,8 @@
     </div>
 
     <p class="sub-text no-print">Paste your reader OD values below (Supports direct paste from reader software into Row A):</p>
+
+    <div class="legend no-print"><span class="lg-nc">A1 · NC</span><span class="lg-pc">B1 · PC</span><span class="lg-cal">C1–E1 · CAL</span></div>
 
     <!-- 96-Well Plate OD Matrix (Full Width) -->
     <div style="overflow-x: auto;" class="no-print">
@@ -66,7 +114,7 @@
       <div><strong>Avg. Calibrator (CAL):</strong> <span id="avgCalVal">0.000</span></div>
       <div><strong>Cutoff Value:</strong> <span id="cutoffVal">0.000</span></div>
       <div><strong>1.5 × NC Absorbance:</strong> <span id="ncVal">0.000</span></div>
-      <div><strong>Formula:</strong> Ratio = (OD ÷ Cutoff) × 10</div>
+      <div><strong>Formula</strong> <span class="formula">Ratio = (OD ÷ Cutoff) × 10</span></div>
     </div>
 
     <!-- Action Buttons -->
@@ -78,8 +126,8 @@
     <!-- Results Table Preview -->
     <div style="margin-top: 24px;">
       <h2 id="resultsTitle">Calculated Results — Dengue IgM</h2>
-      <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
-        <table class="grid-table" style="margin-top:0;">
+      <div class="results-wrap">
+        <table class="grid-table">
           <thead>
             <tr>
               <th>Well</th>
@@ -95,7 +143,7 @@
       </div>
     </div>
 
-    <div class="version-tag no-print">Viro Calculator • v3.3 Full Width PC Workstation Sync</div>
+    <div class="version-tag no-print">Viro Calculator • v4.0</div>
   </div>
 
   <script type="module">
@@ -135,6 +183,7 @@
         input.type = 'number';
         input.step = 'any';
         input.id = `cell_${r}_${c}`;
+        if (c === 1) td.className = rIdx === 0 ? 'ctl-nc' : rIdx === 1 ? 'ctl-pc' : rIdx <= 4 ? 'ctl-cal' : '';
         if (rIdx === 0 && c === 1) input.placeholder = 'NC';
         else if (rIdx === 1 && c === 1) input.placeholder = 'PC';
         else if (rIdx >= 2 && rIdx <= 4 && c === 1) input.placeholder = 'CAL';
@@ -154,6 +203,7 @@
     window.switchAssay = function(assay) {
       storeCurrentGrid();
       currentAssay = assay;
+      document.body.dataset.theme = assay === 'IgM' ? 'dengue' : 'ns1';
 
       document.getElementById('tabIgM').className = assay === 'IgM' ? 'tab-btn active' : 'tab-btn';
       document.getElementById('tabNS1').className = assay === 'NS1' ? 'tab-btn active' : 'tab-btn';
@@ -227,16 +277,16 @@
             const ratio = (val / cutoff) * 10;
             
             let interpretation = '';
-            let style = 'font-weight:700;';
+            let cls = '';
             if (ratio < 9) {
               interpretation = 'Negative (< 9 Units)';
-              style += ' color: #0f172a; text-decoration: underline;';
+              cls = 'res-neg';
             } else if (ratio >= 9 && ratio <= 11) {
               interpretation = 'Equivocal (9–11 Units)';
-              style += ' color: #334155; border: 1px dashed #334155; padding: 2px 4px;';
+              cls = 'res-eq';
             } else {
               interpretation = 'Positive (> 11 Units)';
-              style += ' color: #0f172a; border: 2px solid #0f172a; padding: 2px 4px;';
+              cls = 'res-pos';
             }
 
             let tr = document.createElement('tr');
@@ -244,7 +294,7 @@
               <td><strong>${r}${c}</strong></td>
               <td>${val.toFixed(3)}</td>
               <td><strong>${ratio.toFixed(1)}</strong></td>
-              <td style="${style}">${interpretation}</td>
+              <td><span class="pill ${cls}">${interpretation}</span></td>
             `;
             resultsBody.appendChild(tr);
           }

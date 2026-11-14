@@ -1,40 +1,171 @@
+/* ==========================================================
+   Viro Calculator — shared theme (v4.0)
+   Background artwork: images/theme-bg.jpg
+   Each page sets <body data-theme="..."> to pick its accent colour.
+   ========================================================== */
+
 :root {
   --primary: #0f4c81;
-  --bg: #fafaf9;
+  --primary-2: #1e88e5;
+  --cyan: #06b6d4;
+  --bg: #eef6fd;
   --surface: #ffffff;
-  --text: #1c1917;
-  --muted: #78716c;
-  --border: #d7d3cb;
+  --text: #0f2a43;
+  --muted: #5b7089;
+  --border: #cfe0f1;
+  --shadow: 0 10px 30px rgba(15, 76, 129, 0.12);
+
+  /* per-page accent (overridden by data-theme) */
+  --accent: #0f6cbd;
+  --accent-dark: #0a3d6b;
+  --accent-soft: #e3f1fd;
 }
+
+body[data-theme="vl"]        { --accent: #1478d4; --accent-dark: #0a3d6b; --accent-soft: #e3f1fd; }
+body[data-theme="mastermix"] { --accent: #7c3aed; --accent-dark: #4c1d95; --accent-soft: #f0e9fe; }
+body[data-theme="neubauer"]  { --accent: #0d9488; --accent-dark: #0b5e57; --accent-soft: #dcf5f2; }
+body[data-theme="fumigation"]{ --accent: #ea580c; --accent-dark: #9a3412; --accent-soft: #ffeede; }
+body[data-theme="dengue"]    { --accent: #e11d48; --accent-dark: #881337; --accent-soft: #ffe4ea; }
+
+* { box-sizing: border-box; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: var(--bg);
   color: var(--text);
   margin: 0;
-  padding: 16px;
+  padding: 24px 16px 40px;
+  min-height: 100vh;
+  /* theme artwork with a matching gradient fallback if the image is missing */
+  background:
+    url("../images/theme-bg.jpg") center / cover no-repeat fixed,
+    linear-gradient(160deg, #f4faff 0%, #dcecfb 55%, #bcdcf7 100%);
+  background-color: var(--bg);
 }
 
+/* ---------- Card / container ---------- */
 .container {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 720px;           /* centred, readable width for most calculators */
   margin: 0 auto;
-  background: var(--surface);
-  padding: 24px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-top: 6px solid var(--accent);
+  box-shadow: var(--shadow);
+}
+.container.wide { max-width: 1680px; }   /* Dengue workstation only */
+
+/* ---------- Typography ---------- */
+h1 { font-size: 1.6rem; color: var(--primary); margin: 0; letter-spacing: -0.3px; }
+h2 { font-size: 1.1rem; color: var(--accent-dark); margin: 22px 0 10px; }
+.sub-text { font-size: 0.85rem; color: var(--muted); }
+
+.page-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.page-head img { width: 52px; height: 52px; border-radius: 14px; box-shadow: 0 4px 12px rgba(15,76,129,.25); }
+.page-head .titles { display: flex; flex-direction: column; gap: 6px; }
+.page-chip {
+  display: inline-block; align-self: flex-start;
+  background: var(--accent-soft); color: var(--accent-dark);
+  font-weight: 700; font-size: 0.82rem;
+  padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent);
 }
 
-h1 { font-size: 1.5rem; color: var(--primary); margin-top: 0; }
-h2 { font-size: 1.15rem; color: var(--text); margin-top: 20px; }
-.sub-text { font-size: 0.85rem; color: var(--muted); }
-.row { display: flex; gap: 12px; margin-bottom: 12px; }
-.field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-label { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
-input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; background: #fff; }
-button { padding: 10px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
-button.secondary { background: #e2e8f0; color: var(--text); }
-.action-row { display: flex; gap: 10px; margin-top: 12px; }
-.version-tag { margin-top: 24px; font-size: 0.75rem; color: var(--muted); text-align: center; }
-.back-link { display: inline-block; margin-bottom: 12px; color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+.back-link {
+  display: inline-block; margin-bottom: 16px;
+  color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.85rem;
+  background: rgba(255,255,255,.9); border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: 999px; transition: all .15s;
+}
+.back-link:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ---------- Form controls ---------- */
+.row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.row > .field { min-width: 140px; }
+.field { flex: 1; display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+label { font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+
+input, select {
+  padding: 11px 12px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 0.97rem; background: #fff; color: var(--text); font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus, select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+input:disabled, select:disabled { background: #eef2f6; color: #8a9bb0; cursor: not-allowed; }
+
+.checkbox-row {
+  display: flex; align-items: center; gap: 10px; margin: 6px 0 14px;
+  background: var(--accent-soft); border: 1px solid var(--border);
+  padding: 10px 12px; border-radius: 10px;
+}
+.checkbox-row input { width: 18px; height: 18px; padding: 0; accent-color: var(--accent); }
+
+/* ---------- Buttons ---------- */
+button {
+  padding: 11px 18px; color: #fff; border: none; border-radius: 10px;
+  font-weight: 700; cursor: pointer; font-size: 0.95rem; font-family: inherit;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: transform .1s, box-shadow .15s, filter .15s;
+}
+button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+button.secondary { background: #fff; color: var(--accent-dark); border: 1.5px solid var(--accent); box-shadow: none; }
+button.secondary:hover { background: var(--accent-soft); }
+button.danger { background: #dc2626; box-shadow: none; padding: 6px 12px; font-size: .8rem; }
+button.text-btn { background: none; color: var(--muted); box-shadow: none; text-decoration: underline; padding: 8px 0; font-weight: 600; }
+.action-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+/* ---------- Result box ---------- */
+.result-box {
+  margin: 18px 0; padding: 20px; border-radius: 14px; color: #fff; text-align: center;
+  background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.result-box .val { font-size: 1.9rem; font-weight: 800; margin: 4px 0; word-break: break-word; }
+.result-box .sub { font-size: 0.85rem; opacity: .9; }
+
+/* ---------- Collapsible sections ---------- */
+details {
+  margin-top: 16px; background: rgba(255,255,255,.7);
+  border: 1px solid var(--border); border-radius: 12px; padding: 4px 16px 14px;
+}
+summary {
+  cursor: pointer; font-weight: 700; color: var(--accent-dark);
+  padding: 12px 0; list-style-position: inside;
+}
+
+/* ---------- History & presets ---------- */
+.history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.history-item, .preset-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--accent);
+  border-radius: 10px; padding: 10px 12px; font-size: .9rem;
+}
+.history-meta { font-size: .75rem; color: var(--muted); margin-top: 3px; }
+.badge {
+  display: inline-block; background: var(--accent-soft); color: var(--accent-dark);
+  border-radius: 999px; padding: 2px 9px; font-size: .72rem; font-weight: 700; margin-left: 6px;
+}
+
+/* ---------- Footer ---------- */
+.version-tag { margin-top: 26px; font-size: 0.75rem; color: var(--muted); text-align: center; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 560px) {
+  body { padding: 12px 8px 28px; }
+  .container { padding: 18px; border-radius: 14px; }
+  .row { flex-direction: column; gap: 6px; }
+}
+
+/* ---------- Print: plain white, no artwork ---------- */
+@media print {
+  body { background: #fff !important; padding: 0 !important; color: #000 !important; }
+  .container { background: #fff !important; box-shadow: none !important; border: none !important;
+               backdrop-filter: none !important; max-width: 100% !important; padding: 0 !important; }
+}

@@ -9,11 +9,16 @@
   <meta name="theme-color" content="#0f4c81" />
   <link rel="stylesheet" href="../css/main.css" />
 </head>
-<body>
+<body data-theme="neubauer">
   <div class="container">
     <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
-    <h1>Viro Calculator</h1>
-    <p class="sub-text" style="margin-top:-10px; margin-bottom:14px; font-weight:600; color:var(--primary);">Neubauer Chamber & Cell Splitting</p>
+    <div class="page-head">
+      <img src="../icon.png" alt="" />
+      <div class="titles">
+        <h1>Viro Calculator</h1>
+        <span class="page-chip">Neubauer Chamber & Cell Splitting</span>
+      </div>
+    </div>
 
     <!-- Step 1: Cell Counting & Concentration Determination with Formula Display -->
     <details open>
@@ -21,7 +26,7 @@
       <div style="background: #f8fafc; border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 0.85rem; line-height: 1.5;">
         <strong>Calculation Method:</strong><br>
         Concentration (cells/mL) = (Total Cells Counted ÷ Squares Counted) × Dilution Factor × 10⁴
-        <p style="margin: 6px 0 0; color: var(--muted);">Standard Neubauer chamber depth is 0.1 mm, giving a conversion factor of 10⁴ ($10\mu L$ volume per large square).</p>
+        <p style="margin: 6px 0 0; color: var(--muted);">Standard Neubauer chamber depth is 0.1 mm, giving a conversion factor of 10⁴ (0.1 µL volume per large square).</p>
       </div>
       
       <div class="field">
@@ -70,7 +75,7 @@
       </div>
     </div>
 
-    <div class="version-tag">Viro Calculator • v2.8 Live Sync</div>
+    <div class="version-tag">Viro Calculator • v4.0</div>
   </div>
 
   <script>

@@ -1,10 +1,13 @@
-const CACHE_NAME = 'viro-calc-v3.1';
+// Network-first service worker: always tries the live site first (so GitHub Pages
+// updates show up immediately) and falls back to the cache when offline.
+const CACHE_NAME = 'viro-calc-v4.0';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.png',
   './css/main.css',
+  './images/theme-bg.jpg',
   './calculators/realstar-vl.html',
   './calculators/altona-mastermix.html',
   './calculators/neubauer-calc.html',
@@ -14,8 +17,11 @@ const ASSETS = [
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+  // Cache each file separately so one missing file can't break the whole install.
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(ASSETS.map((url) => cache.add(url).catch(() => {})))
+    )
   );
 });
 
@@ -29,16 +35,18 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET' || !req.url.startsWith(self.location.origin)) return;
+
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached version, but fetch update in background
-        fetch(event.request).then((networkResponse) => {
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-        }).catch(() => {});
-        return cachedResponse;
-      }
-      return fetch(event.request);
-    })
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req).then((hit) => hit || caches.match('./index.html')))
   );
 });

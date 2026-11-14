@@ -9,77 +9,141 @@
   <meta name="theme-color" content="#0f4c81" />
   <link rel="stylesheet" href="css/main.css" />
   <style>
-    .app-layout { display: flex; min-height: 100vh; gap: 20px; box-sizing: border-box; }
-    .sidebar { width: 300px; background: var(--surface); padding: 24px; border-radius: 12px; border: 1px solid var(--border); }
-    .content-panel { flex: 1; display: flex; flex-direction: column; gap: 12px; }
-    .menu-card { display: flex; align-items: center; background: var(--surface); padding: 18px; border-radius: 10px; border: 1px solid var(--border); text-decoration: none; color: var(--text); transition: all 0.2s; }
-    .menu-card:hover { border-color: var(--primary); background: #f8fafc; }
-    .card-number { font-size: 1.25rem; font-weight: 800; color: var(--primary); width: 50px; }
-    .card-info { flex: 1; }
-    .card-info h3 { margin: 0 0 4px 0; font-size: 1.05rem; }
-    .card-info p { margin: 0; font-size: 0.82rem; color: var(--muted); }
-    .arrow { font-size: 1.2rem; color: var(--primary); font-weight: 700; }
-    .brand-badge { font-size: 2rem; margin-bottom: 10px; }
+    .hub { max-width: 1040px; margin: 0 auto; }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      display: flex; align-items: center; gap: 22px;
+      background: linear-gradient(135deg, #0a3d6b 0%, #0f6cbd 60%, #06b6d4 120%);
+      color: #fff; border-radius: 20px; padding: 26px 30px; margin-bottom: 22px;
+      box-shadow: 0 14px 34px rgba(15, 76, 129, 0.28);
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px;
+      border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.22), transparent 70%);
+    }
+    .hero img { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 8px 22px rgba(0,0,0,.35); flex-shrink: 0; }
+    .hero h1 { color: #fff; font-size: 2rem; margin: 0 0 6px; }
+    .hero p { margin: 0; opacity: .92; line-height: 1.5; max-width: 560px; }
+    .hero .pills { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .hero .pills span {
+      background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35);
+      padding: 4px 12px; border-radius: 999px; font-size: .75rem; font-weight: 700;
+    }
+
+    /* ---------- Cards ---------- */
+    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .menu-card {
+      --c: #1478d4; --c-soft: #e3f1fd; --c-dark: #0a3d6b;
+      display: flex; align-items: center; gap: 16px; position: relative; overflow: hidden;
+      background: rgba(255,255,255,.9); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      padding: 20px 20px 20px 24px; border-radius: 16px; border: 1px solid #fff;
+      text-decoration: none; color: var(--text);
+      box-shadow: 0 6px 18px rgba(15,76,129,.10);
+      transition: transform .18s, box-shadow .18s;
+    }
+    .menu-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px; background: var(--c); }
+    .menu-card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(15,76,129,.18); }
+    .menu-card:hover .arrow { background: var(--c); color: #fff; transform: translateX(3px); }
+    .card-icon {
+      width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+      background: var(--c-soft); border: 1px solid var(--c);
+    }
+    .card-info { flex: 1; min-width: 0; }
+    .card-number { font-size: .72rem; font-weight: 800; letter-spacing: 1.5px; color: var(--c); }
+    .card-info h3 { margin: 2px 0 5px; font-size: 1.02rem; color: var(--c-dark); }
+    .card-info p { margin: 0; font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+    .arrow {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--c-soft); color: var(--c); font-weight: 800; transition: all .18s;
+    }
+    .tag {
+      display: inline-block; margin-top: 7px; font-size: .68rem; font-weight: 800;
+      background: var(--c-soft); color: var(--c-dark); border: 1px solid var(--c);
+      padding: 2px 9px; border-radius: 999px;
+    }
+
+    .c-vl   { --c: #1478d4; --c-soft: #e3f1fd; --c-dark: #0a3d6b; }
+    .c-mm   { --c: #7c3aed; --c-soft: #f0e9fe; --c-dark: #4c1d95; }
+    .c-neu  { --c: #0d9488; --c-soft: #dcf5f2; --c-dark: #0b5e57; }
+    .c-fum  { --c: #ea580c; --c-soft: #ffeede; --c-dark: #9a3412; }
+    .c-den  { --c: #e11d48; --c-soft: #ffe4ea; --c-dark: #881337; grid-column: 1 / -1; }
+
+    @media (max-width: 760px) {
+      .menu-grid { grid-template-columns: 1fr; }
+      .hero { flex-direction: column; text-align: center; padding: 22px; }
+      .hero .pills { justify-content: center; }
+    }
   </style>
 </head>
 <body>
-  <div class="app-layout">
-    <div class="sidebar">
-      <div class="brand-badge">🧬</div>
-      <h1>Viro Calculator</h1>
-      <p class="sub-text">Full-screen PC workstation suite for clinical & molecular laboratories.</p>
-    </div>
-
-    <div class="content-panel">
-      <div class="menu-list" style="display:flex; flex-direction:column; gap:12px;">
-        <a href="calculators/realstar-vl.html" class="menu-card">
-          <div class="card-number">01</div>
-          <div class="card-info">
-            <h3>RealStar® Viral Load Calculator</h3>
-            <p>Altona PCR result conversion with extraction presets, scientific formatting & history.</p>
-          </div>
-          <span class="arrow">→</span>
-        </a>
-
-        <a href="calculators/altona-mastermix.html" class="menu-card">
-          <div class="card-number">02</div>
-          <div class="card-info">
-            <h3>Altona Master Mix Prep Calculator</h3>
-            <p>Calculate exact Master A & B volumes and tube counts (12 rxns/tube).</p>
-          </div>
-          <span class="arrow">→</span>
-        </a>
-
-        <a href="calculators/neubauer-calc.html" class="menu-card">
-          <div class="card-number">03</div>
-          <div class="card-info">
-            <h3>Neubauer Chamber & Cell Splitting</h3>
-            <p>Hemocytometer cell counting and flask dilution/seeding calculator.</p>
-          </div>
-          <span class="arrow">→</span>
-        </a>
-
-        <a href="calculators/fumigation-calc.html" class="menu-card">
-          <div class="card-number">04</div>
-          <div class="card-info">
-            <h3>Room Fumigation Calculator</h3>
-            <p>Calculate Formalin, KMnO₄, and Ammonia neutralizer based on room cubic feet.</p>
-          </div>
-          <span class="arrow">→</span>
-        </a>
-
-        <a href="calculators/dengue-elisa.html" class="menu-card">
-          <div class="card-number">05</div>
-          <div class="card-info">
-            <h3>Dengue ELISA (IgM / NS1 Dual Assay)</h3>
-            <p>Paste 96-well OD values, calculate Cutoff & Panbio Units with B&W print view.</p>
-          </div>
-          <span class="arrow">→</span>
-        </a>
+  <div class="hub">
+    <header class="hero">
+      <img src="icon.png" alt="ViroCalc logo" />
+      <div>
+        <h1>Viro Calculator</h1>
+        <p>A calculation suite for clinical &amp; molecular virology laboratories. Fast, accurate and ready to install on any device.</p>
+        <div class="pills"><span>5 calculators</span><span>Live cloud sync</span><span>Works offline</span></div>
       </div>
+    </header>
 
-      <div class="version-tag">Viro Calculator v3.3 • PC Workstation Full Width Edition</div>
-    </div>
+    <main class="menu-grid">
+      <a href="calculators/realstar-vl.html" class="menu-card c-vl">
+        <div class="card-icon">🧪</div>
+        <div class="card-info">
+          <div class="card-number">01</div>
+          <h3>RealStar® Viral Load</h3>
+          <p>Altona PCR result conversion with extraction presets, scientific formatting &amp; history.</p>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a href="calculators/altona-mastermix.html" class="menu-card c-mm">
+        <div class="card-icon">💧</div>
+        <div class="card-info">
+          <div class="card-number">02</div>
+          <h3>Altona Master Mix Prep</h3>
+          <p>Exact Master A &amp; B volumes and tube counts (12 rxns/tube).</p>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a href="calculators/neubauer-calc.html" class="menu-card c-neu">
+        <div class="card-icon">🔬</div>
+        <div class="card-info">
+          <div class="card-number">03</div>
+          <h3>Neubauer Chamber &amp; Cell Splitting</h3>
+          <p>Hemocytometer cell counting and flask dilution / seeding calculator.</p>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a href="calculators/fumigation-calc.html" class="menu-card c-fum">
+        <div class="card-icon">🧯</div>
+        <div class="card-info">
+          <div class="card-number">04</div>
+          <h3>Room Fumigation</h3>
+          <p>Formalin, KMnO₄ and ammonia neutralizer from room cubic feet.</p>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a href="calculators/dengue-elisa.html" class="menu-card c-den">
+        <div class="card-icon">🦟</div>
+        <div class="card-info">
+          <div class="card-number">05</div>
+          <h3>Dengue ELISA — IgM / NS1 Dual Assay</h3>
+          <p>Paste 96-well OD values, calculate cutoff &amp; Panbio Units, colour-coded results with a B&amp;W print report.</p>
+          <span class="tag">FULL-WIDTH WORKSTATION</span>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+    </main>
+
+    <div class="version-tag">Viro Calculator v4.0</div>
   </div>
 
   <script>
