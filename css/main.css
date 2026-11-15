@@ -270,3 +270,18 @@ textarea { padding: 10px; border: 1.5px solid var(--border); border-radius: 10px
 input, select { min-width: 0; max-width: 100%; }
 .two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .tiles { grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); }
+
+/* ---- v5.2: no spinners, compact print list ---- */
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.plist-wrap { display: none; }
+@media print {
+  .plist-wrap { display: block !important; }
+  .plist { column-count: 3; column-gap: 16px; font-size: 9pt; }
+  .plist .pi { display: grid; grid-template-columns: 30px 1fr 1fr 34px; gap: 4px; break-inside: avoid; border-bottom: 1px solid #aaa; padding: 1px 2px; }
+  .plist .pi.h { font-weight: 800; border-bottom: 2px solid #000; }
+  .plist .pi .r { font-weight: 800; text-align: right; }
+  .plist .pi.pos { border: 2px solid #000; } .plist .pi.eq { border: 1px dashed #000; }
+  .no-print-list { display: none !important; }
+  @page { margin: 10mm; }
+}
