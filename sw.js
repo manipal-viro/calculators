@@ -1,18 +1,41 @@
 // Network-first service worker: always tries the live site first (so GitHub Pages
 // updates show up immediately) and falls back to the cache when offline.
-const CACHE_NAME = 'viro-calc-v4.0';
+const CACHE_NAME = 'viro-calc-v5.2';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/maskable-192.png',
+  './icons/maskable-512.png',
+  './icons/apple-touch-icon.png',
+  './icons/favicon-48.png',
   './css/main.css',
-  './images/theme-bg.jpg',
+  './css/shell.css',
+  './js/common.js',
+  './js/shell.js',
+  './images/bg-dna.webp',
+  './images/bg-virus-bl.webp',
+  './images/bg-hex.webp',
+  './images/bg-calc.webp',
+  './images/bg-wave.webp',
+  './images/bg-virus-1.webp',
+  './images/bg-virus-2.webp',
+  './images/bg-virus-3.webp',
   './calculators/realstar-vl.html',
   './calculators/altona-mastermix.html',
   './calculators/neubauer-calc.html',
   './calculators/fumigation-calc.html',
-  './calculators/dengue-elisa.html'
+  './calculators/dengue-elisa.html',
+  './calculators/dilution-calc.html',
+  './calculators/rcf-calc.html',
+  './calculators/viral-titer.html',
+  './calculators/moi-calc.html',
+  './calculators/qpcr-tools.html',
+  './calculators/generic-elisa.html',
+  './calculators/chik-igm-elisa.html'
 ];
 
 self.addEventListener('install', (event) => {

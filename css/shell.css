@@ -1,0 +1,209 @@
+/* ==========================================================
+   Viro Calculator — app shell + layered artwork (v5.0)
+   Loaded after main.css. Background pieces live in /images/bg-*.webp
+   ========================================================== */
+
+/* ---------- layered background (separate cut-outs) ---------- */
+html { background: linear-gradient(165deg, #f7fbff 0%, #e6f2fd 55%, #cfe6f9 100%) fixed; }
+body { background: transparent !important; }
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    url("../images/bg-calc.webp")      right 0 bottom 0 / clamp(220px, 24vw, 360px) auto no-repeat,
+    url("../images/bg-virus-bl.webp")  left 0 bottom 0 / clamp(150px, 15vw, 240px) auto no-repeat,
+    url("../images/bg-wave.webp")      center bottom / 100% clamp(90px, 15vh, 150px) no-repeat,
+    url("../images/bg-hex.webp")       right 0 top 0 / clamp(260px, 32vw, 500px) auto no-repeat,
+    url("../images/bg-dna.webp")       left 0 top 0 / clamp(150px, 16vw, 260px) auto no-repeat,
+    url("../images/bg-virus-1.webp")   46% 5% / 120px auto no-repeat,
+    url("../images/bg-virus-2.webp")   14% 58% / 90px auto no-repeat,
+    url("../images/bg-virus-3.webp")   30% 78% / 130px auto no-repeat;
+}
+
+/* ---------- shell elements hidden until a media query shows them ---------- */
+.vc-side, .vc-appbar, .vc-bnav, .vc-sheet, .vc-scrim { display: none; }
+
+/* ---------- install banner ---------- */
+.vc-install {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: linear-gradient(135deg, #e6f2fd, #dcf6fb); border: 1px solid #b9dcf3;
+  border-radius: 14px; padding: 10px 14px; font-size: .85rem; color: #0a3d6b; margin: 0 0 16px;
+}
+.vc-install-ic { font-size: 1.3rem; }
+.vc-install [data-vc-install-txt] { flex: 1; min-width: 180px; line-height: 1.4; }
+.vc-install button { padding: 8px 18px; }
+.vc-install-side { margin: 10px 4px 0; font-size: .74rem; padding: 8px 10px; }
+
+/* ---------- entry animation ---------- */
+@keyframes vcrise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.container > *, .menu-card, .hero { animation: vcrise .5s ease both; }
+.menu-card:nth-child(2) { animation-delay: .05s; } .menu-card:nth-child(3) { animation-delay: .1s; }
+@media (prefers-reduced-motion: reduce) { .container > *, .menu-card, .hero { animation: none; } }
+
+/* ==========================================================
+   DESKTOP / TABLET  (> 720px)
+   ========================================================== */
+@media (min-width: 721px) {
+  :root { --vc-nav-w: 244px; }
+  body.vc-has-side { padding-left: calc(var(--vc-nav-w) + 40px); }
+  .vc-side {
+    display: flex; flex-direction: column; position: fixed; z-index: 40; left: 14px; top: 14px; bottom: 14px; width: var(--vc-nav-w);
+    background: rgba(255,255,255,.8); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,.95); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 10px; overflow-y: auto;
+  }
+  .vc-side-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; text-decoration: none; color: var(--primary); }
+  .vc-side-brand img { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 12px rgba(15,76,129,.3); }
+  .vc-side-brand b { display: block; font-size: 1.1rem; line-height: 1.1; }
+  .vc-side-brand small { color: var(--muted); font-size: .7rem; }
+  .vc-side-sec { font-size: .62rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 12px 10px 4px; }
+  .vc-link {
+    --c: #1478d4; display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; position: relative;
+    text-decoration: none; color: var(--text); font-size: .85rem; font-weight: 600; transition: background .15s;
+  }
+  .vc-link .ic {
+    width: 30px; height: 30px; border-radius: 9px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    background: color-mix(in srgb, var(--c) 14%, white); border: 1px solid color-mix(in srgb, var(--c) 40%, white);
+  }
+  .vc-link:hover { background: color-mix(in srgb, var(--c) 9%, white); }
+  .vc-link.on { background: color-mix(in srgb, var(--c) 14%, white); color: color-mix(in srgb, var(--c) 65%, black); font-weight: 800; }
+  .vc-link.on::before { content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 4px; border-radius: 4px; background: var(--c); }
+  .vc-side-foot { margin-top: auto; padding-top: 10px; font-size: .7rem; color: var(--muted); text-align: center; }
+
+  /* page header becomes a coloured banner */
+  .container { border-top-width: 1px; border-top-color: rgba(255,255,255,.9); }
+  .page-head {
+    position: relative; overflow: hidden; margin: -6px -6px 22px; padding: 16px 22px; border-radius: 16px;
+    background: linear-gradient(120deg, var(--accent-dark), var(--accent)); color: #fff; box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .page-head::after {
+    content: ""; position: absolute; right: -10px; top: -30px; bottom: -30px; width: 340px; pointer-events: none;
+    background: url("../images/bg-hex.webp") right center / cover no-repeat; filter: brightness(0) invert(1); opacity: .3;
+  }
+  .page-head > * { position: relative; z-index: 1; }
+  .page-head h1 { color: #fff; font-size: 1.45rem; }
+  .page-head .page-chip { background: rgba(255,255,255,.2); color: #fff; border-color: rgba(255,255,255,.5); }
+  .page-head img { box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+  .container > .back-link { display: none; }       /* the sidebar replaces it */
+}
+
+/* narrow desktop / tablet: icon rail */
+@media (min-width: 721px) and (max-width: 1099px) {
+  :root { --vc-nav-w: 62px; }
+  .vc-side { padding: 12px 8px; align-items: center; }
+  .vc-side-brand b, .vc-side-brand small, .vc-link .lbl, .vc-side-sec, .vc-side-foot, .vc-install-side { display: none; }
+  .vc-side-brand { padding: 2px 0 8px; }
+  .vc-side-brand img { width: 38px; height: 38px; }
+  .vc-link { padding: 4px; margin: 2px 0; }
+  .vc-link.on::before { left: -8px; }
+}
+
+/* ==========================================================
+   PHONE  (<= 720px) — separate app-style UI
+   ========================================================== */
+@media (max-width: 720px) {
+  body { padding: 0 0 calc(86px + env(safe-area-inset-bottom)) !important; }
+  body.vc-home { padding-bottom: 28px !important; }
+  body::before {
+    background:
+      url("../images/bg-wave.webp")     center bottom / 170% 120px no-repeat,
+      url("../images/bg-virus-bl.webp") left -34px bottom 40px / 140px auto no-repeat,
+      url("../images/bg-calc.webp")     right -22px bottom 40px / 160px auto no-repeat,
+      url("../images/bg-hex.webp")      right -70px top 0 / 280px auto no-repeat,
+      url("../images/bg-dna.webp")      left -60px top 36% / 150px auto no-repeat,
+      url("../images/bg-virus-1.webp")  72% 52% / 90px auto no-repeat;
+  }
+
+  /* app header */
+  .vc-appbar {
+    display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden; color: #fff;
+    padding: calc(14px + env(safe-area-inset-top)) 14px 40px;
+    background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+  }
+  .vc-appbar::after {
+    content: ""; position: absolute; top: -10px; bottom: -10px; right: -40px; width: 230px; pointer-events: none;
+    background: url("../images/bg-hex.webp") right center / cover no-repeat; filter: brightness(0) invert(1); opacity: .3;
+  }
+  .vc-appbar > * { position: relative; z-index: 1; }
+  .ab-back, .ab-menu {
+    width: 42px; height: 42px; flex: none; border-radius: 13px; display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.35); color: #fff; font-size: 1.4rem; text-decoration: none;
+    padding: 0; box-shadow: none; min-height: 0; line-height: 1;
+  }
+  .ab-menu { margin-left: auto; font-size: 1.1rem; }
+  .ab-menu:hover, .ab-back:hover { background: rgba(255,255,255,.3); filter: none; transform: none; }
+  .ab-t { min-width: 0; }
+  .ab-t small { display: block; font-size: .65rem; font-weight: 800; letter-spacing: 1.2px; opacity: .8; }
+  .ab-t b { display: block; font-size: 1.12rem; line-height: 1.2; }
+
+  /* content sheet overlaps the header */
+  .back-link, .page-head { display: none !important; }
+  .container, .container.mid, .container.wide {
+    max-width: none !important; margin: -22px 0 0 !important; padding: 18px 14px 28px; position: relative; min-height: 70vh;
+    border: 0 !important; border-radius: 24px 24px 0 0; box-shadow: 0 -6px 24px rgba(15,76,129,.12);
+    background: rgba(255,255,255,.95); -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  .container > * { animation-duration: .4s; }
+
+  /* touch-friendly controls (16px stops iOS zoom-on-focus) */
+  input, select, textarea { font-size: 16px !important; padding: 12px; }
+  button { min-height: 44px; }
+  .chip { min-height: 40px; }
+  .rm-btn, .mini-btn { min-height: 38px; min-width: 38px; }
+  .seg button { min-width: 0; padding: 10px 8px; font-size: .85rem; }
+  .row { flex-direction: column; gap: 8px; }
+  .row > .field, .field { min-width: 0 !important; max-width: none !important; width: 100%; }
+  select { width: 100%; text-overflow: ellipsis; }
+  .action-row { flex-wrap: wrap; }
+  .action-row > button { flex: 1 1 140px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile .v { font-size: 1.15rem; }
+  .chart-card { padding: 12px 10px; border-radius: 16px; }
+  .result-box .val { font-size: 1.6rem; }
+  h2 { font-size: 1.05rem; }
+
+  /* bottom navigation */
+  .vc-bnav {
+    display: flex; position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; gap: 6px; justify-content: space-around;
+    padding: 7px 12px calc(7px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.95);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid var(--border);
+    box-shadow: 0 -6px 20px rgba(15,76,129,.08);
+  }
+  .vc-bnav a, .vc-bnav button {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 52px; padding: 6px 4px;
+    border: 0; border-radius: 14px; background: none; box-shadow: none; color: var(--muted);
+    font-size: .68rem; font-weight: 800; text-decoration: none; transform: none; filter: none;
+  }
+  .vc-bnav .bi { font-size: 1.35rem; line-height: 1; }
+  .vc-bnav .on { background: var(--accent-soft); color: var(--accent-dark); }
+  .vc-bnav a:hover, .vc-bnav button:hover { filter: none; transform: none; background: var(--accent-soft); }
+
+  /* tools sheet */
+  .vc-scrim { display: block; position: fixed; inset: 0; z-index: 60; background: rgba(10,30,60,.5); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .vc-scrim.open { opacity: 1; pointer-events: auto; }
+  .vc-sheet {
+    display: block; position: fixed; z-index: 70; left: 0; right: 0; bottom: 0; max-height: 84vh; overflow-y: auto;
+    background: #fff; border-radius: 24px 24px 0 0; padding: 10px 14px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(106%); transition: transform .26s ease; box-shadow: 0 -12px 40px rgba(0,0,0,.25);
+  }
+  .vc-sheet.open { transform: none; }
+  .vc-sheet .grab { width: 46px; height: 5px; border-radius: 5px; background: #cbd5e1; margin: 2px auto 12px; }
+  .vc-sheet h4 { margin: 14px 2px 8px; font-size: .68rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+  .vc-sheet .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .vc-tile {
+    --c: #1478d4; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 12px 4px;
+    border-radius: 16px; text-decoration: none; color: var(--text); font-size: .72rem; font-weight: 800; line-height: 1.2;
+    background: color-mix(in srgb, var(--c) 9%, white); border: 1.5px solid color-mix(in srgb, var(--c) 28%, white);
+  }
+  .vc-tile .ic { font-size: 1.7rem; line-height: 1; }
+  .vc-tile.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 20%, white); }
+}
+
+/* ---------- print: no shell ---------- */
+@media print {
+  .vc-side, .vc-appbar, .vc-bnav, .vc-sheet, .vc-scrim, .vc-install { display: none !important; }
+  html { background: #fff !important; } body::before { display: none !important; }
+  body.vc-has-side { padding: 0 !important; }
+  .page-head { background: none !important; color: #000 !important; box-shadow: none !important; margin: 0 0 10px !important; padding: 0 !important; }
+  .page-head::after { display: none !important; }
+  .page-head h1 { color: #000 !important; }
+  .container > * { animation: none !important; }
+}

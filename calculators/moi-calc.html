@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>MOI Calculator — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+</head>
+<body data-theme="moi">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icon.png" alt="" />
+      <div class="titles">
+        <h1>Viro Calculator</h1>
+        <span class="page-chip">MOI — Multiplicity of Infection</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="cells">Cells per vessel (well / flask)</label>
+        <input type="number" id="cells" step="any" inputmode="decimal" placeholder="e.g. 5e5" />
+      </div>
+      <div class="field">
+        <label for="vessels">Number of vessels</label>
+        <input type="number" id="vessels" min="1" step="1" value="1" />
+      </div>
+    </div>
+
+    <details>
+      <summary>Don't know the total? Work it out from cell density</summary>
+      <div class="row">
+        <div class="field"><label for="dens">Cell density (cells/mL)</label><input type="number" id="dens" step="any" placeholder="e.g. 2.5e5" /></div>
+        <div class="field"><label for="densVol">Volume per vessel (mL)</label><input type="number" id="densVol" step="any" placeholder="e.g. 2" /></div>
+        <div class="field" style="justify-content:flex-end"><button type="button" class="secondary" id="useDens">Use this ↑</button></div>
+      </div>
+    </details>
+
+    <label style="display:block; margin-top:16px">Target MOI</label>
+    <div class="chips" id="moiChips">
+      <button type="button" class="chip" data-v="0.01">0.01</button>
+      <button type="button" class="chip" data-v="0.1">0.1</button>
+      <button type="button" class="chip" data-v="0.5">0.5</button>
+      <button type="button" class="chip active" data-v="1">1</button>
+      <button type="button" class="chip" data-v="5">5</button>
+      <button type="button" class="chip" data-v="10">10</button>
+    </div>
+    <div class="row">
+      <div class="field"><label for="moi">MOI (virus particles per cell)</label><input type="number" id="moi" step="any" value="1" /></div>
+      <div class="field">
+        <label for="titerFmt">Titer entered as</label>
+        <select id="titerFmt"><option value="val">Number (e.g. 2.5e7)</option><option value="log">log₁₀ (e.g. 7.4)</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="titer">Virus stock titer</label><input type="number" id="titer" step="any" placeholder="e.g. 2.5e7" /></div>
+      <div class="field">
+        <label for="titerUnit">Titer unit</label>
+        <select id="titerUnit"><option>PFU/mL</option><option>TCID₅₀/mL</option><option>FFU/mL</option><option>IU/mL</option><option>copies/mL</option></select>
+      </div>
+      <div class="field"><label for="infVol">Infection volume per vessel (mL, optional)</label><input type="number" id="infVol" step="any" placeholder="e.g. 0.5" /></div>
+    </div>
+
+    <div class="note err" id="err" style="display:none"></div>
+
+    <div class="result-box">
+      <div class="sub">Virus to add per vessel</div>
+      <div class="val" id="vPer">—</div>
+      <div class="sub" id="vSub"></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="note warn" id="predil" style="display:none"></div>
+
+    <div class="chart-card">
+      <h3 id="poTitle">Infection outcome at this MOI</h3>
+      <div id="poisson"></div>
+      <p class="hint">Virions are assumed to land on cells at random (Poisson distribution). Each dot is 1 % of the cells; colour = number of virions that entered that cell.</p>
+    </div>
+
+    <h2>Virus volume at other MOIs</h2>
+    <div class="tbl-wrap"><table class="tbl" id="moiTbl"></table></div>
+
+    <div class="version-tag">Viro Calculator • v5.1</div>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script>
+    const { $, num, fmt, sci } = VC;
+    VC.chips('moiChips', v => { $('moi').value = v; calc(); });
+
+    const volStr = ml => ml < 1 ? `${fmt(ml * 1000, 3)} µL` : `${fmt(ml, 3)} mL`;
+    const COLORS = ['#eef0f4', '#f5d0fe', '#e879f9', '#c026d3', '#86198f', '#4a044e'];
+    const LABELS = ['0', '1', '2', '3', '4', '≥5'];
+
+    function getTiter() {
+      let t = num($('titer')); if (t === null) return null;
+      if ($('titerFmt').value === 'log') t = Math.pow(10, t);
+      return t > 0 ? t : null;
+    }
+
+    function calc() {
+      const cells = num($('cells')), N = Math.max(1, parseInt($('vessels').value) || 1);
+      const moi = num($('moi')), titer = getTiter(), inf = num($('infVol')), unit = $('titerUnit').value;
+      const err = $('err'); err.style.display = 'none'; $('predil').style.display = 'none';
+
+      // chips highlight
+      document.querySelectorAll('#moiChips .chip').forEach(c => c.classList.toggle('active', moi !== null && parseFloat(c.dataset.v) === moi));
+
+      drawPoisson(moi);
+      if (!(cells > 0) || !(moi > 0) || titer === null) {
+        $('vPer').textContent = '—'; $('vSub').textContent = 'Enter cells, MOI and titer'; $('tiles').innerHTML = '';
+        drawTable(cells, titer, unit, moi, inf); return;
+      }
+      const vMl = moi * cells / titer;              // mL per vessel
+      $('vPer').textContent = volStr(vMl);
+      $('vSub').textContent = `${sci(moi * cells)} virus units for ${sci(cells)} cells`;
+
+      let tiles = `<div class="tile"><div class="k">Total for ${N} vessel${N > 1 ? 's' : ''}</div><div class="v">${volStr(vMl * N)}</div><div class="s">per vessel × ${N}</div></div>
+        <div class="tile"><div class="k">Virus units per vessel</div><div class="v">${sci(moi * cells)}</div><div class="s">MOI × cells (${unit.replace('/mL', '')})</div></div>`;
+      if (inf > 0) {
+        const media = inf - vMl;
+        tiles += `<div class="tile"><div class="k">Medium to add</div><div class="v">${media >= 0 ? volStr(media) : '—'}</div><div class="s">to reach ${volStr(inf)} per vessel</div></div>`;
+        if (media < 0) { err.textContent = `The virus volume (${volStr(vMl)}) is larger than your infection volume (${volStr(inf)}). Use a more concentrated stock or a larger infection volume.`; err.style.display = ''; }
+      }
+      $('tiles').innerHTML = tiles;
+
+      const uL = vMl * 1000;
+      if (uL < 5) {
+        const k = Math.ceil(Math.log10(5 / uL));
+        $('predil').innerHTML = `<strong>Volume is below 5 µL — hard to pipette accurately.</strong> Make a 1 : ${Math.pow(10, k).toLocaleString('en-US')} intermediate dilution of the stock in medium, then add <strong>${fmt(uL * Math.pow(10, k), 3)} µL</strong> of it per vessel.`;
+        $('predil').style.display = '';
+      }
+      drawTable(cells, titer, unit, moi, inf);
+    }
+
+    function drawTable(cells, titer, unit, moi, inf) {
+      if (!(cells > 0) || titer === null) { $('moiTbl').innerHTML = ''; return; }
+      const list = [0.01, 0.1, 0.5, 1, 2, 5, 10]; if (moi > 0 && !list.includes(moi)) { list.push(moi); list.sort((a, b) => a - b); }
+      $('moiTbl').innerHTML = '<thead><tr><th>MOI</th><th>Virus per vessel</th><th>Cells infected (≥1 virion)</th></tr></thead><tbody>' +
+        list.map(m => `<tr${m === moi ? ' style="background:var(--accent-soft); font-weight:700"' : ''}><td>${fmt(m, 4)}</td><td>${volStr(m * cells / titer)}</td><td>${fmt(100 * (1 - Math.exp(-m)), 3)} %</td></tr>`).join('') + '</tbody>';
+    }
+
+    function poissonBins(m) {
+      const p = []; let f = 1, sum = 0;
+      for (let k = 0; k < 5; k++) { if (k > 0) f *= k; const v = Math.exp(-m) * Math.pow(m, k) / f; p.push(v); sum += v; }
+      p.push(Math.max(0, 1 - sum)); return p;
+    }
+
+    function drawPoisson(m) {
+      if (!(m > 0)) { $('poisson').innerHTML = '<p class="hint">Enter an MOI to see the distribution.</p>'; $('poTitle').textContent = 'Infection outcome at this MOI'; return; }
+      const p = poissonBins(m);
+      // allocate 100 cells (largest remainder)
+      const raw = p.map(x => x * 100), cnt = raw.map(Math.floor);
+      let rem = 100 - cnt.reduce((a, b) => a + b, 0);
+      raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0]).slice(0, rem).forEach(([, i]) => cnt[i]++);
+      let cells = []; cnt.forEach((c, k) => { for (let i = 0; i < c; i++) cells.push(k); });
+      const r = VC.rng(12345); for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1));[cells[i], cells[j]] = [cells[j], cells[i]]; }
+
+      const inf = 100 * (1 - Math.exp(-m));
+      $('poTitle').textContent = `At MOI ${fmt(m, 3)}: ${fmt(inf, 3)} % of cells receive at least one virion`;
+      let s = `<svg viewBox="0 0 660 300" role="img" aria-label="Poisson distribution of virions per cell">`;
+      cells.forEach((k, i) => { const cx = 20 + (i % 10) * 27, cy = 20 + Math.floor(i / 10) * 27; s += `<circle cx="${cx + 10}" cy="${cy + 10}" r="10.5" fill="${COLORS[k]}" stroke="#a21caf" stroke-opacity=".35"/>`; });
+      const bx = 330, bw = 220;
+      s += `<text class="b" x="${bx}" y="18">Virions per cell</text>`;
+      p.forEach((v, k) => {
+        const y = 34 + k * 40, w = Math.max(v * bw, v > 0 ? 2 : 0);
+        s += `<circle cx="${bx + 8}" cy="${y + 14}" r="8" fill="${COLORS[k]}" stroke="#a21caf" stroke-opacity=".5"/>
+              <text x="${bx + 24}" y="${y + 18}" class="b">${LABELS[k]}</text>
+              <rect x="${bx + 56}" y="${y + 2}" width="${bw}" height="24" rx="6" fill="#f3f4f6"/>
+              <rect x="${bx + 56}" y="${y + 2}" width="${w}" height="24" rx="6" fill="#a21caf" fill-opacity="${(0.35 + 0.1 * k).toFixed(2)}"/>
+              <text x="${bx + 56 + bw + 8}" y="${y + 19}" class="b">${fmt(v * 100, 3)} %</text>`;
+      });
+      $('poisson').innerHTML = s + '</svg>';
+    }
+
+    $('useDens').addEventListener('click', () => {
+      const d = num($('dens')), v = num($('densVol'));
+      if (d > 0 && v > 0) { $('cells').value = +(d * v).toPrecision(6); calc(); }
+    });
+    ['cells', 'vessels', 'moi', 'titer', 'infVol'].forEach(id => $(id).addEventListener('input', calc));
+    ['titerFmt', 'titerUnit'].forEach(id => $(id).addEventListener('change', calc));
+    calc();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  </script>
+</body>
+</html>

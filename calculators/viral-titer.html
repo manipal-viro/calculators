@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Viral Titer — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <style>
+    .method-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+    @media (max-width: 760px) { .method-cols { grid-template-columns: 1fr; } }
+    .mcard { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; border-top: 5px solid var(--accent); }
+    .mcard.sk { border-top-color: #0f766e; }
+    .mcard h3 { margin: 0 0 6px; font-size: .95rem; color: var(--accent-dark); }
+    .mcard.sk h3 { color: #0f766e; }
+    .mcard .big { font-size: 1.5rem; font-weight: 800; color: var(--text); word-break: break-word; }
+    .mcard .sm { font-size: .8rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+    .tbl td.pc input { text-align: center; }
+    .rm-btn { background: #fee2e2; color: #991b1b; box-shadow: none; padding: 4px 9px; font-size: .8rem; }
+    .rm-btn:hover { filter: none; background: #fecaca; }
+  </style>
+  <script src="../js/shell.js" defer></script>
+</head>
+<body data-theme="titer">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icon.png" alt="" />
+      <div class="titles">
+        <h1>Viro Calculator</h1>
+        <span class="page-chip">Viral Titer — TCID₅₀ &amp; PFU/mL</span>
+      </div>
+    </div>
+
+    <div class="seg" id="tabs">
+      <button type="button" class="active" data-tab="tcid">TCID₅₀ end-point (RM &amp; SK)</button>
+      <button type="button" data-tab="pfu">Plaque assay (PFU/mL)</button>
+    </div>
+
+    <!-- ===================== TCID50 ===================== -->
+    <section class="panel active" id="panel-tcid">
+      <div class="row">
+        <div class="field"><label for="first">First dilution tested (1 : N)</label><input type="number" id="first" value="10" step="any" min="1" /></div>
+        <div class="field"><label for="df">Dilution factor per row</label><input type="number" id="df" value="10" step="any" min="1.01" /></div>
+        <div class="field"><label for="reps">Replicate wells per dilution</label><input type="number" id="reps" value="8" min="2" max="24" step="1" /></div>
+        <div class="field"><label for="inoc">Inoculum per well (µL)</label><input type="number" id="inoc" value="100" step="any" min="1" /></div>
+      </div>
+
+      <h2 style="margin-top:6px">Wells showing CPE / positive</h2>
+      <div class="tbl-wrap"><table class="tbl" id="tTable"></table></div>
+      <div class="action-row">
+        <button type="button" class="secondary" id="addRow">+ Add dilution row</button>
+        <button type="button" class="secondary" id="clearRows">Clear counts</button>
+      </div>
+
+      <div class="note err" id="tErr" style="display:none"></div>
+      <div class="note warn" id="tWarn" style="display:none"></div>
+
+      <div class="method-cols" id="tResults"></div>
+
+      <div class="chart-card">
+        <h3>Wells per dilution <span class="u">(filled = positive)</span></h3>
+        <div class="chart-scroll" id="plate"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Dose–response and 50 % end-point</h3>
+        <div id="curve"></div>
+        <p class="hint">Grey dots = % of wells positive at each dilution. Green line = Reed–Muench cumulative %. Vertical lines mark the 50 % end-point from each method.</p>
+      </div>
+
+      <details>
+        <summary>How these are calculated</summary>
+        <p class="sub-text"><strong>Reed–Muench:</strong> positives are accumulated from the highest dilution downward and negatives from the lowest dilution upward; the 50 % point is interpolated between the two dilutions that bracket it (proportionate distance). <strong>Spearman–Kärber:</strong> log₁₀ end-point = x₀ + d·(S − 0.5), where x₀ is the highest dilution with 100 % positive wells, d = log₁₀(dilution factor), and S = sum of the proportions positive from x₀ onward. The 95 % interval uses SE = d·√(Σp(1−p)/(n−1)). TCID₅₀/mL = end-point titer ÷ inoculum volume in mL. The PFU conversion (×0.69) is the usual Poisson approximation, not an exact equivalence.</p>
+      </details>
+    </section>
+
+    <!-- ===================== PLAQUE ===================== -->
+    <section class="panel" id="panel-pfu">
+      <div class="row">
+        <div class="field"><label for="pVol">Inoculum per well (mL)</label><input type="number" id="pVol" value="0.1" step="any" min="0" /></div>
+        <div class="field"><label for="pLo">Countable range — min plaques</label><input type="number" id="pLo" value="10" /></div>
+        <div class="field"><label for="pHi">Countable range — max plaques</label><input type="number" id="pHi" value="100" /></div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl" id="pTable"></table></div>
+      <div class="action-row"><button type="button" class="secondary" id="pAdd">+ Add dilution row</button></div>
+
+      <div class="note err" id="pErr" style="display:none"></div>
+      <div class="result-box">
+        <div class="sub">Plaque-forming units</div>
+        <div class="val" id="pMain">—</div>
+        <div class="sub" id="pSub">Enter plaque counts for at least one countable dilution</div>
+      </div>
+      <div class="tiles" id="pTiles"></div>
+      <div class="chart-card">
+        <h3>Plates (dots = plaques counted)</h3>
+        <div class="chart-scroll" id="dishes"></div>
+        <p class="hint">Dish positions are illustrative. Green outline = within countable range and used for the titer; grey = excluded.</p>
+      </div>
+      <p class="hint">PFU/mL = mean plaques ÷ (dilution × inoculum volume). The titer is the mean of all rows inside the countable range.</p>
+    </section>
+
+    <div class="version-tag">Viro Calculator • v5.1</div>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script>
+    const { $, num, fmt, sci, esc, sup } = VC;
+    VC.tabs('tabs');
+    const GREEN = '#15803d', GREEN_D = '#14532d', TEAL = '#0f766e';
+
+    const dilLabel = N => { const l = Math.log10(N); return Math.abs(l - Math.round(l)) < 1e-9 ? '10' + sup(-Math.round(l)) : '1:' + fmt(N, 4); };
+
+    /* ===================== TCID50 ===================== */
+    let counts = Array(8).fill(null);
+
+    function params() {
+      return { first: num($('first')), DF: num($('df')), n: parseInt($('reps').value), vol: num($('inoc')) };
+    }
+
+    function buildTable() {
+      const { first, DF, n } = params();
+      const ok = first >= 1 && DF > 1;
+      let h = '<thead><tr><th>Dilution</th><th>Positive wells (of ' + (n || '?') + ')</th><th>% positive</th><th>Cum. positive</th><th>Cum. negative</th><th>Cum. % (RM)</th><th></th></tr></thead><tbody>';
+      counts.forEach((c, i) => {
+        const lab = ok ? dilLabel(first * Math.pow(DF, i)) : '—';
+        h += `<tr><td><strong>${lab}</strong></td>
+          <td class="pc"><input type="number" min="0" max="${n || ''}" step="1" data-i="${i}" value="${c === null ? '' : c}" /></td>
+          <td id="pp${i}" class="c">—</td><td id="ci${i}" class="c">—</td><td id="cu${i}" class="c">—</td><td id="cp${i}" class="c">—</td>
+          <td><button type="button" class="rm-btn" data-rm="${i}" title="Remove row">✕</button></td></tr>`;
+      });
+      $('tTable').innerHTML = h + '</tbody>';
+      $('tTable').querySelectorAll('input[data-i]').forEach(inp => inp.addEventListener('input', () => {
+        const v = inp.value === '' ? null : parseInt(inp.value); counts[+inp.dataset.i] = isNaN(v) ? null : v; calcT();
+      }));
+      $('tTable').querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { if (counts.length > 3) { counts.splice(+b.dataset.rm, 1); buildTable(); calcT(); } }));
+      VC.enterNav([...$('tTable').querySelectorAll('input[data-i]')]);
+    }
+
+    function calcT() {
+      const { first, DF, n, vol } = params();
+      const err = $('tErr'), warn = $('tWarn'); err.style.display = 'none'; warn.style.display = 'none';
+      const out = $('tResults'); out.innerHTML = '';
+      if (!(first >= 1) || !(DF > 1) || !(n >= 2) || !(vol > 0)) {
+        err.textContent = 'Check the set-up: first dilution ≥ 1, factor > 1, at least 2 replicates and an inoculum volume > 0.'; err.style.display = '';
+        $('plate').innerHTML = ''; $('curve').innerHTML = ''; return;
+      }
+      const N = counts.length, d = Math.log10(DF), L0 = Math.log10(first);
+      const logd = counts.map((_, i) => L0 + i * d);
+      drawPlate(n, logd);
+      // per-row % (shown as soon as a value exists)
+      counts.forEach((c, i) => { $('pp' + i).textContent = c === null ? '—' : fmt(100 * c / n, 3) + ' %'; });
+      const bad = counts.findIndex(c => c !== null && (c < 0 || c > n));
+      if (bad >= 0) { err.textContent = `Row ${bad + 1}: positive wells must be between 0 and ${n}.`; err.style.display = ''; return; }
+      if (counts.some(c => c === null)) {
+        $('curve').innerHTML = '<p class="hint">Enter the positive-well count for every row to see the result.</p>';
+        counts.forEach((_, i) => { $('ci' + i).textContent = $('cu' + i).textContent = $('cp' + i).textContent = '—'; });
+        return;
+      }
+
+      /* ---- Reed–Muench ---- */
+      const p = counts, cumInf = Array(N), cumUn = Array(N);
+      for (let i = N - 1, s = 0; i >= 0; i--) { s += p[i]; cumInf[i] = s; }
+      for (let i = 0, s = 0; i < N; i++) { s += n - p[i]; cumUn[i] = s; }
+      const pct = cumInf.map((a, i) => 100 * a / (a + cumUn[i]));
+      counts.forEach((_, i) => { $('ci' + i).textContent = cumInf[i]; $('cu' + i).textContent = cumUn[i]; $('cp' + i).textContent = fmt(pct[i], 3) + ' %'; });
+      const b = pct.findIndex(x => x < 50);
+      let Lrm = null, rmMsg = '', PD = null;
+      if (b > 0) { const a = b - 1; PD = (pct[a] - 50) / (pct[a] - pct[b]); Lrm = logd[a] + PD * d; }
+      else if (b === 0) rmMsg = 'Even the first dilution is below 50 % — use a lower first dilution.';
+      else rmMsg = 'The highest dilution is still ≥ 50 % — add higher dilutions to reach the end-point.';
+
+      /* ---- Spearman–Kärber ---- */
+      const prop = p.map(x => x / n);
+      let k = -1; prop.forEach((x, i) => { if (x === 1) k = i; });
+      let x0, S, virtual = false;
+      if (k === -1) { x0 = logd[0] - d; S = 1 + prop.reduce((a, c) => a + c, 0); virtual = true; }
+      else { x0 = logd[k]; S = prop.slice(k).reduce((a, c) => a + c, 0); }
+      let Lsk = x0 + d * (S - 0.5);
+      const se = d * Math.sqrt(prop.reduce((a, c) => a + c * (1 - c), 0) / (n - 1));
+      const allZero = p.every(x => x === 0);
+      if (allZero) Lsk = null;
+
+      const msgs = [];
+      if (p[N - 1] > 0) msgs.push('The highest dilution still has positive wells, so the end-point was not reached and titers are underestimated.');
+      if (virtual && !allZero) msgs.push('No dilution had 100 % positive wells; Spearman–Kärber assumes the dilution before the first row was 100 % positive.');
+      if (rmMsg) msgs.push('Reed–Muench: ' + rmMsg);
+      if (allZero) msgs.push('No positive wells at any dilution.');
+      if (msgs.length) { warn.innerHTML = msgs.map(esc).join('<br>'); warn.style.display = ''; }
+
+      const perMl = L => L === null ? null : Math.pow(10, L) / (vol / 1000);
+      const card = (cls, name, L, extra) => `<div class="mcard ${cls}"><h3>${name}</h3>
+        <div class="big">${L === null ? '—' : sci(perMl(L), 3) + ' TCID₅₀/mL'}</div>
+        <div class="sm">${L === null ? 'Not calculable' : `log₁₀ = <strong>${fmt(L + Math.log10(1000 / vol), 4)}</strong> per mL<br>log₁₀ = ${fmt(L, 4)} per ${fmt(vol, 3)} µL well<br>≈ ${sci(0.69 * perMl(L), 3)} PFU/mL (×0.69)${extra || ''}`}</div></div>`;
+      out.innerHTML = card('', 'Reed–Muench', Lrm, PD !== null ? `<br>Proportionate distance = ${fmt(PD, 3)}` : '') +
+        card('sk', 'Spearman–Kärber', Lsk, Lsk !== null && n > 1 ? `<br>95 % interval: ${sci(perMl(Lsk - 1.96 * se), 3)} – ${sci(perMl(Lsk + 1.96 * se), 3)}` : '');
+      drawCurve(logd, prop, pct, Lrm, Lsk);
+    }
+
+    function drawPlate(n, logd) {
+      const N = counts.length, cs = 24, lx = 90, W = lx + n * cs + 150, H = N * 28 + 16;
+      let s = `<svg viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W, 520)}px" role="img" aria-label="Wells per dilution">`;
+      counts.forEach((c, i) => {
+        const y = 14 + i * 28;
+        s += `<text class="b" x="${lx - 12}" y="${y + 4}" text-anchor="end">${dilLabel(Math.pow(10, logd[i]))}</text>`;
+        for (let j = 0; j < n; j++) {
+          const pos = c !== null && j < c;
+          s += `<circle cx="${lx + j * cs + 10}" cy="${y}" r="9" fill="${pos ? GREEN : '#fff'}" stroke="${c === null ? '#cbd5e1' : pos ? GREEN_D : '#94a3b8'}" stroke-width="1.5"/>`;
+        }
+        s += `<text x="${lx + n * cs + 16}" y="${y + 4}" class="b">${c === null ? '' : c + ' / ' + n}</text>`;
+      });
+      $('plate').innerHTML = s + '</svg>';
+    }
+
+    function drawCurve(logd, prop, pct, Lrm, Lsk) {
+      const W = 640, H = 300, L = 56, R = 20, T = 20, B = 46;
+      const xmin = logd[0] - 0.4, xmax = logd[logd.length - 1] + 0.4;
+      const X = v => L + (v - xmin) / (xmax - xmin) * (W - L - R), Y = v => H - B - v / 100 * (H - T - B);
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Dose response">`;
+      [0, 25, 50, 75, 100].forEach(t => { s += `<line x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}" stroke="${t === 50 ? '#94a3b8' : '#e5e7eb'}" ${t === 50 ? 'stroke-dasharray="5 4"' : ''}/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">${t} %</text>`; });
+      logd.forEach(v => { s += `<text x="${X(v)}" y="${H - B + 16}" text-anchor="middle">${dilLabel(Math.pow(10, v))}</text>`; });
+      s += `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="#94a3b8"/>`;
+      s += `<path d="${pct.map((v, i) => (i ? 'L' : 'M') + X(logd[i]).toFixed(1) + ' ' + Y(v).toFixed(1)).join('')}" fill="none" stroke="${GREEN}" stroke-width="3"/>`;
+      prop.forEach((v, i) => { s += `<circle cx="${X(logd[i])}" cy="${Y(v * 100)}" r="5" fill="#94a3b8" stroke="#fff" stroke-width="1.5"/>`; });
+      if (Lrm !== null) s += `<line x1="${X(Lrm)}" x2="${X(Lrm)}" y1="${T}" y2="${H - B}" stroke="${GREEN_D}" stroke-width="2"/><text class="b" x="${X(Lrm) + 6}" y="${T + 12}" style="fill:${GREEN_D}">RM  10${sup(-fmt(Lrm, 3))}</text>`;
+      if (Lsk !== null) s += `<line x1="${X(Lsk)}" x2="${X(Lsk)}" y1="${T}" y2="${H - B}" stroke="${TEAL}" stroke-width="2" stroke-dasharray="6 4"/><text class="b" x="${X(Lsk) + 6}" y="${T + 28}" style="fill:${TEAL}">SK  10${sup(-fmt(Lsk, 3))}</text>`;
+      s += `<text x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle">Dilution of virus stock</text></svg>`;
+      $('curve').innerHTML = s;
+    }
+
+    ['first', 'df', 'reps', 'inoc'].forEach(id => $(id).addEventListener('input', () => { buildTable(); calcT(); }));
+    $('addRow').addEventListener('click', () => { if (counts.length < 12) { counts.push(null); buildTable(); calcT(); } });
+    $('clearRows').addEventListener('click', () => { counts = counts.map(() => null); buildTable(); calcT(); });
+
+    /* ===================== Plaque assay ===================== */
+    let prow = [{ e: 3, a: null, b: null }, { e: 4, a: null, b: null }, { e: 5, a: null, b: null }, { e: 6, a: null, b: null }];
+
+    function buildP() {
+      let h = '<thead><tr><th>Dilution 10<sup>−x</sup>, x =</th><th>Well A (plaques)</th><th>Well B (optional)</th><th>Mean</th><th>PFU/mL</th><th>Status</th><th></th></tr></thead><tbody>';
+      prow.forEach((r, i) => {
+        h += `<tr id="pr${i}"><td><input type="number" step="any" data-f="e" data-i="${i}" value="${r.e ?? ''}" /></td>
+          <td><input type="number" min="0" step="1" data-f="a" data-i="${i}" value="${r.a ?? ''}" /></td>
+          <td><input type="number" min="0" step="1" data-f="b" data-i="${i}" value="${r.b ?? ''}" /></td>
+          <td id="pm${i}" class="c">—</td><td id="pv${i}">—</td><td id="ps${i}">—</td>
+          <td><button type="button" class="rm-btn" data-prm="${i}">✕</button></td></tr>`;
+      });
+      $('pTable').innerHTML = h + '</tbody>';
+      $('pTable').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
+        const v = inp.value === '' ? null : parseFloat(inp.value); prow[+inp.dataset.i][inp.dataset.f] = isNaN(v) ? null : v; calcP();
+      }));
+      $('pTable').querySelectorAll('[data-prm]').forEach(b => b.addEventListener('click', () => { if (prow.length > 1) { prow.splice(+b.dataset.prm, 1); buildP(); calcP(); } }));
+    }
+
+    function calcP() {
+      const vol = num($('pVol')), lo = num($('pLo')), hi = num($('pHi'));
+      const err = $('pErr'); err.style.display = 'none';
+      if (!(vol > 0)) { err.textContent = 'Enter an inoculum volume above 0.'; err.style.display = ''; return; }
+      const used = [], info = [];
+      prow.forEach((r, i) => {
+        const w = [r.a, r.b].filter(x => x !== null);
+        if (!w.length || r.e === null) { info.push(null); $('pm' + i).textContent = $('pv' + i).textContent = $('ps' + i).textContent = '—'; return; }
+        const mean = w.reduce((a, c) => a + c, 0) / w.length, pfu = mean * Math.pow(10, r.e) / vol;
+        const inR = mean >= lo && mean <= hi;
+        info.push({ mean, pfu, inR, e: r.e });
+        $('pm' + i).textContent = fmt(mean, 4); $('pv' + i).textContent = sci(pfu, 3);
+        $('ps' + i).innerHTML = inR ? '<span class="pill res-neg">Used</span>' : `<span class="pill res-na">${mean < lo ? 'Too few' : 'Too many'}</span>`;
+        if (inR) used.push(pfu);
+      });
+      if (used.length) {
+        const m = used.reduce((a, c) => a + c, 0) / used.length;
+        $('pMain').textContent = sci(m, 3) + ' PFU/mL';
+        $('pSub').textContent = `Mean of ${used.length} countable dilution${used.length > 1 ? 's' : ''}`;
+        const sd = used.length > 1 ? Math.sqrt(used.reduce((a, c) => a + (c - m) ** 2, 0) / (used.length - 1)) : null;
+        $('pTiles').innerHTML = `<div class="tile"><div class="k">log₁₀ PFU/mL</div><div class="v">${fmt(Math.log10(m), 4)}</div></div>
+          <div class="tile"><div class="k">Rows used</div><div class="v">${used.length}</div><div class="s">${lo}–${hi} plaques</div></div>
+          ${sd !== null ? `<div class="tile"><div class="k">Variation between rows</div><div class="v">${fmt(100 * sd / m, 3)} % CV</div></div>` : ''}`;
+      } else {
+        $('pMain').textContent = '—'; $('pTiles').innerHTML = '';
+        $('pSub').textContent = info.some(x => x) ? 'No dilution falls in the countable range — repeat with other dilutions.' : 'Enter plaque counts for at least one countable dilution';
+      }
+      drawDishes(info);
+    }
+
+    function drawDishes(info) {
+      const rows = prow.map((r, i) => ({ r, i, f: info[i] })).filter(x => x.f);
+      if (!rows.length) { $('dishes').innerHTML = '<p class="hint">Plates appear once you enter counts.</p>'; return; }
+      const rh = 110, W = 680, H = rows.length * rh + 10;
+      let s = `<svg viewBox="0 0 ${W} ${H}" style="min-width:560px" role="img" aria-label="Plaque plates">`;
+      rows.forEach(({ r, f }, k) => {
+        const y = 56 + k * rh, col = f.inR ? GREEN : '#94a3b8';
+        s += `<text class="b" x="10" y="${y + 4}" style="font-size:14px">10${sup(-r.e)}</text>`;
+        [[r.a, 0], [r.b, 1]].forEach(([cnt, w]) => {
+          if (cnt === null) return;
+          const cx = 120 + w * 100, R0 = 44;
+          s += `<circle cx="${cx}" cy="${y}" r="${R0}" fill="#fbfdf9" stroke="${col}" stroke-width="3"/>`;
+          const rnd = VC.rng(Math.round((r.e + 1) * 1000 + cnt * 7 + w * 131));
+          const shown = Math.min(Math.round(cnt), 250);
+          for (let q = 0; q < shown; q++) {
+            const a = rnd() * 2 * Math.PI, rr = Math.sqrt(rnd()) * (R0 - 6);
+            s += `<circle cx="${(cx + rr * Math.cos(a)).toFixed(1)}" cy="${(y + rr * Math.sin(a)).toFixed(1)}" r="2.6" fill="${f.inR ? GREEN_D : '#64748b'}" fill-opacity=".8"/>`;
+          }
+          s += `<text x="${cx}" y="${y + R0 + 14}" text-anchor="middle" style="font-size:10px">${cnt}</text>`;
+        });
+        s += `<text class="b" x="330" y="${y - 6}" style="font-size:13px; fill:${col}">${sci(f.pfu, 3)} PFU/mL</text><text x="330" y="${y + 12}">mean ${fmt(f.mean, 4)} plaques ${f.inR ? '· used' : '· outside range'}</text>`;
+      });
+      $('dishes').innerHTML = s + '</svg>';
+    }
+
+    ['pVol', 'pLo', 'pHi'].forEach(id => $(id).addEventListener('input', calcP));
+    $('pAdd').addEventListener('click', () => { if (prow.length < 8) { prow.push({ e: (prow.at(-1)?.e ?? 2) + 1, a: null, b: null }); buildP(); calcP(); } });
+
+    buildTable(); calcT(); buildP(); calcP();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  </script>
+</body>
+</html>

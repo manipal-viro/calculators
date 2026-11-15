@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Chikungunya IgM ELISA — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+    /* ---- controls ---- */
+    .ctl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 8px; }
+    .ctl { border-radius: 16px; padding: 14px 16px; border: 2px solid; min-width: 0; }
+    .ctl.nc  { background: linear-gradient(160deg, #f0fdf4, #dcfce7); border-color: #86efac; }
+    .ctl.pc  { background: linear-gradient(160deg, #fef2f2, #fee2e2); border-color: #fca5a5; }
+    .ctl.cc  { background: linear-gradient(160deg, #fffbeb, #fef3c7); border-color: #fcd34d; }
+    .ctl h3 { margin: 0 0 2px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+    .ctl h3 i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .ctl.nc h3 { color: #166534; } .ctl.nc h3 i { background: #16a34a; }
+    .ctl.pc h3 { color: #991b1b; } .ctl.pc h3 i { background: #dc2626; }
+    .ctl.cc h3 { color: #92400e; } .ctl.cc h3 i { background: #e0a100; }
+    .ctl .rule { font-size: .75rem; color: var(--muted); margin-bottom: 10px; }
+    .ctl .reps { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+    .ctl .reps input { width: 100%; min-width: 0; text-align: center; font-weight: 800; font-size: 1.05rem; }
+    .ctl .mean { margin-top: 10px; font-size: .8rem; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+    .ctl .mean b { font-size: 1.2rem; color: var(--text); }
+
+    /* ---- banner + QC ---- */
+    .banner { border-radius: 16px; padding: 14px 18px; margin: 14px 0; font-weight: 800; display: flex; gap: 14px; align-items: center; border: 2px solid; }
+    .banner .ic { font-size: 1.7rem; line-height: 1; }
+    .banner small { display: block; font-weight: 500; margin-top: 2px; }
+    .banner.wait { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+    .banner.good { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-color: #4ade80; color: #166534; }
+    .banner.bad  { background: linear-gradient(135deg, #fef2f2, #fee2e2); border-color: #f87171; color: #991b1b; }
+
+    .qc-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 10px 0; }
+    .qcc { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+    .qcc .t { font-size: .68rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .qcc .v { font-size: 1.4rem; font-weight: 800; margin: 2px 0 0; display: flex; align-items: baseline; gap: 6px; }
+    .qcc .v em { font-style: normal; font-size: 1rem; }
+    .qcc .r { font-size: .74rem; color: var(--muted); margin-top: 2px; }
+    .qcc svg { width: 100%; height: 30px; display: block; margin-top: 6px; }
+    .qcc.pass { border-top: 4px solid #16a34a; } .qcc.fail { border-top: 4px solid #dc2626; } .qcc.none { border-top: 4px solid #cbd5e1; }
+
+    /* ---- sample boxes ---- */
+    .samples { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .sbox { background: #fff; border: 1.5px solid var(--border); border-radius: 14px; padding: 10px; transition: border-color .15s, background .15s, box-shadow .15s; }
+    .sbox input { width: 100%; min-width: 0; }
+    .sbox .sid { font-size: .82rem; font-weight: 800; padding: 6px 8px; margin: 0 0 6px; color: var(--accent-dark); border-color: transparent; background: transparent; }
+    .sbox .sid:focus { background: #fff; border-color: var(--accent); }
+    .sbox .od { font-size: 1.15rem; font-weight: 800; text-align: center; padding: 10px 6px; }
+    .sbox .isr { text-align: center; font-size: .8rem; margin-top: 6px; font-weight: 800; min-height: 1.3em; }
+    .sbox.neg { background: linear-gradient(160deg, #f0fdf4, #dcfce7); border-color: #86efac; }
+    .sbox.eq  { background: linear-gradient(160deg, #fffbeb, #fef3c7); border-color: #fcd34d; }
+    .sbox.pos { background: linear-gradient(160deg, #fef2f2, #fee2e2); border-color: #fca5a5; }
+    .sbox.neg .isr { color: #166534; } .sbox.eq .isr { color: #92400e; } .sbox.pos .isr { color: #991b1b; }
+
+    /* ---- results ---- */
+    .sum-row { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 16px; align-items: center; margin: 10px 0; }
+    .sum-row .tiles { margin: 0; }
+    .donut { width: 170px; height: 170px; display: block; margin: 0 auto; }
+    .donut text { font-family: inherit; }
+    .cmt { font-size: .78rem; color: var(--muted); line-height: 1.45; max-width: 520px; }
+    .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 50px; }
+    .sign div { border-top: 1px solid #000; padding-top: 4px; font-size: .85rem; }
+
+    @media (max-width: 980px) { .samples { grid-template-columns: repeat(3, minmax(0, 1fr)); } .qc-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 760px) { .ctl-grid { grid-template-columns: minmax(0, 1fr); } .sum-row { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 560px) { .samples { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+
+    /* phone: results as cards instead of a wide table */
+    @media (max-width: 720px) {
+      #resTbl thead { display: none; }
+      #resTbl, #resTbl tbody, #resTbl tr, #resTbl td { display: block; width: 100%; }
+      #resTbl tr { padding: 10px 14px; border-top: 1px solid var(--border); }
+      #resTbl tr:first-child { border-top: 0; }
+      #resTbl td { border: 0; padding: 3px 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: right; }
+      #resTbl td::before { content: attr(data-label); font-weight: 800; color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .4px; text-align: left; flex: none; }
+      #resTbl td.cmt { display: block; text-align: left; max-width: none; padding-top: 6px; }
+      #resTbl td.cmt::before { display: block; margin-bottom: 2px; }
+      #resTbl td.cmt:empty { display: none; }
+    }
+    @media print {
+      .container { max-width: 100% !important; }
+      .banner { border: 2px solid #000 !important; background: none !important; color: #000 !important; }
+      .qcc, .tile { border: 1px solid #000 !important; }
+      .qcc svg { display: none; }
+      .cmt { color: #000 !important; }
+      .sum-row { grid-template-columns: 1fr; } .donut { display: none; }
+      #resTbl thead { display: table-header-group !important; } #resTbl { display: table !important; } #resTbl tbody { display: table-row-group !important; }
+      #resTbl tr { display: table-row !important; } #resTbl td { display: table-cell !important; text-align: left !important; } #resTbl td::before { display: none !important; }
+    }
+  </style>
+</head>
+<body data-theme="chik">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles">
+        <h1>Viro Calculator</h1>
+        <span class="page-chip">Chikungunya IgM ELISA — InBios CHIKjj Detect™</span>
+      </div>
+    </div>
+
+    <div class="print-only" style="margin-bottom:14px">
+      <h2 style="margin:0">Chikungunya IgM ELISA — Run Report</h2>
+      <p id="prInfo" style="margin:4px 0 0; font-size:.9rem"></p>
+    </div>
+
+    <details class="no-print" style="margin-top:0">
+      <summary>Run details &amp; lot-specific limits</summary>
+      <div class="row">
+        <div class="field"><label for="lot">Kit lot no.</label><input type="text" id="lot" /></div>
+        <div class="field"><label for="runDate">Date</label><input type="date" id="runDate" /></div>
+        <div class="field"><label for="oper">Performed by</label><input type="text" id="oper" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="ncMax">Mean NC OD ≤</label><input type="number" id="ncMax" step="any" inputmode="decimal" value="0.200" /></div>
+        <div class="field"><label for="pcMin">Mean PC OD ≥</label><input type="number" id="pcMin" step="any" inputmode="decimal" value="0.500" /></div>
+        <div class="field"><label for="rMin">PC / NC ratio ≥</label><input type="number" id="rMin" step="any" inputmode="decimal" value="5.0" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="eqLo">Equivocal from ISR</label><input type="number" id="eqLo" step="any" inputmode="decimal" value="0.90" /></div>
+        <div class="field"><label for="eqHi">Equivocal up to ISR</label><input type="number" id="eqHi" step="any" inputmode="decimal" value="1.10" /></div>
+      </div>
+      <p class="hint">Defaults follow the standard InBios CHIKjj Detect™ IgM limits. Always cross-check the insert in your kit box — limits can change between lot revisions. Edited values are remembered on this device.</p>
+    </details>
+
+    <h2>1 · Plate controls — duplicate OD₄₅₀</h2>
+    <div class="ctl-grid no-print">
+      <div class="ctl nc"><h3><i></i>Negative control (NC)</h3><div class="rule" id="ruleNC">Mean ≤ 0.200</div>
+        <div class="reps"><input type="number" step="any" inputmode="decimal" id="nc1" placeholder="NC 1" /><input type="number" step="any" inputmode="decimal" id="nc2" placeholder="NC 2" /></div>
+        <div class="mean"><span>Mean</span><b id="ncM">—</b></div></div>
+      <div class="ctl pc"><h3><i></i>Positive control (PC)</h3><div class="rule" id="rulePC">Mean ≥ 0.500</div>
+        <div class="reps"><input type="number" step="any" inputmode="decimal" id="pc1" placeholder="PC 1" /><input type="number" step="any" inputmode="decimal" id="pc2" placeholder="PC 2" /></div>
+        <div class="mean"><span>Mean</span><b id="pcM">—</b></div></div>
+      <div class="ctl cc"><h3><i></i>Cut-off control (CC)</h3><div class="rule">Mean &gt; mean NC</div>
+        <div class="reps"><input type="number" step="any" inputmode="decimal" id="cc1" placeholder="CC 1" /><input type="number" step="any" inputmode="decimal" id="cc2" placeholder="CC 2" /></div>
+        <div class="mean"><span>Mean</span><b id="ccM">—</b></div></div>
+    </div>
+    <p class="hint no-print">Read raw OD at 450 nm — no blank subtraction and no reference wavelength.</p>
+
+    <div class="banner wait" id="banner"></div>
+    <div class="qc-cards" id="qcCards"></div>
+
+    <h2 class="no-print">2 · Patient samples</h2>
+    <div class="samples no-print" id="samples"></div>
+    <div class="action-row no-print">
+      <button type="button" class="secondary" id="addMore">+ Add 5 more samples</button>
+      <button type="button" class="secondary" id="printBtn">Print report (B&amp;W)</button>
+      <button type="button" class="secondary" id="clearAll" style="color:#991b1b; border-color:#fca5a5">Clear plate</button>
+    </div>
+    <p class="hint no-print">Tap a sample name to rename it. Results are saved on this device automatically.</p>
+
+    <h2>3 · Results — Immune Status Ratio</h2>
+    <div class="sum-row">
+      <div id="donutWrap"></div>
+      <div class="tiles" id="sumTiles"></div>
+    </div>
+    <div class="tbl-wrap"><table class="tbl" id="resTbl"></table></div>
+
+    <div class="chart-card">
+      <h3>ISR by sample</h3>
+      <div class="chart-scroll" id="chart"></div>
+    </div>
+
+    <div class="print-only"><div class="sign"><div>Performed by / date</div><div>Verified by / date</div></div></div>
+
+    <details class="no-print">
+      <summary>Interpretation guide</summary>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>ISR</th><th>Result</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><strong>&lt; 0.90</strong></td><td><span class="pill res-neg">Negative</span></td><td>No detectable IgM to Chikungunya virus. Does not rule out acute infection if collected in the first 1–5 days after symptom onset (before IgM rises) — consider RT-PCR, or retest a convalescent sample after 7–14 days.</td></tr>
+          <tr><td><strong>0.90 – 1.10</strong></td><td><span class="pill res-eq">Equivocal</span></td><td>Indeterminate. Retest in duplicate. If still equivocal, collect a fresh serum 7–14 days later to look for seroconversion, or use a confirmatory method (e.g. PRNT).</td></tr>
+          <tr><td><strong>&gt; 1.10</strong></td><td><span class="pill res-pos">Positive</span></td><td>Presumptive positive for anti-CHIKV IgM — recent or acute infection. IgM can persist for months and may cross-react with other alphaviruses (e.g. Mayaro, O'nyong-nyong, Ross River): correlate with symptoms and travel/exposure history.</td></tr>
+        </tbody></table></div>
+      <p class="hint">Run validity: mean NC ≤ 0.200 · mean PC ≥ 0.500 · mean CC &gt; mean NC · PC/NC (discrimination capacity, R<sub>PC/NC</sub>) ≥ 5.0. ISR = sample OD₄₅₀ ÷ mean CC OD₄₅₀. ISR and PC/NC are compared as displayed, to 2 decimals.</p>
+    </details>
+
+    <div class="version-tag">Viro Calculator • v5.1</div>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script>
+    const { $, num, fmt, esc } = VC;
+    const KEY = 'viro_chik_igm';
+    const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+    let S = VC.store.get(KEY, null) || {};
+    S.ctl = S.ctl || {};
+    S.samples = S.samples && S.samples.length ? S.samples : Array.from({ length: 10 }, () => ({ id: '', od: '' }));
+    S.lim = Object.assign({ ncMax: 0.2, pcMin: 0.5, rMin: 5.0, eqLo: 0.9, eqHi: 1.1 }, S.lim || {});
+    S.info = Object.assign({ lot: '', date: today(), oper: '' }, S.info || {});
+    const save = () => VC.store.set(KEY, S);
+
+    const CTL = ['nc1', 'nc2', 'pc1', 'pc2', 'cc1', 'cc2'];
+    const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    const reps = (a, b) => [a, b].filter(v => v !== null && !isNaN(v));
+    const f3 = v => v === null ? '—' : v.toFixed(3);
+    const lim = v => Number.isInteger(v) ? v.toFixed(1) : fmt(v, 3);
+    const r4 = v => Math.round(v * 1e4) / 1e4;
+    const r2 = v => Math.round(v * 100) / 100;
+    const label = (s, i) => (s.id || '').trim() || 'Sample ' + (i + 1);
+
+    const COMMENT = {
+      neg: 'No anti-CHIKV IgM detected. Does not rule out infection if collected within 1–5 days of onset — consider RT-PCR or a convalescent sample after 7–14 days.',
+      eq: 'Indeterminate — retest in duplicate. If still equivocal: fresh serum after 7–14 days, or confirm by PRNT.',
+      pos: 'Presumptive positive for anti-CHIKV IgM (recent/acute infection). Correlate clinically; IgM may persist for months and can cross-react with other alphaviruses.'
+    };
+    const NAMES = { neg: 'Negative', eq: 'Equivocal', pos: 'Positive' };
+    const COL = { neg: '#16a34a', eq: '#e0a100', pos: '#dc2626' };
+
+    /* ---------- sample boxes ---------- */
+    function buildSamples() {
+      $('samples').innerHTML = S.samples.map((s, i) => `
+        <div class="sbox" id="sb${i}">
+          <input class="sid" type="text" data-i="${i}" data-f="id" aria-label="Sample name" value="${esc(s.id || 'Sample ' + (i + 1))}" />
+          <input class="od" type="number" step="any" inputmode="decimal" data-i="${i}" data-f="od" placeholder="OD" aria-label="OD of ${esc(label(s, i))}" value="${s.od}" />
+          <div class="isr" id="si${i}"></div></div>`).join('');
+      $('samples').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
+        const i = +inp.dataset.i;
+        if (inp.dataset.f === 'id') S.samples[i].id = inp.value === 'Sample ' + (i + 1) ? '' : inp.value;
+        else S.samples[i].od = inp.value;
+        calc();
+      }));
+      $('samples').querySelectorAll('.sid').forEach(inp => inp.addEventListener('focus', () => inp.select()));
+      VC.enterNav([...document.querySelectorAll('#samples .od')]);
+    }
+
+    /* ---------- little visuals ---------- */
+    // horizontal meter: value bar, limit marker
+    function meter(val, limit, max, state, limLabel) {
+      if (val === null || val === undefined || !isFinite(val)) return `<svg viewBox="0 0 200 30"><rect x="0" y="8" width="200" height="12" rx="6" fill="#eef2f6"/></svg>`;
+      const w = 200, X = v => Math.max(0, Math.min(w, v / max * w));
+      const col = state === 'pass' ? '#16a34a' : state === 'fail' ? '#dc2626' : '#94a3b8';
+      const lx = X(limit);
+      return `<svg viewBox="0 0 ${w} 30" role="img" aria-hidden="true"><rect x="0" y="8" width="${w}" height="12" rx="6" fill="#eef2f6"/>
+        <rect x="0" y="8" width="${Math.max(X(val), 6)}" height="12" rx="6" fill="${col}"/>
+        <line x1="${lx}" x2="${lx}" y1="3" y2="25" stroke="#0f172a" stroke-width="2"/>
+        <text x="${Math.min(lx + 4, w - 2)}" y="29" text-anchor="${lx > w - 50 ? 'end' : 'start'}" style="font-size:8px; fill:#475569; font-family:inherit">${limLabel}</text></svg>`;
+    }
+    function donut(c, valid, total) {
+      const R = 54, C = 2 * Math.PI * R;
+      let s = `<svg class="donut" viewBox="0 0 140 140" role="img" aria-label="Result split"><circle cx="70" cy="70" r="${R}" fill="none" stroke="#eef2f6" stroke-width="22"/>`;
+      if (total > 0) {
+        let off = 0;
+        ['neg', 'eq', 'pos'].forEach(k => {
+          if (!c[k]) return; const len = c[k] / total * C;
+          s += `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${valid ? COL[k] : '#cbd5e1'}" stroke-width="22" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`;
+          off += len;
+        });
+      }
+      return s + `<text x="70" y="68" text-anchor="middle" style="font-size:30px; font-weight:800; fill:#0f172a">${total}</text><text x="70" y="86" text-anchor="middle" style="font-size:10px; font-weight:700; fill:#64748b">${valid || total === 0 ? 'samples' : 'QC not valid'}</text></svg>`;
+    }
+
+    /* ---------- main calculation ---------- */
+    function calc() {
+      save();
+      const g = id => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
+      CTL.forEach(id => S.ctl[id] = $(id).value);
+      const L = S.lim;
+      const nc = reps(g('nc1'), g('nc2')), pc = reps(g('pc1'), g('pc2')), cc = reps(g('cc1'), g('cc2'));
+      const ncM = mean(nc), pcM = mean(pc), ccM = mean(cc);
+      $('ncM').textContent = f3(ncM); $('pcM').textContent = f3(pcM); $('ccM').textContent = f3(ccM);
+      $('ruleNC').textContent = `Mean ≤ ${fmt(L.ncMax, 4)}`; $('rulePC').textContent = `Mean ≥ ${fmt(L.pcMin, 4)}`;
+
+      const complete = nc.length === 2 && pc.length === 2 && cc.length === 2;
+      const ratio = (ncM !== null && pcM !== null && ncM > 0) ? r2(pcM / ncM) : null;
+      const have = { nc: ncM !== null, pc: pcM !== null, cc: ccM !== null && ncM !== null, r: ratio !== null };
+      const chk = {
+        nc: have.nc && r4(ncM) <= r4(L.ncMax),
+        pc: have.pc && r4(pcM) >= r4(L.pcMin),
+        cc: have.cc && r4(ccM) > r4(ncM),
+        r: have.r && ratio >= L.rMin
+      };
+      const valid = complete && chk.nc && chk.pc && chk.cc && chk.r;
+      const failed = [];
+      if (complete) {
+        if (!chk.nc) failed.push('Negative control too high');
+        if (!chk.pc) failed.push('Positive control too low');
+        if (!chk.cc) failed.push('Cut-off control not above negative control');
+        if (!chk.r) failed.push(ratio === null ? 'PC/NC ratio cannot be calculated (NC = 0)' : `PC/NC ratio ${ratio.toFixed(2)} is below ${lim(L.rMin)}`);
+      }
+
+      const b = $('banner');
+      if (!complete) { b.className = 'banner wait'; b.innerHTML = `<span class="ic">⏳</span><div>QC pending<small>Enter both replicates for NC, PC and CC to validate the run.</small></div>`; }
+      else if (valid) { b.className = 'banner good'; b.innerHTML = `<span class="ic">✔</span><div>RUN VALID<small>All four control criteria are met — sample results can be reported.</small></div>`; }
+      else { b.className = 'banner bad'; b.innerHTML = `<span class="ic">✖</span><div>RUN INVALID — repeat the test<small>${esc(failed.join(' · '))}. Do not report patient results.</small></div>`; }
+
+      // QC cards with meters
+      const st = (h, ok) => !h ? 'none' : ok ? 'pass' : 'fail';
+      const tick = (h, ok) => !h ? '' : ok ? '<em style="color:#166534">✔</em>' : '<em style="color:#991b1b">✖</em>';
+      const card = (t, vTxt, rule, h, ok, meterSvg) => `<div class="qcc ${st(h, ok)}"><div class="t">${t}</div><div class="v" style="color:${!h ? '#94a3b8' : ok ? '#166534' : '#991b1b'}">${vTxt} ${tick(h, ok)}</div><div class="r">${rule}</div>${meterSvg}</div>`;
+      $('qcCards').innerHTML =
+        card('Negative control mean', f3(ncM), `Limit: ≤ ${fmt(L.ncMax, 4)}`, have.nc, chk.nc, meter(ncM, L.ncMax, Math.max(0.4, L.ncMax * 2, (ncM || 0) * 1.15), st(have.nc, chk.nc), '≤ ' + fmt(L.ncMax, 3))) +
+        card('Positive control mean', f3(pcM), `Limit: ≥ ${fmt(L.pcMin, 4)}`, have.pc, chk.pc, meter(pcM, L.pcMin, Math.max(1.5, L.pcMin * 3, (pcM || 0) * 1.15), st(have.pc, chk.pc), '≥ ' + fmt(L.pcMin, 3))) +
+        card('Cut-off control mean', f3(ccM), `Must be > NC mean (${f3(ncM)})`, have.cc, chk.cc, meter(ccM, ncM === null ? 0 : ncM, Math.max(0.5, (ccM || 0) * 1.3, (ncM || 0) * 1.5), st(have.cc, chk.cc), '> NC')) +
+        card('PC / NC ratio', ratio === null ? '—' : ratio.toFixed(2), `Discrimination capacity: ≥ ${lim(L.rMin)}`, have.r, chk.r, meter(ratio, L.rMin, Math.max(10, L.rMin * 2, (ratio || 0) * 1.15), st(have.r, chk.r), '≥ ' + lim(L.rMin)));
+
+      // samples
+      const rows = [], counts = { pos: 0, eq: 0, neg: 0 };
+      S.samples.forEach((s, i) => {
+        const od = parseFloat(s.od), box = $('sb' + i), lab = $('si' + i);
+        box.classList.remove('neg', 'eq', 'pos'); lab.textContent = '';
+        if (isNaN(od)) return;
+        const id = label(s, i);
+        if (!(ccM > 0)) { rows.push({ i, id, od, isr: null }); return; }
+        const isr = od / ccM, rr = r2(isr);
+        const cls = rr < L.eqLo ? 'neg' : rr > L.eqHi ? 'pos' : 'eq';
+        rows.push({ i, id, od, isr, r2: rr, cls });
+        lab.textContent = 'ISR ' + rr.toFixed(2);
+        if (valid) { box.classList.add(cls); counts[cls]++; }
+      });
+
+      $('donutWrap').innerHTML = donut(counts, valid, rows.length);
+      $('sumTiles').innerHTML = `
+        <div class="tile"><div class="k">Samples read</div><div class="v">${rows.length}</div></div>
+        <div class="tile" style="border-top-color:#16a34a"><div class="k">Negative</div><div class="v" style="color:#166534">${valid ? counts.neg : '—'}</div></div>
+        <div class="tile" style="border-top-color:#e0a100"><div class="k">Equivocal</div><div class="v" style="color:#92400e">${valid ? counts.eq : '—'}</div></div>
+        <div class="tile" style="border-top-color:#dc2626"><div class="k">Positive</div><div class="v" style="color:#991b1b">${valid ? counts.pos : '—'}</div></div>`;
+
+      if (!rows.length) $('resTbl').innerHTML = '<tbody><tr><td class="hint">Enter sample ODs above.</td></tr></tbody>';
+      else $('resTbl').innerHTML = '<thead><tr><th>Sample</th><th>OD₄₅₀</th><th>ISR</th><th>Result</th><th>Comment</th></tr></thead><tbody>' +
+        rows.map(r => {
+          let pill, cm = '';
+          if (r.isr === null) pill = '<span class="pill res-na">Need CC</span>';
+          else if (!valid) pill = `<span class="pill res-na">${complete ? 'Run invalid' : 'QC pending'}</span>`;
+          else { pill = `<span class="pill res-${r.cls}">${NAMES[r.cls]}</span>`; cm = COMMENT[r.cls]; }
+          return `<tr><td data-label="Sample"><strong>${esc(r.id)}</strong></td><td data-label="OD₄₅₀">${r.od.toFixed(3)}</td><td data-label="ISR"><strong>${r.isr === null ? '—' : r.r2.toFixed(2)}</strong></td><td data-label="Result">${pill}</td><td class="cmt" data-label="Comment">${cm}</td></tr>`;
+        }).join('') + '</tbody>';
+
+      drawChart(rows.filter(r => r.isr !== null), valid);
+      $('prInfo').innerHTML = `Kit: InBios CHIKjj Detect™ IgM ELISA · Lot: ${esc(S.info.lot || '—')} · Date: ${esc(S.info.date || '—')} · Performed by: ${esc(S.info.oper || '—')}<br>NC mean ${f3(ncM)} · PC mean ${f3(pcM)} · CC mean ${f3(ccM)} · PC/NC ${ratio === null ? '—' : ratio.toFixed(2)} · Run: <strong>${!complete ? 'QC INCOMPLETE' : valid ? 'VALID' : 'INVALID'}</strong>`;
+    }
+
+    function drawChart(rows, valid) {
+      if (!rows.length) { $('chart').innerHTML = '<p class="hint">The chart appears once sample ODs and the cut-off control are entered.</p>'; return; }
+      const L = S.lim, n = rows.length, slot = 70, left = 52, W = left + n * slot + 20, H = 300, T = 20, B = 46;
+      const ymax = VC.niceMax(Math.max(2, ...rows.map(r => r.isr)) * 1.1);
+      const Y = v => H - B - v / ymax * (H - T - B);
+      let s = `<svg viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W, 520)}px" role="img" aria-label="ISR per sample">
+        <rect x="${left}" y="${Y(L.eqLo)}" width="${W - left - 10}" height="${Y(0) - Y(L.eqLo)}" fill="#dcfce7" fill-opacity=".6"/>
+        <rect x="${left}" y="${Y(L.eqHi)}" width="${W - left - 10}" height="${Y(L.eqLo) - Y(L.eqHi)}" fill="#fef3c7"/>
+        <rect x="${left}" y="${T}" width="${W - left - 10}" height="${Y(L.eqHi) - T}" fill="#fee2e2" fill-opacity=".6"/>`;
+      VC.ticks(0, ymax, 5).forEach(t => { s += `<text x="${left - 8}" y="${Y(t) + 4}" text-anchor="end">${fmt(t, 3)}</text>`; });
+      s += `<line x1="${left}" x2="${W - 10}" y1="${Y(L.eqLo)}" y2="${Y(L.eqLo)}" stroke="#92400e" stroke-dasharray="5 4"/><line x1="${left}" x2="${W - 10}" y1="${Y(L.eqHi)}" y2="${Y(L.eqHi)}" stroke="#991b1b" stroke-dasharray="5 4"/>
+        <text x="${W - 14}" y="${Y(L.eqLo) + 13}" text-anchor="end" style="fill:#92400e">${fmt(L.eqLo, 3)}</text><text x="${W - 14}" y="${Y(L.eqHi) - 4}" text-anchor="end" style="fill:#991b1b">${fmt(L.eqHi, 3)}</text>`;
+      rows.forEach((r, k) => {
+        const x = left + k * slot + 12, w = slot - 24, c = valid ? COL[r.cls] : '#94a3b8';
+        s += `<rect x="${x}" y="${Y(r.isr)}" width="${w}" height="${Y(0) - Y(r.isr)}" rx="6" fill="${c}"/>
+          <text class="b" x="${x + w / 2}" y="${Y(r.isr) - 5}" text-anchor="middle">${r.r2.toFixed(2)}</text>
+          <text x="${x + w / 2}" y="${H - B + 16}" text-anchor="middle">${esc(r.id.length > 10 ? r.id.slice(0, 9) + '…' : r.id)}</text>`;
+      });
+      s += `<line x1="${left}" y1="${H - B}" x2="${W - 10}" y2="${H - B}" stroke="#94a3b8"/><text transform="translate(12 ${(T + H - B) / 2}) rotate(-90)" text-anchor="middle">ISR</text></svg>`;
+      $('chart').innerHTML = s;
+    }
+
+    /* ---------- wiring ---------- */
+    CTL.forEach(id => { $(id).value = S.ctl[id] ?? ''; $(id).addEventListener('input', calc); });
+    VC.enterNav(CTL.map(id => $(id)));
+    ['ncMax', 'pcMin', 'rMin', 'eqLo', 'eqHi'].forEach(id => { $(id).value = S.lim[id]; $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!isNaN(v)) { S.lim[id] = v; calc(); } }); });
+    [['lot', 'lot'], ['runDate', 'date'], ['oper', 'oper']].forEach(([id, k]) => { $(id).value = S.info[k] || ''; $(id).addEventListener('input', () => { S.info[k] = $(id).value; calc(); }); });
+    $('addMore').addEventListener('click', () => { if (S.samples.length < 40) { for (let i = 0; i < 5; i++) S.samples.push({ id: '', od: '' }); buildSamples(); calc(); } });
+    $('clearAll').addEventListener('click', () => {
+      if (!confirm('Clear all control and sample values for this plate?')) return;
+      CTL.forEach(id => $(id).value = ''); S.samples = Array.from({ length: 10 }, () => ({ id: '', od: '' })); S.ctl = {};
+      buildSamples(); calc();
+    });
+    $('printBtn').addEventListener('click', () => window.print());
+
+    buildSamples(); calc();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  </script>
+</body>
+</html>

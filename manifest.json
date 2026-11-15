@@ -1,18 +1,26 @@
 {
-  "id": ".",
+  "id": "./index.html",
   "name": "Viro Calculator",
-  "short_name": "Viro Calc",
+  "short_name": "ViroCalc",
+  "description": "Calculators for clinical and molecular virology laboratories: ELISA, qPCR, titer, MOI, dilutions and more.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#eef6fd",
   "theme_color": "#0f4c81",
+  "categories": ["medical", "utilities", "productivity"],
   "icons": [
-    {
-      "src": "./icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "./icons/icon-192.png",      "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png",      "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/maskable-192.png",  "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/maskable-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Chikungunya IgM ELISA", "short_name": "Chik IgM", "url": "./calculators/chik-igm-elisa.html", "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Dengue ELISA", "short_name": "Dengue", "url": "./calculators/dengue-elisa.html", "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "RealStar Viral Load", "short_name": "Viral load", "url": "./calculators/realstar-vl.html", "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }

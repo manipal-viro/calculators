@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Centrifuge RPM ⇄ RCF — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <style>
+    .rotor-wrap { position: relative; width: 220px; height: 220px; margin: 0 auto; }
+    .rotor-wrap > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .rotor-spin { animation: vcspin 2s linear infinite; }
+    @keyframes vcspin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .rotor-spin { animation: none; } }
+    .rotor-side { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; justify-content: center; }
+    .rotor-side .tiles { flex: 1; min-width: 220px; margin: 0; }
+    .ref-row { cursor: pointer; }
+    .ref-row:hover td { background: var(--accent-soft); }
+    .arrow-mid { display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: var(--accent); font-weight: 800; padding-top: 18px; }
+    .eq { font-family: "Cambria Math", Georgia, serif; font-size: 1.05rem; text-align: center; margin: 8px 0 14px; color: var(--accent-dark); font-weight: 700; }
+  </style>
+  <script src="../js/shell.js" defer></script>
+</head>
+<body data-theme="rcf">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icon.png" alt="" />
+      <div class="titles">
+        <h1>Viro Calculator</h1>
+        <span class="page-chip">Centrifuge RPM ⇄ RCF (×g)</span>
+      </div>
+    </div>
+
+    <div class="eq">RCF (×g) = 1.118 × 10⁻⁵ × r (cm) × RPM²</div>
+
+    <div class="row">
+      <div class="field">
+        <label for="rad">Rotor radius (r)</label>
+        <input type="number" id="rad" step="any" inputmode="decimal" placeholder="e.g. 8.4" />
+      </div>
+      <div class="field" style="max-width:140px">
+        <label for="radUnit">Unit</label>
+        <select id="radUnit"><option value="cm">cm</option><option value="mm">mm</option></select>
+      </div>
+      <div class="field">
+        <label for="rotorSel">Saved rotors</label>
+        <select id="rotorSel"></select>
+      </div>
+    </div>
+    <p class="hint">Use the radius from the centre of the rotor to the <em>bottom</em> of the tube (r<sub>max</sub>) unless your SOP says otherwise — it is in the rotor manual.</p>
+
+    <div class="row" style="align-items:flex-start; margin-top:14px">
+      <div class="field">
+        <label for="rpm">Speed (RPM)</label>
+        <input type="number" id="rpm" step="any" inputmode="decimal" placeholder="e.g. 12000" />
+      </div>
+      <div class="arrow-mid">⇄</div>
+      <div class="field">
+        <label for="rcf">Relative centrifugal force (×g)</label>
+        <input type="number" id="rcf" step="any" inputmode="decimal" placeholder="e.g. 13523" />
+      </div>
+    </div>
+    <div class="note err" id="err" style="display:none"></div>
+
+    <div class="chart-card">
+      <div class="rotor-side">
+        <div class="rotor-wrap" aria-hidden="true">
+          <div class="rotor-spin" id="spin">
+            <svg viewBox="0 0 220 220">
+              <circle cx="110" cy="110" r="100" fill="#fbf1d0" stroke="#a16207" stroke-width="3"/>
+              <circle cx="110" cy="110" r="100" fill="none" stroke="#e7c76a" stroke-width="1" stroke-dasharray="3 5" transform="scale(.9) translate(12.2 12.2)"/>
+              <g id="tubes"></g>
+              <circle cx="110" cy="110" r="14" fill="#5c3a06"/><circle cx="110" cy="110" r="5" fill="#fbf1d0"/>
+            </svg>
+          </div>
+          <svg viewBox="0 0 220 220">
+            <line x1="110" y1="110" x2="210" y2="110" stroke="#5c3a06" stroke-width="2" stroke-dasharray="4 3"/>
+            <circle cx="210" cy="110" r="3.5" fill="#5c3a06"/>
+            <rect x="140" y="94" width="40" height="16" rx="8" fill="#fff" stroke="#5c3a06"/>
+            <text x="160" y="106" text-anchor="middle" style="font-size:11px; font-weight:800; fill:#5c3a06">r</text>
+          </svg>
+        </div>
+        <div class="tiles" id="tiles"></div>
+      </div>
+      <p class="hint" style="text-align:center">Rotor speed in the picture is illustrative only.</p>
+    </div>
+
+    <div class="chart-card">
+      <h3>RCF rises with the square of speed</h3>
+      <div id="curve"></div>
+    </div>
+
+    <h2>Quick reference — RPM needed for common ×g</h2>
+    <p class="hint">Click a row to load that ×g.</p>
+    <div class="tbl-wrap"><table class="tbl" id="refTbl"></table></div>
+
+    <details>
+      <summary>Manage saved rotors</summary>
+      <div class="row">
+        <div class="field"><label for="rotorName">Rotor / centrifuge name</label><input type="text" id="rotorName" placeholder="e.g. Lab bench microfuge" /></div>
+      </div>
+      <p class="hint">Saves the radius currently entered above (stored on this device only).</p>
+      <div class="action-row">
+        <button type="button" id="rotorSave">Save rotor</button>
+        <button type="button" class="secondary" id="rotorDel">Delete selected</button>
+      </div>
+    </details>
+
+    <div class="version-tag">Viro Calculator • v5.1</div>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script>
+    const { $, num, fmt, sci } = VC;
+    const K = Math.pow(2 * Math.PI / 60, 2) / 980.665;     // ≈ 1.1182e-5 (r in cm)
+    let last = 'rpm';
+    let rotors = VC.store.get('viro_rotors', []);
+
+    const radCm = () => { const r = num($('rad')); if (r === null || r <= 0) return null; return $('radUnit').value === 'mm' ? r / 10 : r; };
+
+    // draw 6 tubes once
+    $('tubes').innerHTML = [0, 60, 120, 180, 240, 300].map(a => `
+      <g transform="rotate(${a} 110 110)">
+        <rect x="101" y="26" width="18" height="56" rx="7" fill="#fff" stroke="#5c3a06" stroke-width="1.5"/>
+        <rect x="103" y="46" width="14" height="34" rx="5" fill="#a16207" fill-opacity=".75"/>
+      </g>`).join('');
+
+    function update() {
+      const r = radCm(), err = $('err'); err.style.display = 'none';
+      let rpm = num($('rpm')), rcf = num($('rcf'));
+      if (r === null) { setOut(null, null, r, 'Enter the rotor radius.'); return; }
+      if (last === 'rpm') {
+        if (rpm === null || rpm < 0) { $('rcf').value = ''; return setOut(null, null, r); }
+        rcf = K * r * rpm * rpm; $('rcf').value = +rcf.toPrecision(6);
+      } else {
+        if (rcf === null || rcf < 0) { $('rpm').value = ''; return setOut(null, null, r); }
+        rpm = Math.sqrt(rcf / (K * r)); $('rpm').value = +rpm.toFixed(1);
+      }
+      setOut(rpm, rcf, r);
+    }
+
+    function setOut(rpm, rcf, r, msg) {
+      if (msg) { $('err').textContent = msg; $('err').style.display = ''; }
+      $('tiles').innerHTML = (rpm === null) ? '<div class="tile"><div class="k">Result</div><div class="v">—</div></div>' : `
+        <div class="tile"><div class="k">Speed</div><div class="v">${fmt(rpm, 5)} RPM</div><div class="s">${fmt(rpm / 60, 4)} rev/s</div></div>
+        <div class="tile"><div class="k">Force</div><div class="v">${fmt(rcf, 4)} ×g</div><div class="s">r = ${fmt(r, 4)} cm</div></div>`;
+      // spin speed (illustrative)
+      const dur = rpm ? Math.min(6, Math.max(0.35, 6000 / rpm)) : 6;
+      $('spin').style.animationDuration = dur + 's';
+      $('spin').style.animationPlayState = rpm ? 'running' : 'paused';
+      drawCurve(r, rpm);
+      drawRef(r);
+    }
+
+    function drawCurve(r, rpm) {
+      if (!r) { $('curve').innerHTML = '<p class="hint">Enter a radius to see the curve.</p>'; return; }
+      const W = 640, H = 300, L = 64, R = 20, T = 18, B = 44;
+      const xmax = VC.niceMax(Math.max(rpm || 0, 3000) * 1.3), ymax = K * r * xmax * xmax;
+      const X = v => L + (v / xmax) * (W - L - R), Y = v => H - B - (v / ymax) * (H - T - B);
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="RCF versus RPM">`;
+      VC.ticks(0, ymax, 5).forEach(t => { s += `<line x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}" stroke="#e5e7eb"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">${fmt(t, 3)}</text>`; });
+      VC.ticks(0, xmax, 6).forEach(t => { s += `<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H - B}" stroke="#f1f5f9"/><text x="${X(t)}" y="${H - B + 16}" text-anchor="middle">${fmt(t, 3)}</text>`; });
+      s += `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="#94a3b8"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="#94a3b8"/>`;
+      let d = ''; for (let i = 0; i <= 80; i++) { const x = xmax * i / 80; d += (i ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(K * r * x * x).toFixed(1); }
+      s += `<path d="${d}" fill="none" stroke="#a16207" stroke-width="3"/>`;
+      if (rpm) {
+        const cx = X(rpm), cy = Y(K * r * rpm * rpm);
+        s += `<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${H - B}" stroke="#5c3a06" stroke-dasharray="4 3"/><line x1="${L}" y1="${cy}" x2="${cx}" y2="${cy}" stroke="#5c3a06" stroke-dasharray="4 3"/>
+              <circle cx="${cx}" cy="${cy}" r="6" fill="#5c3a06" stroke="#fff" stroke-width="2"/>
+              <text class="b" x="${Math.min(cx + 10, W - 130)}" y="${Math.max(cy - 12, T + 12)}">${fmt(K * r * rpm * rpm, 4)} ×g @ ${fmt(rpm, 4)} rpm</text>`;
+      }
+      s += `<text x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle">Speed (RPM)</text><text transform="translate(14 ${(T + H - B) / 2}) rotate(-90)" text-anchor="middle">RCF (×g)</text></svg>`;
+      $('curve').innerHTML = s;
+    }
+
+    const REF = [100, 300, 500, 1000, 2000, 4000, 5000, 10000, 12000, 14000, 16000, 20000];
+    function drawRef(r) {
+      if (!r) { $('refTbl').innerHTML = ''; return; }
+      $('refTbl').innerHTML = '<thead><tr><th>Target (×g)</th><th>RPM at r = ' + fmt(r, 4) + ' cm</th></tr></thead><tbody>' +
+        REF.map(g => `<tr class="ref-row" data-g="${g}"><td><strong>${g.toLocaleString('en-US')} ×g</strong></td><td>${Math.round(Math.sqrt(g / (K * r))).toLocaleString('en-US')} RPM</td></tr>`).join('') + '</tbody>';
+      document.querySelectorAll('.ref-row').forEach(tr => tr.addEventListener('click', () => { $('rcf').value = tr.dataset.g; last = 'rcf'; update(); }));
+    }
+
+    /* saved rotors */
+    function renderRotors() {
+      $('rotorSel').innerHTML = '<option value="">— enter manually —</option>' + rotors.map((x, i) => `<option value="${i}">${VC.esc(x.name)} (${x.r} cm)</option>`).join('');
+    }
+    $('rotorSel').addEventListener('change', e => {
+      const x = rotors[e.target.value]; if (!x) return;
+      $('rad').value = x.r; $('radUnit').value = 'cm'; update();
+    });
+    $('rotorSave').addEventListener('click', () => {
+      const name = $('rotorName').value.trim(), r = radCm();
+      if (!name || r === null) return alert('Enter a name and a radius first.');
+      rotors.push({ name, r: +r.toFixed(3) }); VC.store.set('viro_rotors', rotors);
+      $('rotorName').value = ''; renderRotors(); $('rotorSel').value = rotors.length - 1;
+    });
+    $('rotorDel').addEventListener('click', () => {
+      const i = $('rotorSel').value; if (i === '') return;
+      rotors.splice(+i, 1); VC.store.set('viro_rotors', rotors); renderRotors();
+    });
+
+    $('rpm').addEventListener('input', () => { last = 'rpm'; update(); });
+    $('rcf').addEventListener('input', () => { last = 'rcf'; update(); });
+    $('rad').addEventListener('input', update);
+    $('radUnit').addEventListener('change', update);
+
+    renderRotors(); update();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  </script>
+</body>
+</html>

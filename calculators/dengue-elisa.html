@@ -2,12 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dengue ELISA Calculator — Viro Calculator</title>
   <link rel="manifest" href="../manifest.json" />
-  <link rel="icon" href="../icon.png" type="image/png" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#0f4c81" />
   <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
   <style>
     body[data-theme="ns1"] { --accent: #4f46e5; --accent-dark: #312e81; --accent-soft: #e6e5fd; }
 
@@ -67,6 +74,7 @@
       .res-pos { border: 2px solid #000; }
     }
   </style>
+  <script src="../js/shell.js" defer></script>
 </head>
 <body data-theme="dengue">
   <div class="container wide">
@@ -143,7 +151,7 @@
       </div>
     </div>
 
-    <div class="version-tag no-print">Viro Calculator • v4.0</div>
+    <div class="version-tag no-print">Viro Calculator • v5.1</div>
   </div>
 
   <script type="module">

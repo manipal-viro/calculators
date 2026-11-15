@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>qPCR Tools — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+</head>
+<body data-theme="qpcr">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icon.png" alt="" />
+      <div class="titles">
+        <h1>Viro Calculator</h1>
+        <span class="page-chip">qPCR Tools</span>
+      </div>
+    </div>
+
+    <div class="seg" id="tabs">
+      <button type="button" class="active" data-tab="curve">Ct → copies (standard curve)</button>
+      <button type="button" data-tab="eff">Slope ⇄ Efficiency</button>
+      <button type="button" data-tab="conv">Copies ⇄ IU &amp; log reduction</button>
+    </div>
+
+    <!-- ===================== STANDARD CURVE ===================== -->
+    <section class="panel active" id="panel-curve">
+      <label>Curve source</label>
+      <div class="chips" id="srcChips">
+        <button type="button" class="chip active" data-v="std">Build from my standards</button>
+        <button type="button" class="chip" data-v="man">Enter slope &amp; intercept</button>
+      </div>
+
+      <div id="stdBlock">
+        <details open>
+          <summary>Standards (mean Ct of replicates)</summary>
+          <div class="row">
+            <div class="field"><label for="serTop">Highest standard quantity</label><input type="number" id="serTop" step="any" placeholder="e.g. 1e6" /></div>
+            <div class="field"><label for="serFold">Fold between standards</label><input type="number" id="serFold" value="10" step="any" /></div>
+            <div class="field" style="justify-content:flex-end"><button type="button" class="secondary" id="serFill">Fill quantities</button></div>
+          </div>
+          <div class="tbl-wrap"><table class="tbl" id="stdTable"></table></div>
+          <div class="action-row"><button type="button" class="secondary" id="stdAdd">+ Add standard</button><button type="button" class="secondary" id="stdClear">Clear</button></div>
+        </details>
+      </div>
+
+      <div id="manBlock" style="display:none">
+        <div class="row">
+          <div class="field"><label for="mSlope">Slope</label><input type="number" id="mSlope" step="any" placeholder="e.g. -3.32" /></div>
+          <div class="field"><label for="mInt">Intercept (Ct at 1 copy)</label><input type="number" id="mInt" step="any" placeholder="e.g. 38.5" /></div>
+        </div>
+        <p class="hint">Ct = slope × log₁₀(quantity) + intercept.</p>
+      </div>
+
+      <div class="tiles" id="curveTiles"></div>
+      <div class="note err" id="curveErr" style="display:none"></div>
+
+      <h2>Unknown samples</h2>
+      <div class="row">
+        <div class="field">
+          <label for="qUnit">Standards are expressed as</label>
+          <select id="qUnit"><option value="ul">copies per µL of template</option><option value="rxn">copies per reaction</option></select>
+        </div>
+        <div class="field" id="tvWrap" style="display:none"><label for="tv">Template volume per reaction (µL)</label><input type="number" id="tv" step="any" placeholder="e.g. 5" /></div>
+      </div>
+      <details>
+        <summary>Optional: convert to copies/mL of the original sample</summary>
+        <div class="row">
+          <div class="field"><label for="sVol">Sample input (µL)</label><input type="number" id="sVol" step="any" placeholder="e.g. 140" /></div>
+          <div class="field"><label for="eVol">Elution volume (µL)</label><input type="number" id="eVol" step="any" placeholder="e.g. 60" /></div>
+        </div>
+        <p class="hint">copies/mL = copies/µL × elution ÷ sample × 1000 — same formula as the RealStar page.</p>
+      </details>
+      <div class="tbl-wrap"><table class="tbl" id="smpTable"></table></div>
+      <div class="action-row"><button type="button" class="secondary" id="smpCopy">Copy results</button><button type="button" class="secondary" id="smpClear">Clear</button></div>
+
+      <div class="chart-card">
+        <h3>Standard curve</h3>
+        <div id="curveChart"></div>
+        <p class="hint">Circles = standards · diamonds = your samples (dashed lines show the read-across).</p>
+      </div>
+    </section>
+
+    <!-- ===================== EFFICIENCY ===================== -->
+    <section class="panel" id="panel-eff">
+      <div class="row" style="align-items:flex-start">
+        <div class="field"><label for="slope">Standard-curve slope</label><input type="number" id="slope" step="any" placeholder="e.g. -3.32" /></div>
+        <div class="field"><label for="eff">PCR efficiency (%)</label><input type="number" id="eff" step="any" placeholder="e.g. 100" /></div>
+      </div>
+      <p class="hint">Efficiency = 10<sup>(−1/slope)</sup> − 1. Edit either box — the other updates.</p>
+      <div class="note err" id="effErr" style="display:none"></div>
+      <div class="tiles" id="effTiles"></div>
+      <div class="chart-card"><h3>Efficiency gauge</h3><div id="gauge"></div><p class="hint">Green band = 90–110 %, the range commonly accepted for quantitative assays. Check your own SOP limits.</p></div>
+      <div class="chart-card"><h3>What efficiency means for amplification</h3><div id="growth"></div></div>
+    </section>
+
+    <!-- ===================== CONVERSIONS ===================== -->
+    <section class="panel" id="panel-conv">
+      <h2 style="margin-top:0">Copies/mL ⇄ IU/mL</h2>
+      <div class="chips" id="convChips">
+        <button type="button" class="chip active" data-v="c2i">copies/mL → IU/mL</button>
+        <button type="button" class="chip" data-v="i2c">IU/mL → copies/mL</button>
+      </div>
+      <div class="row">
+        <div class="field"><label for="cvIn" id="cvLbl">Value (copies/mL)</label><input type="number" id="cvIn" step="any" placeholder="e.g. 1.5e6" /></div>
+        <div class="field"><label for="cvFac">Copies per IU (conversion factor)</label><input type="number" id="cvFac" step="any" placeholder="from your kit insert" /></div>
+      </div>
+      <p class="hint">The factor is specific to each assay and standard — take it from the kit insert, don't reuse one between assays.</p>
+      <div class="result-box"><div class="sub" id="cvSub">Result</div><div class="val" id="cvOut">—</div><div class="sub" id="cvLog"></div></div>
+
+      <h2>Log₁₀ reduction</h2>
+      <div class="chips" id="lrChips">
+        <button type="button" class="chip active" data-v="val">Enter values</button>
+        <button type="button" class="chip" data-v="log">Enter log₁₀ values</button>
+      </div>
+      <div class="row">
+        <div class="field"><label for="lrBase">Baseline</label><input type="number" id="lrBase" step="any" placeholder="e.g. 2.5e6" /></div>
+        <div class="field"><label for="lrNow">Follow-up</label><input type="number" id="lrNow" step="any" placeholder="e.g. 1.2e4 (0 = not detected)" /></div>
+        <div class="field"><label for="lrLod">Limit of detection (optional)</label><input type="number" id="lrLod" step="any" placeholder="used if follow-up is 0" /></div>
+      </div>
+      <div class="note err" id="lrErr" style="display:none"></div>
+      <div class="tiles" id="lrTiles"></div>
+      <div class="chart-card"><h3>Change on a log scale</h3><div id="lrChart"></div></div>
+    </section>
+
+    <div class="version-tag">Viro Calculator • v5.1</div>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script>
+    const { $, num, fmt, sci, esc, sup } = VC;
+    VC.tabs('tabs', n => { if (n === 'eff') calcEff(); if (n === 'conv') { calcConv(); calcLR(); } });
+    const C = '#4f46e5', CD = '#312e81', PINK = '#db2777';
+
+    /* ===================== Standard curve ===================== */
+    let src = 'std';
+    VC.chips('srcChips', v => { src = v; $('stdBlock').style.display = v === 'std' ? '' : 'none'; $('manBlock').style.display = v === 'man' ? '' : 'none'; calcCurve(); });
+
+    let stds = VC.store.get('viro_qpcr_stds', null) || Array.from({ length: 6 }, () => ({ q: '', ct: '' }));
+    let smps = VC.store.get('viro_qpcr_smps', null) || Array.from({ length: 10 }, () => ({ id: '', ct: '' }));
+    let model = null, results = [];
+
+    function buildStd() {
+      $('stdTable').innerHTML = '<thead><tr><th>#</th><th>Quantity (copies)</th><th>Mean Ct</th><th>log₁₀ qty</th><th>Fitted Ct</th><th></th></tr></thead><tbody>' +
+        stds.map((s, i) => `<tr><td class="c">${i + 1}</td><td><input type="number" step="any" data-s="q" data-i="${i}" value="${s.q}" placeholder="e.g. 1e6" /></td>
+          <td><input type="number" step="any" data-s="ct" data-i="${i}" value="${s.ct}" placeholder="e.g. 18.2" /></td>
+          <td id="sl${i}" class="c">—</td><td id="sf${i}" class="c">—</td>
+          <td><button type="button" class="rm-btn" data-rm="${i}" style="background:#fee2e2;color:#991b1b;box-shadow:none;padding:4px 9px">✕</button></td></tr>`).join('') + '</tbody>';
+      $('stdTable').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { stds[+inp.dataset.i][inp.dataset.s] = inp.value; calcCurve(); }));
+      $('stdTable').querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { if (stds.length > 2) { stds.splice(+b.dataset.rm, 1); buildStd(); calcCurve(); } }));
+    }
+    function buildSmp() {
+      $('smpTable').innerHTML = '<thead><tr><th>#</th><th>Sample ID</th><th>Ct</th><th>Copies (per unit of standard)</th><th>log₁₀</th><th class="mlh">Copies/mL</th><th>Flag</th></tr></thead><tbody>' +
+        smps.map((s, i) => `<tr><td class="c">${i + 1}</td><td><input type="text" data-s="id" data-i="${i}" value="${esc(s.id)}" placeholder="Sample ${i + 1}" /></td>
+          <td><input type="number" step="any" data-s="ct" data-i="${i}" value="${s.ct}" /></td>
+          <td id="qc${i}">—</td><td id="ql${i}" class="c">—</td><td id="qm${i}" class="ml">—</td><td id="qf${i}">—</td></tr>`).join('') + '</tbody>';
+      $('smpTable').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { smps[+inp.dataset.i][inp.dataset.s] = inp.value; calcCurve(); }));
+      VC.enterNav([...$('smpTable').querySelectorAll('input[data-s="ct"]')]);
+    }
+
+    function regress(pts) {
+      const n = pts.length; if (n < 2) return null;
+      let sx = 0, sy = 0, sxx = 0, sxy = 0, syy = 0;
+      pts.forEach(([x, y]) => { sx += x; sy += y; sxx += x * x; sxy += x * y; syy += y * y; });
+      const dx = n * sxx - sx * sx; if (Math.abs(dx) < 1e-12) return null;
+      const slope = (n * sxy - sx * sy) / dx, inter = (sy - slope * sx) / n;
+      const dy = n * syy - sy * sy;
+      const r2 = dy < 1e-12 ? 1 : Math.pow(n * sxy - sx * sy, 2) / (dx * dy);
+      return { slope, inter, r2, n };
+    }
+
+    function calcCurve() {
+      VC.store.set('viro_qpcr_stds', stds); VC.store.set('viro_qpcr_smps', smps);
+      const err = $('curveErr'); err.style.display = 'none';
+      $('tvWrap').style.display = $('qUnit').value === 'rxn' ? '' : 'none';
+      const pts = [];
+      stds.forEach((s, i) => {
+        const q = parseFloat(s.q), ct = parseFloat(s.ct);
+        const ok = q > 0 && !isNaN(ct);
+        const lq = $('sl' + i); if (lq) lq.textContent = q > 0 ? fmt(Math.log10(q), 4) : '—';
+        if (ok) pts.push([Math.log10(q), ct, i]);
+      });
+      model = null;
+      if (src === 'std') {
+        const m = regress(pts);
+        if (m) model = { ...m, pts, manual: false };
+        else if (pts.length) { err.textContent = 'Need at least two standards with different quantities.'; err.style.display = ''; }
+        stds.forEach((_, i) => { const el = $('sf' + i); if (el) el.textContent = '—'; });
+        if (model) pts.forEach(([x, , i]) => { $('sf' + i).textContent = fmt(model.slope * x + model.inter, 4); });
+      } else {
+        const sl = num($('mSlope')), ic = num($('mInt'));
+        if (sl !== null && ic !== null && sl !== 0) model = { slope: sl, inter: ic, r2: null, n: 0, pts: [], manual: true };
+      }
+      // tiles
+      if (!model) { $('curveTiles').innerHTML = ''; }
+      else {
+        const E = model.slope < 0 ? Math.pow(10, -1 / model.slope) - 1 : null;
+        const effOK = E !== null && E >= 0.9 && E <= 1.1;
+        $('curveTiles').innerHTML = `
+          <div class="tile"><div class="k">Slope</div><div class="v">${fmt(model.slope, 4)}</div><div class="s">ideal ≈ −3.32</div></div>
+          <div class="tile"><div class="k">Intercept</div><div class="v">${fmt(model.inter, 4)}</div><div class="s">Ct at 1 copy</div></div>
+          ${model.r2 !== null ? `<div class="tile"><div class="k">R²</div><div class="v">${model.r2.toFixed(4)}</div><div class="s"><span class="pill ${model.r2 >= 0.98 ? 'res-neg' : 'res-eq'}">${model.r2 >= 0.98 ? 'Good fit' : 'Check fit'}</span> · ${model.n} points</div></div>` : ''}
+          <div class="tile"><div class="k">Efficiency</div><div class="v">${E === null ? '—' : fmt(E * 100, 4) + ' %'}</div><div class="s">${E === null ? 'slope must be negative' : `<span class="pill ${effOK ? 'res-neg' : 'res-eq'}">${effOK ? '90–110 % ✓' : 'Outside 90–110 %'}</span>`}</div></div>`;
+      }
+      calcSamples(); drawCurve();
+    }
+
+    function calcSamples() {
+      const unitRxn = $('qUnit').value === 'rxn', tv = num($('tv'));
+      const sV = num($('sVol')), eV = num($('eVol')), showMl = sV > 0 && eV > 0;
+      document.querySelectorAll('.mlh, .ml').forEach(e => e.style.display = showMl ? '' : 'none');
+      const ctRange = model && model.pts.length ? [Math.min(...model.pts.map(p => p[1])), Math.max(...model.pts.map(p => p[1]))] : null;
+      results = [];
+      smps.forEach((s, i) => {
+        const ct = parseFloat(s.ct); const c = $('qc' + i), l = $('ql' + i), m = $('qm' + i), f = $('qf' + i);
+        c.textContent = l.textContent = m.textContent = f.textContent = '—';
+        if (isNaN(ct) || !model) return;
+        let q = Math.pow(10, (ct - model.inter) / model.slope), flag = '';
+        let perUl = q;
+        if (unitRxn) { if (!(tv > 0)) { f.innerHTML = '<span class="pill res-na">Enter template vol.</span>'; return; } perUl = q / tv; }
+        c.innerHTML = '<strong>' + sci(perUl, 3) + '</strong>'; l.textContent = fmt(Math.log10(perUl), 4);
+        if (showMl) m.innerHTML = '<strong>' + sci(perUl * eV / sV * 1000, 3) + '</strong>';
+        if (ctRange && (ct < ctRange[0] - 1e-9 || ct > ctRange[1] + 1e-9)) f.innerHTML = '<span class="pill res-eq">Outside curve</span>';
+        else if (ctRange) f.innerHTML = '<span class="pill res-neg">In range</span>';
+        results.push({ id: s.id || 'Sample ' + (i + 1), ct, q: perUl, ml: showMl ? perUl * eV / sV * 1000 : null, x: Math.log10(q), n: i });
+      });
+    }
+
+    function drawCurve() {
+      if (!model) { $('curveChart').innerHTML = '<p class="hint">Enter standards (or a slope and intercept) to draw the curve.</p>'; return; }
+      const xs = model.pts.map(p => p[0]).concat(results.map(r => r.x)), ys = model.pts.map(p => p[1]).concat(results.map(r => r.ct));
+      let xmin, xmax, ymin, ymax;
+      if (xs.length) { xmin = Math.floor(Math.min(...xs)) - 0.5; xmax = Math.ceil(Math.max(...xs)) + 0.5; } else { xmin = 0.5; xmax = 8.5; }
+      if (ys.length) { ymin = Math.floor(Math.min(...ys)) - 2; ymax = Math.ceil(Math.max(...ys)) + 2; } else { ymin = 10; ymax = 40; }
+      const W = 640, H = 340, L = 56, R = 20, T = 20, B = 48;
+      const X = v => L + (v - xmin) / (xmax - xmin) * (W - L - R), Y = v => H - B - (v - ymin) / (ymax - ymin) * (H - T - B);
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Standard curve">`;
+      VC.ticks(ymin, ymax, 6).forEach(t => { s += `<line x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}" stroke="#e5e7eb"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">${fmt(t, 3)}</text>`; });
+      for (let t = Math.ceil(xmin); t <= xmax; t++) s += `<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H - B}" stroke="#f1f5f9"/><text x="${X(t)}" y="${H - B + 16}" text-anchor="middle">10${sup(t)}</text>`;
+      s += `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="#94a3b8"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="#94a3b8"/>`;
+      // clipped line
+      s += `<clipPath id="plot"><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}"/></clipPath>
+        <line x1="${X(xmin)}" y1="${Y(model.slope * xmin + model.inter)}" x2="${X(xmax)}" y2="${Y(model.slope * xmax + model.inter)}" stroke="${C}" stroke-width="3" clip-path="url(#plot)"/>`;
+      model.pts.forEach(([x, y]) => { s += `<circle cx="${X(x)}" cy="${Y(y)}" r="6" fill="${C}" stroke="#fff" stroke-width="2"/>`; });
+      results.forEach(r => {
+        const cx = X(r.x), cy = Y(r.ct);
+        s += `<line x1="${L}" x2="${cx}" y1="${cy}" y2="${cy}" stroke="${PINK}" stroke-dasharray="4 3" clip-path="url(#plot)"/><line x1="${cx}" x2="${cx}" y1="${cy}" y2="${H - B}" stroke="${PINK}" stroke-dasharray="4 3" clip-path="url(#plot)"/>
+          <path d="M${cx} ${cy - 8} l7 8 l-7 8 l-7 -8 z" fill="${PINK}" stroke="#fff" stroke-width="1.5"/>`;
+      });
+      s += `<text x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle">Quantity (copies, log scale)</text><text transform="translate(14 ${(T + H - B) / 2}) rotate(-90)" text-anchor="middle">Ct</text>
+        <text class="b" x="${W - R - 4}" y="${T + 14}" text-anchor="end" style="fill:${CD}">Ct = ${fmt(model.slope, 4)} · log₁₀(Q) + ${fmt(model.inter, 4)}${model.r2 !== null ? '   R² = ' + model.r2.toFixed(4) : ''}</text></svg>`;
+      $('curveChart').innerHTML = s;
+    }
+
+    $('serFill').addEventListener('click', () => {
+      const top = num($('serTop')), f = num($('serFold'));
+      if (!(top > 0) || !(f > 1)) return;
+      stds.forEach((s, i) => s.q = +(top / Math.pow(f, i)).toPrecision(6)); buildStd(); calcCurve();
+    });
+    $('stdAdd').addEventListener('click', () => { if (stds.length < 12) { stds.push({ q: '', ct: '' }); buildStd(); calcCurve(); } });
+    $('stdClear').addEventListener('click', () => { stds = stds.map(() => ({ q: '', ct: '' })); buildStd(); calcCurve(); });
+    $('smpClear').addEventListener('click', () => { smps = smps.map(() => ({ id: '', ct: '' })); buildSmp(); calcCurve(); });
+    $('smpCopy').addEventListener('click', e => {
+      const ml = results.some(r => r.ml !== null);
+      VC.copy(['Sample\tCt\tcopies/µL' + (ml ? '\tcopies/mL' : ''), ...results.map(r => [r.id, r.ct, sci(r.q, 3), ml ? sci(r.ml, 3) : ''].join('\t'))].join('\n'), e.target);
+    });
+    ['mSlope', 'mInt', 'tv', 'sVol', 'eVol'].forEach(id => $(id).addEventListener('input', calcCurve));
+    $('qUnit').addEventListener('change', calcCurve);
+
+    /* ===================== Slope <-> Efficiency ===================== */
+    let lastE = 'slope';
+    function calcEff() {
+      const err = $('effErr'); err.style.display = 'none';
+      let sl = num($('slope')), ef = num($('eff'));
+      if (lastE === 'slope') {
+        if (sl === null) { $('eff').value = ''; ef = null; }
+        else if (sl >= 0) { err.textContent = 'Slope must be negative.'; err.style.display = ''; $('eff').value = ''; ef = null; }
+        else { ef = (Math.pow(10, -1 / sl) - 1) * 100; $('eff').value = +ef.toPrecision(5); }
+      } else {
+        if (ef === null) { $('slope').value = ''; sl = null; }
+        else if (ef <= 0) { err.textContent = 'Efficiency must be above 0 %.'; err.style.display = ''; $('slope').value = ''; sl = null; }
+        else { sl = -1 / Math.log10(1 + ef / 100); $('slope').value = +sl.toPrecision(5); }
+      }
+      if (sl === null || ef === null || sl >= 0 || ef <= 0) { $('effTiles').innerHTML = ''; $('gauge').innerHTML = ''; $('growth').innerHTML = ''; return; }
+      const good = ef >= 90 && ef <= 110;
+      $('effTiles').innerHTML = `
+        <div class="tile"><div class="k">Efficiency</div><div class="v">${fmt(ef, 4)} %</div><div class="s"><span class="pill ${good ? 'res-neg' : 'res-eq'}">${good ? 'Within 90–110 %' : 'Outside 90–110 %'}</span></div></div>
+        <div class="tile"><div class="k">Amplification / cycle</div><div class="v">× ${fmt(1 + ef / 100, 4)}</div><div class="s">100 % = × 2</div></div>
+        <div class="tile"><div class="k">Ct shift per 10-fold</div><div class="v">${fmt(-sl, 4)}</div><div class="s">cycles</div></div>
+        <div class="tile"><div class="k">Ct shift per 2-fold</div><div class="v">${fmt(-sl * Math.log10(2), 4)}</div><div class="s">cycles</div></div>`;
+      drawGauge(ef); drawGrowth(ef);
+    }
+    function drawGauge(ef) {
+      const W = 640, lo = 60, hi = 130, X = v => 30 + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * 580;
+      const bands = [[60, 80, '#fecaca'], [80, 90, '#fde68a'], [90, 110, '#bbf7d0'], [110, 120, '#fde68a'], [120, 130, '#fecaca']];
+      let s = `<svg viewBox="0 0 ${W} 120" role="img" aria-label="Efficiency gauge">`;
+      bands.forEach(([a, b, c]) => { s += `<rect x="${X(a)}" y="40" width="${X(b) - X(a)}" height="26" fill="${c}"/>`; });
+      [60, 70, 80, 90, 100, 110, 120, 130].forEach(t => { s += `<line x1="${X(t)}" x2="${X(t)}" y1="40" y2="72" stroke="#94a3b8"/><text x="${X(t)}" y="88" text-anchor="middle">${t}%</text>`; });
+      const mx = X(ef);
+      s += `<path d="M${mx} 38 l-9 -16 h18 z" fill="${CD}"/><text class="b" x="${mx}" y="14" text-anchor="middle" style="fill:${CD}; font-size:13px">${fmt(ef, 4)} %</text></svg>`;
+      $('gauge').innerHTML = s;
+    }
+    function drawGrowth(ef) {
+      const W = 640, H = 280, L = 56, R = 20, T = 18, B = 44, cyc = 40, ymax = Math.ceil(cyc * Math.log10(2)) + 1;
+      const X = c => L + c / cyc * (W - L - R), Y = v => H - B - v / ymax * (H - T - B);
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Amplification growth">`;
+      for (let t = 0; t <= ymax; t += 2) s += `<line x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}" stroke="#e5e7eb"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">10${sup(t)}</text>`;
+      for (let c = 0; c <= cyc; c += 10) s += `<text x="${X(c)}" y="${H - B + 16}" text-anchor="middle">${c}</text>`;
+      s += `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="#94a3b8"/>
+        <line x1="${X(0)}" y1="${Y(0)}" x2="${X(cyc)}" y2="${Y(cyc * Math.log10(2))}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4"/>
+        <line x1="${X(0)}" y1="${Y(0)}" x2="${X(cyc)}" y2="${Y(Math.min(ymax, cyc * Math.log10(1 + ef / 100)))}" stroke="${C}" stroke-width="3"/>
+        <text x="${X(cyc) - 4}" y="${Y(cyc * Math.log10(2)) - 8}" text-anchor="end">100 % (ideal)</text>
+        <text class="b" x="${X(cyc) - 4}" y="${Y(cyc * Math.log10(1 + ef / 100)) + 18}" text-anchor="end" style="fill:${CD}">${fmt(ef, 3)} %</text>
+        <text x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle">Cycle</text><text transform="translate(14 ${(T + H - B) / 2}) rotate(-90)" text-anchor="middle">Fold increase</text></svg>`;
+      $('growth').innerHTML = s;
+    }
+    $('slope').addEventListener('input', () => { lastE = 'slope'; calcEff(); });
+    $('eff').addEventListener('input', () => { lastE = 'eff'; calcEff(); });
+
+    /* ===================== Conversions ===================== */
+    let convMode = 'c2i', lrMode = 'val';
+    VC.chips('convChips', v => { convMode = v; calcConv(); });
+    VC.chips('lrChips', v => { lrMode = v; calcLR(); });
+    function calcConv() {
+      const x = num($('cvIn')), f = num($('cvFac')), a = convMode === 'c2i' ? 'copies/mL' : 'IU/mL', b = convMode === 'c2i' ? 'IU/mL' : 'copies/mL';
+      $('cvLbl').textContent = `Value (${a})`; $('cvSub').textContent = `Result (${b})`;
+      if (x === null || !(f > 0) || x < 0) { $('cvOut').textContent = '—'; $('cvLog').textContent = ''; return; }
+      const r = convMode === 'c2i' ? x / f : x * f;
+      $('cvOut').textContent = sci(r, 3) + ' ' + b;
+      $('cvLog').textContent = r > 0 ? `log₁₀: ${fmt(Math.log10(r), 4)}   (input log₁₀: ${x > 0 ? fmt(Math.log10(x), 4) : '—'})` : '';
+    }
+    ['cvIn', 'cvFac'].forEach(id => $(id).addEventListener('input', calcConv));
+
+    function calcLR() {
+      const err = $('lrErr'); err.style.display = 'none';
+      let b = num($('lrBase')), n = num($('lrNow')), lod = num($('lrLod'));
+      const tiles = $('lrTiles');
+      if (b === null || n === null) { tiles.innerHTML = ''; $('lrChart').innerHTML = '<p class="hint">Enter baseline and follow-up values.</p>'; return; }
+      let lb, ln, censored = false;
+      if (lrMode === 'log') { lb = b; ln = n; }
+      else {
+        if (!(b > 0)) { err.textContent = 'Baseline must be above 0.'; err.style.display = ''; return; }
+        lb = Math.log10(b);
+        if (n > 0) ln = Math.log10(n);
+        else if (lod > 0) { ln = Math.log10(lod); censored = true; }
+        else { err.textContent = 'Follow-up is 0 / not detected — enter the assay limit of detection to get a "greater than" reduction.'; err.style.display = ''; tiles.innerHTML = ''; return; }
+      }
+      const red = lb - ln, fold = Math.pow(10, red), pct = (1 - Math.pow(10, -red)) * 100;
+      tiles.innerHTML = `
+        <div class="tile"><div class="k">Log₁₀ reduction</div><div class="v">${censored ? '> ' : ''}${fmt(red, 3)}</div><div class="s">${red < 0 ? 'increase of ' + fmt(-red, 3) + ' log₁₀' : censored ? 'at the limit of detection' : 'baseline − follow-up'}</div></div>
+        <div class="tile"><div class="k">Fold change</div><div class="v">${censored ? '> ' : ''}${red >= 0 ? '÷ ' + sci(fold, 3) : '× ' + sci(1 / fold, 3)}</div></div>
+        <div class="tile"><div class="k">${red >= 0 ? 'Reduction' : 'Change'}</div><div class="v">${censored ? '> ' : ''}${fmt(pct, 6)} %</div></div>
+        <div class="tile"><div class="k">Baseline → follow-up</div><div class="v" style="font-size:1.05rem">${fmt(lb, 3)} → ${fmt(ln, 3)}</div><div class="s">log₁₀ units</div></div>`;
+      // chart
+      const hi = Math.max(lb, ln), lo = Math.min(lb, ln, 0), top = Math.ceil(hi) + 0.5, bot = Math.min(0, Math.floor(lo));
+      const W = 640, H = 300, L = 56, R = 20, T = 28, B = 36, Y = v => H - B - (v - bot) / (top - bot) * (H - T - B);
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Log change">`;
+      for (let t = bot; t <= top; t++) s += `<line x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}" stroke="#e5e7eb"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end">10${sup(t)}</text>`;
+      const bw = 110, x1 = 150, x2 = 380;
+      s += `<rect x="${x1}" y="${Y(lb)}" width="${bw}" height="${Y(bot) - Y(lb)}" rx="6" fill="#94a3b8"/><rect x="${x2}" y="${Y(ln)}" width="${bw}" height="${Y(bot) - Y(ln)}" rx="6" fill="${C}"/>
+        <text class="b" x="${x1 + bw / 2}" y="${H - 14}" text-anchor="middle">Baseline</text><text class="b" x="${x2 + bw / 2}" y="${H - 14}" text-anchor="middle">Follow-up</text>
+        <text class="b" x="${x1 + bw / 2}" y="${Y(lb) - 6}" text-anchor="middle">${fmt(lb, 3)}</text><text class="b" x="${x2 + bw / 2}" y="${Y(ln) - 6}" text-anchor="middle">${fmt(ln, 3)}</text>
+        <line x1="${x1 + bw}" x2="${x2 + bw + 30}" y1="${Y(lb)}" y2="${Y(lb)}" stroke="#64748b" stroke-dasharray="4 3"/>
+        <line x1="${x2 + bw + 20}" x2="${x2 + bw + 20}" y1="${Y(lb)}" y2="${Y(ln)}" stroke="${PINK}" stroke-width="2.5"/>
+        <path d="M${x2 + bw + 20} ${Y(ln)} l-5 ${red >= 0 ? -9 : 9} h10 z" fill="${PINK}"/>
+        <text class="b" x="${x2 + bw + 30}" y="${(Y(lb) + Y(ln)) / 2 + 4}" style="fill:${PINK}; font-size:13px">${censored ? '> ' : ''}${red >= 0 ? '−' : '+'}${fmt(Math.abs(red), 3)} log₁₀</text></svg>`;
+      $('lrChart').innerHTML = s;
+    }
+    ['lrBase', 'lrNow', 'lrLod'].forEach(id => $(id).addEventListener('input', calcLR));
+
+    buildStd(); buildSmp(); calcCurve(); calcEff(); calcConv(); calcLR();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  </script>
+</body>
+</html>

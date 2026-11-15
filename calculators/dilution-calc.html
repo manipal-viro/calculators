@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dilution & Serial Dilution — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+</head>
+<body data-theme="dilution">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icon.png" alt="" />
+      <div class="titles">
+        <h1>Viro Calculator</h1>
+        <span class="page-chip">Dilution &amp; Serial Dilution</span>
+      </div>
+    </div>
+
+    <div class="seg" id="tabs">
+      <button type="button" class="active" data-tab="c1v1">C₁V₁ = C₂V₂</button>
+      <button type="button" data-tab="serial">Serial dilution builder</button>
+    </div>
+
+    <!-- ===================== C1V1 ===================== -->
+    <section class="panel active" id="panel-c1v1">
+      <div class="row">
+        <div class="field">
+          <label for="solveFor">Solve for</label>
+          <select id="solveFor">
+            <option value="V1">V₁ — volume of stock to take</option>
+            <option value="C1">C₁ — stock concentration</option>
+            <option value="C2">C₂ — final concentration</option>
+            <option value="V2">V₂ — final volume</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cUnit">Concentration unit</label>
+          <select id="cUnit">
+            <option value="">(no unit)</option><option>M</option><option>mM</option><option>µM</option><option>nM</option>
+            <option>mg/mL</option><option>µg/mL</option><option>ng/µL</option><option>%</option><option>×</option>
+            <option>copies/mL</option><option>cells/mL</option><option>PFU/mL</option><option>IU/mL</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="vUnit">Volume unit</label>
+          <select id="vUnit"><option>µL</option><option>mL</option><option>L</option></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field"><label for="c1">C₁ · Stock conc. <span class="u cu"></span></label><input type="number" id="c1" step="any" inputmode="decimal" placeholder="e.g. 10" /></div>
+        <div class="field"><label for="v1">V₁ · Stock volume <span class="u vu"></span></label><input type="number" id="v1" step="any" inputmode="decimal" /></div>
+        <div class="field"><label for="c2">C₂ · Final conc. <span class="u cu"></span></label><input type="number" id="c2" step="any" inputmode="decimal" placeholder="e.g. 1" /></div>
+        <div class="field"><label for="v2">V₂ · Final volume <span class="u vu"></span></label><input type="number" id="v2" step="any" inputmode="decimal" placeholder="e.g. 1000" /></div>
+      </div>
+
+      <div class="note err" id="c1err" style="display:none"></div>
+
+      <div class="result-box" id="c1box">
+        <div class="sub">Pipetting instruction</div>
+        <div class="val" id="c1main" style="font-size:1.25rem">Fill the three white fields</div>
+        <div class="sub" id="c1sub"></div>
+      </div>
+
+      <div class="tiles" id="c1tiles"></div>
+
+      <div class="chart-card">
+        <h3>What goes in the tube</h3>
+        <div id="c1chart"></div>
+      </div>
+    </section>
+
+    <!-- ===================== SERIAL ===================== -->
+    <section class="panel" id="panel-serial">
+      <div class="row">
+        <div class="field">
+          <label for="sConc">Starting concentration (optional)</label>
+          <input type="number" id="sConc" step="any" inputmode="decimal" placeholder="e.g. 1e6" />
+        </div>
+        <div class="field">
+          <label for="sUnit">Unit label (optional)</label>
+          <input type="text" id="sUnit" placeholder="e.g. copies/mL" />
+        </div>
+      </div>
+
+      <label>Dilution factor per step</label>
+      <div class="chips" id="dfChips">
+        <button type="button" class="chip" data-v="2">1 : 2</button>
+        <button type="button" class="chip" data-v="3">1 : 3</button>
+        <button type="button" class="chip" data-v="5">1 : 5</button>
+        <button type="button" class="chip active" data-v="10">1 : 10</button>
+        <button type="button" class="chip" data-v="custom">Custom…</button>
+      </div>
+      <div class="field" id="dfCustomWrap" style="display:none; max-width:240px">
+        <label for="dfCustom">Custom factor (1 : N)</label>
+        <input type="number" id="dfCustom" step="any" value="4" min="1.01" />
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="sTubes">Number of tubes</label>
+          <input type="number" id="sTubes" min="1" max="12" step="1" value="6" />
+        </div>
+        <div class="field">
+          <label for="sVol">Volume in each tube (µL)</label>
+          <input type="number" id="sVol" min="1" step="any" value="1000" />
+        </div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="sKeep" />
+        <label for="sKeep" style="margin:0; font-weight:500;">Keep the full volume in every tube after transferring (prepares extra)</label>
+      </div>
+
+      <div class="note err" id="serr" style="display:none"></div>
+
+      <div class="tiles" id="sTiles"></div>
+
+      <div class="chart-card">
+        <h3>Dilution series</h3>
+        <div class="chart-scroll" id="sChart"></div>
+        <p class="hint">Colour fades with each step. Arrows show the volume carried to the next tube.</p>
+      </div>
+
+      <div class="tbl-wrap">
+        <table class="tbl" id="sTable"></table>
+      </div>
+      <div class="action-row"><button type="button" class="secondary" id="sCopy">Copy table</button></div>
+    </section>
+
+    <div class="version-tag">Viro Calculator • v5.1</div>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script>
+    const { $, num, fmt, sci, esc } = VC;
+    VC.tabs('tabs');
+
+    /* ---------- shared unit labels ---------- */
+    function unitLabels() {
+      const cu = $('cUnit').value, vu = $('vUnit').value;
+      document.querySelectorAll('.cu').forEach(e => e.textContent = cu ? `(${cu})` : '');
+      document.querySelectorAll('.vu').forEach(e => e.textContent = `(${vu})`);
+    }
+
+    /* ---------- C1V1 ---------- */
+    const ids = { C1: 'c1', V1: 'v1', C2: 'c2', V2: 'v2' };
+    function calcC1V1() {
+      unitLabels();
+      const solve = $('solveFor').value;
+      Object.entries(ids).forEach(([k, id]) => {
+        $(id).readOnly = (k === solve);
+        $(id).classList.toggle('solved', k === solve);
+        $(id).placeholder = k === solve ? 'calculated' : $(id).placeholder;
+      });
+      const v = {}; Object.entries(ids).forEach(([k, id]) => v[k] = num($(id)));
+      const err = $('c1err'); err.style.display = 'none';
+      const others = Object.keys(ids).filter(k => k !== solve);
+      const reset = msg => {
+        $(ids[solve]).value = '';
+        $('c1main').textContent = msg; $('c1sub').textContent = '';
+        $('c1tiles').innerHTML = ''; $('c1chart').innerHTML = '';
+      };
+      if (others.some(k => v[k] === null)) return reset('Fill the three white fields');
+      if (others.some(k => v[k] <= 0)) { err.textContent = 'All values must be greater than zero.'; err.style.display = ''; return reset('—'); }
+
+      let r;
+      if (solve === 'V1') r = v.C2 * v.V2 / v.C1;
+      if (solve === 'C1') r = v.C2 * v.V2 / v.V1;
+      if (solve === 'C2') r = v.C1 * v.V1 / v.V2;
+      if (solve === 'V2') r = v.C1 * v.V1 / v.C2;
+      v[solve] = r;
+      $(ids[solve]).value = +r.toPrecision(6);
+
+      const vu = $('vUnit').value, cu = $('cUnit').value ? ' ' + $('cUnit').value : '';
+      if (v.C1 < v.C2) { err.textContent = 'Stock concentration (C₁) is lower than the target (C₂) — you cannot dilute up.'; err.style.display = ''; }
+      else if (v.V1 > v.V2 * (1 + 1e-9)) { err.textContent = 'Stock volume (V₁) is larger than the final volume (V₂).'; err.style.display = ''; }
+
+      const dil = v.V2 - v.V1, df = v.C1 / v.C2;
+      $('c1main').innerHTML = `${fmt(v.V1, 4)} ${vu} stock + ${fmt(dil, 4)} ${vu} diluent`;
+      $('c1sub').textContent = `→ ${fmt(v.V2, 4)} ${vu} at ${fmt(v.C2, 4)}${cu}`;
+      $('c1tiles').innerHTML = `
+        <div class="tile"><div class="k">Dilution factor</div><div class="v">1 : ${fmt(df, 4)}</div><div class="s">${fmt(v.C1, 4)} → ${fmt(v.C2, 4)}${cu}</div></div>
+        <div class="tile"><div class="k">Stock fraction</div><div class="v">${fmt(100 * v.V1 / v.V2, 3)} %</div><div class="s">1 part stock + ${fmt(df - 1, 4)} parts diluent</div></div>
+        <div class="tile"><div class="k">Diluent volume</div><div class="v">${fmt(dil, 4)} ${vu}</div><div class="s">V₂ − V₁</div></div>`;
+      drawBar(v, vu, cu);
+    }
+
+    function drawBar(v, vu, cu) {
+      const W = 600, x0 = 20, frac = Math.max(0, Math.min(1, v.V1 / v.V2));
+      const sw = Math.max(frac * W, frac > 0 ? 5 : 0);
+      $('c1chart').innerHTML = `
+      <svg viewBox="0 0 640 130" role="img" aria-label="Stock and diluent volumes">
+        <defs>
+          <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="8" height="8" fill="#d9f1f7"/><line x1="0" y1="0" x2="0" y2="8" stroke="#a9dbe8" stroke-width="3"/>
+          </pattern>
+        </defs>
+        <rect x="${x0}" y="34" width="${W}" height="38" rx="10" fill="url(#hatch)" stroke="#8ccbdb"/>
+        <rect x="${x0}" y="34" width="${sw}" height="38" rx="10" fill="#0e7490"/>
+        <text class="b" x="${x0}" y="24" style="fill:#0e7490">Stock  ${fmt(v.V1, 4)} ${vu}</text>
+        <text class="b" x="${x0 + W}" y="24" text-anchor="end">Diluent  ${fmt(v.V2 - v.V1, 4)} ${vu}</text>
+        <path d="M${x0} 84 v8 H${x0 + W} v-8" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+        <text class="b" x="${x0 + W / 2}" y="112" text-anchor="middle" style="font-size:13px">Final  ${fmt(v.V2, 4)} ${vu}  @  ${fmt(v.C2, 4)}${cu}</text>
+      </svg>`;
+    }
+
+    ['c1', 'v1', 'c2', 'v2'].forEach(id => $(id).addEventListener('input', calcC1V1));
+    ['solveFor', 'cUnit', 'vUnit'].forEach(id => $(id).addEventListener('change', () => { calcC1V1(); calcSerial(); }));
+
+    /* ---------- Serial dilution ---------- */
+    // 1000 -> "1,000";  1e6 -> "10⁶";  3^15 -> sci
+    function dilStr(x) {
+      if (x < 1e6) return fmt(x, 4);
+      const l = Math.log10(x);
+      if (Math.abs(l - Math.round(l)) < 1e-9) return '10' + VC.sup(Math.round(l));
+      return sci(x, 3);
+    }
+    let dfMode = '10';
+    VC.chips('dfChips', v => { dfMode = v; $('dfCustomWrap').style.display = v === 'custom' ? '' : 'none'; calcSerial(); });
+    const getDF = () => dfMode === 'custom' ? num($('dfCustom')) : parseFloat(dfMode);
+    let lastTSV = '';
+
+    function calcSerial() {
+      const DF = getDF(), n = parseInt($('sTubes').value), V = num($('sVol')), keep = $('sKeep').checked;
+      const start = num($('sConc')), unit = $('sUnit').value.trim();
+      const err = $('serr'); err.style.display = 'none';
+      if (!(DF > 1) || !(n >= 1 && n <= 12) || !(V > 0)) {
+        err.textContent = 'Use a dilution factor above 1, 1–12 tubes, and a volume above 0.';
+        err.style.display = ''; $('sTiles').innerHTML = ''; $('sChart').innerHTML = ''; $('sTable').innerHTML = ''; return;
+      }
+      const Vt = V / DF, rows = [];
+      let totalDil = 0;
+      for (let i = 1; i <= n; i++) {
+        const extra = keep && i < n;
+        const diluent = extra ? V : V - Vt;
+        const finalV = extra ? V + Vt : V;
+        const after = i < n ? finalV - Vt : finalV;
+        const cum = Math.pow(DF, i);
+        rows.push({ i, from: i === 1 ? 'Stock' : `Tube ${i - 1}`, step: DF, cum, conc: start !== null ? start / cum : null, diluent, finalV, after });
+        totalDil += diluent;
+      }
+      const lastCum = rows[n - 1].cum;
+      $('sTiles').innerHTML = `
+        <div class="tile"><div class="k">Transfer per step</div><div class="v">${fmt(Vt, 4)} µL</div><div class="s">V ÷ factor</div></div>
+        <div class="tile"><div class="k">Diluent per tube</div><div class="v">${fmt(V - Vt, 4)} µL</div><div class="s">${keep ? 'tubes 1–' + (n - 1) + ' get ' + fmt(V, 4) + ' µL' : 'same for every tube'}</div></div>
+        <div class="tile"><div class="k">Total diluent</div><div class="v">${fmt(totalDil, 4)} µL</div><div class="s">${n} tube${n > 1 ? 's' : ''}</div></div>
+        <div class="tile"><div class="k">Final dilution</div><div class="v">1 : ${dilStr(lastCum)}</div><div class="s">${start !== null ? fmt(start / lastCum, 3) + ' ' + esc(unit) : 'tube ' + n}</div></div>`;
+
+      // table
+      const cols = ['Tube', 'Step', 'Cumulative', start !== null ? 'Concentration' + (unit ? ' (' + unit + ')' : '') : null, 'Take from', 'Transfer (µL)', 'Add diluent (µL)', 'Final in tube (µL)', 'Left after transfer (µL)'].filter(Boolean);
+      let html = '<thead><tr>' + cols.map(c => `<th>${esc(c)}</th>`).join('') + '</tr></thead><tbody>';
+      const tsv = [cols.join('\t')];
+      rows.forEach(r => {
+        const cells = [r.i, `1:${fmt(r.step, 4)}`, `1:${dilStr(r.cum)}`, start !== null ? fmt(r.conc, 4) : null, r.from, fmt(Vt, 4), fmt(r.diluent, 4), fmt(r.finalV, 4), fmt(r.after, 4)].filter(c => c !== null);
+        html += '<tr>' + cells.map((c, j) => `<td${j === 0 ? ' class="c"' : ''}>${j === 0 || j === 2 ? '<strong>' + esc(c) + '</strong>' : esc(c)}</td>`).join('') + '</tr>';
+        tsv.push(cells.join('\t'));
+      });
+      $('sTable').innerHTML = html + '</tbody>';
+      lastTSV = tsv.join('\n');
+      drawTubes(rows, Vt, start, unit);
+    }
+
+    function drawTubes(rows, Vt, start, unit) {
+      const n = rows.length, gap = 92, tw = 44, th = 124, top = 44;
+      const W = (n + 1) * gap + 30, H = 230;
+      let s = `<svg viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W, (n + 1) * 74 + 24)}px" role="img" aria-label="Serial dilution tubes">
+        <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0e7490"/></marker></defs>`;
+      for (let k = 0; k <= n; k++) {
+        const x = 20 + k * gap, y = top;
+        const op = k === 0 ? 1 : Math.max(0.1, 1 - (k / (n + 0.6)) * 0.9);
+        const path = `M${x} ${y} H${x + tw} V${y + th - 20} A20 20 0 0 1 ${x} ${y + th - 20} Z`;
+        const label = k === 0 ? 'Stock' : 'T' + k;
+        const sub = k === 0 ? (start !== null ? fmt(start, 3) : 'neat') : '1:' + dilStr(rows[k - 1].cum);
+        s += `<clipPath id="cp${k}"><path d="${path}"/></clipPath>
+          <rect x="${x - 4}" y="${y - 8}" width="${tw + 8}" height="8" rx="3" fill="#94a3b8"/>
+          <rect x="${x}" y="${y + 28}" width="${tw}" height="${th}" fill="#0e7490" fill-opacity="${op.toFixed(2)}" clip-path="url(#cp${k})"/>
+          <path d="${path}" fill="none" stroke="#475569" stroke-width="2"/>
+          <text class="b" x="${x + tw / 2}" y="${y - 16}" text-anchor="middle" style="font-size:12px">${label}</text>
+          <text x="${x + tw / 2}" y="${y + th + 18}" text-anchor="middle" class="b">${sub}</text>`;
+        if (k > 0 && start !== null) s += `<text x="${x + tw / 2}" y="${y + th + 34}" text-anchor="middle" style="font-size:10px">${fmt(rows[k - 1].conc, 3)}</text>`;
+        if (k < n) {
+          const ax = x + tw + 6, bx = x + gap - 6;
+          s += `<line x1="${ax}" y1="${y + 36}" x2="${bx}" y2="${y + 36}" stroke="#0e7490" stroke-width="2" marker-end="url(#ah)"/>
+                <text x="${(ax + bx) / 2}" y="${y + 28}" text-anchor="middle" style="font-size:10px; fill:#0e7490">${fmt(Vt, 3)} µL</text>`;
+        }
+      }
+      $('sChart').innerHTML = s + '</svg>';
+    }
+
+    ['sConc', 'sUnit', 'dfCustom', 'sTubes', 'sVol'].forEach(id => $(id).addEventListener('input', calcSerial));
+    $('sKeep').addEventListener('change', calcSerial);
+    $('sCopy').addEventListener('click', e => VC.copy(lastTSV, e.target));
+
+    unitLabels(); calcC1V1(); calcSerial();
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  </script>
+</body>
+</html>
