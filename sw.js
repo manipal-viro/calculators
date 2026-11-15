@@ -34,6 +34,7 @@ const ASSETS = [
   './calculators/viral-titer.html',
   './calculators/moi-calc.html',
   './calculators/qpcr-tools.html',
+  './calculators/custom-vl.html',
   './calculators/generic-elisa.html',
   './calculators/chik-igm-elisa.html'
 ];
