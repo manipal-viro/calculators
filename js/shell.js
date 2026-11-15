@@ -14,6 +14,7 @@
       { n: 'Generic ELISA (S/CO)', s: 'ELISA S/CO', ic: '📊', c: '#4d7c0f', f: 'calculators/generic-elisa.html' } ] },
     { t: 'Molecular · PCR', items: [
       { n: 'RealStar® Viral Load', s: 'Viral load', ic: '🧪', c: '#1478d4', f: 'calculators/realstar-vl.html' },
+      { n: 'Custom Viral Load', s: 'Custom VL',   ic: '🧮', c: '#4f46e5', f: 'calculators/custom-vl.html' },
       { n: 'Master Mix Prep',      s: 'Master mix', ic: '💧', c: '#7c3aed', f: 'calculators/altona-mastermix.html' },
       { n: 'qPCR Tools',           s: 'qPCR',       ic: '📈', c: '#4f46e5', f: 'calculators/qpcr-tools.html' } ] },
     { t: 'Virology · Cell culture', items: [
@@ -89,7 +90,7 @@
       SECTIONS.map(sec => `<div class="vc-side-sec">${esc(sec.t)}</div>` +
         sec.items.map(t => `<a class="vc-link${on(t)}" style="--c:${t.c}" href="${ROOT}${t.f}" title="${esc(t.n)}"><span class="ic">${t.ic}</span><span class="lbl">${esc(t.n)}</span></a>`).join('')).join('') +
       installBlock('vc-install vc-install-side') +
-      `<div class="vc-side-foot">v5.1</div>`;
+      `<div class="vc-side-foot">v5.2</div>`;
     body.prepend(side);
 
     /* ----- phone app header ----- */
@@ -123,6 +124,9 @@
 
     bindInstall(); renderInstall();
   }
+
+  // mouse-wheel must never change a focused number field
+  document.addEventListener('wheel', e => { const t = document.activeElement; if (t && t.tagName === 'INPUT' && t.type === 'number') t.blur(); }, { passive: true });
 
   function bindInstall() {
     document.querySelectorAll('[data-vc-install-btn]').forEach(b => b.addEventListener('click', doInstall));

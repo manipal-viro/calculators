@@ -82,5 +82,20 @@ window.VC = (() => {
       if (e.key === 'Enter') { e.preventDefault(); const n = inputs[i + 1]; if (n) { n.focus(); n.select && n.select(); } }
     }));
   }
-  return { sup, $, num, esc, sci, fmt, store, tabs, chips, copy, rng, niceMax, ticks, enterNav };
+  // Tab / Enter move through a list of inputs in the given order (lab plate order A1-H1, A2-H2 ...)
+  function seqNav(inputs) {
+    inputs.forEach((el, i) => el.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== 'Tab') return;
+      const n = inputs[i + (e.key === 'Tab' && e.shiftKey ? -1 : 1)];
+      if (!n) return;
+      e.preventDefault(); n.focus(); n.select && n.select();
+    }));
+  }
+  // compact print list: rows = [{w, od, v, code, cls}]  (3 columns, fits 96 wells on one page)
+  function plist(rows, vHead) {
+    if (!rows.length) return '';
+    return '<div class="plist"><div class="pi h"><span>Well</span><span>OD</span><span>' + vHead + '</span><span class="r">Res</span></div>' +
+      rows.map(r => `<div class="pi ${r.cls || ''}"><span>${esc(r.w)}</span><span>${r.od.toFixed(3)}</span><span>${r.v}</span><span class="r">${r.code}</span></div>`).join('') + '</div>';
+  }
+  return { seqNav, plist, sup, $, num, esc, sci, fmt, store, tabs, chips, copy, rng, niceMax, ticks, enterNav };
 })();
