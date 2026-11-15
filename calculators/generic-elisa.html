@@ -59,7 +59,7 @@
   <div class="container wide">
     <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
     <div class="page-head">
-      <img src="../icon.png" alt="" />
+      <img src="../icons/icon-192.png" alt="" />
       <div class="titles">
         <h1>Viro Calculator</h1>
         <span class="page-chip no-print">Generic ELISA — S/CO ratio (HBsAg · HCV · HIV · any kit)</span>
@@ -114,7 +114,7 @@
       <p class="hint">Set the equivocal zone to 0 if your kit has none (then S/CO &lt; 1 = negative, ≥ 1 = positive). Saved kits are stored on this device only.</p>
     </div>
 
-    <p class="sub-text no-print">Enter OD values (you can paste a block copied from your reader / Excel into any well — it fills across and down).</p>
+    <p class="sub-text no-print">Enter OD values (Tab goes A1 → H1, then A2 …; you can also paste a block copied from your reader / Excel).</p>
     <div class="legend no-print" id="legend"></div>
 
     <div style="overflow-x:auto" class="no-print">
@@ -130,14 +130,16 @@
 
     <h2>Results</h2>
     <div class="tiles" id="sumTiles"></div>
-    <div class="results-wrap"><table class="tbl" id="resTbl"></table></div>
+    <div class="results-wrap no-print-list"><table class="tbl" id="resTbl"></table></div>
 
-    <div class="chart-card">
+    <div class="plist-wrap"><div id="prList"></div></div>
+
+    <div class="chart-card no-print">
       <h3>S/CO by well <span class="u">— line at 1.0 = cut-off</span></h3>
       <div class="chart-scroll" id="chart"></div>
     </div>
 
-    <div class="version-tag no-print">Viro Calculator • v5.1</div>
+    <div class="version-tag no-print">Viro Calculator • v5.2</div>
   </div>
 
   <script src="../js/common.js"></script>
@@ -168,9 +170,6 @@
       document.querySelectorAll('#gridBody input').forEach(inp => {
         inp.value = grid[inp.id] ?? '';
         inp.addEventListener('input', () => { storeGrid(); calc(); });
-        inp.addEventListener('keydown', e => {
-          if (e.key === 'Enter') { e.preventDefault(); const r = +inp.dataset.r, c = +inp.dataset.c; const nxt = r < 7 ? $(cellId(r + 1, c)) : (c < 12 ? $(cellId(0, c + 1)) : null); if (nxt) { nxt.focus(); nxt.select(); } }
-        });
         inp.addEventListener('paste', e => {
           const t = (e.clipboardData || window.clipboardData).getData('text');
           if (!/[\t\n]/.test(t.trim())) return;
@@ -183,6 +182,8 @@
           storeGrid(); calc();
         });
       });
+      const seq = []; for (let c = 1; c <= 12; c++) for (let r = 0; r < 8; r++) seq.push($(cellId(r, c)));
+      VC.seqNav(seq);
       applyLayout();
     }
     function storeGrid() { document.querySelectorAll('#gridBody input').forEach(i => grid[i.id] = i.value); VC.store.set('viro_elisa_grid', grid); }
@@ -235,28 +236,27 @@
 
       // wells
       const list = []; let cnt = { neg: 0, eq: 0, pos: 0 };
-      ROWS.forEach((r, ri) => {
-        for (let c = 1; c <= 12; c++) {
-          const td = $(`td_${r}_${c}`); td.classList.remove('w-neg', 'w-eq', 'w-pos');
-          if (c === 1 && typeOf(ri)) continue;
-          const od = parseFloat($(cellId(ri, c)).value);
-          if (isNaN(od)) continue;
-          if (cutoff === null || !(cutoff > 0)) { list.push({ well: r + c, od, ratio: null }); continue; }
-          const ratio = od / cutoff;
-          const cls = g === 0 ? (ratio < 1 ? 'neg' : 'pos') : (ratio < 1 - g ? 'neg' : ratio > 1 + g ? 'pos' : 'eq');
-          cnt[cls]++; td.classList.add('w-' + cls);
-          list.push({ well: r + c, od, ratio, cls });
-        }
-      });
+      for (let c = 1; c <= 12; c++) for (let ri = 0; ri < 8; ri++) {
+        const r = ROWS[ri], td = $(`td_${r}_${c}`); td.classList.remove('w-neg', 'w-eq', 'w-pos');
+        if (c === 1 && typeOf(ri)) continue;
+        const od = parseFloat($(cellId(ri, c)).value);
+        if (isNaN(od)) continue;
+        if (cutoff === null || !(cutoff > 0)) { list.push({ well: r + c, od, ratio: null }); continue; }
+        const ratio = od / cutoff;
+        const cls = g === 0 ? (ratio < 1 ? 'neg' : 'pos') : (ratio < 1 - g ? 'neg' : ratio > 1 + g ? 'pos' : 'eq');
+        cnt[cls]++; td.classList.add('w-' + cls);
+        list.push({ well: r + c, od, ratio, cls });
+      }
       $('sumTiles').innerHTML = list.length && cutoff > 0 ? `
         <div class="tile"><div class="k">Samples</div><div class="v">${list.length}</div></div>
         <div class="tile" style="border-top-color:#16a34a"><div class="k">${W.neg}</div><div class="v" style="color:#166534">${cnt.neg}</div></div>
         <div class="tile" style="border-top-color:#e0a100"><div class="k">${W.eq}</div><div class="v" style="color:#92400e">${g === 0 ? '—' : cnt.eq}</div></div>
         <div class="tile" style="border-top-color:#dc2626"><div class="k">${W.pos}</div><div class="v" style="color:#991b1b">${cnt.pos}</div></div>` : '';
       $('resTbl').innerHTML = !list.length ? '<tbody><tr><td class="hint">Enter sample ODs in the plate above.</td></tr></tbody>' :
-        '<thead><tr><th>Well</th><th>Sample OD</th><th>S/CO</th><th>Interpretation</th></tr></thead><tbody>' +
+        '<thead><tr><th>Well</th><th>Sample OD</th><th>S/CO</th><th>Result</th></tr></thead><tbody>' +
         list.map(r => `<tr><td data-label="Well"><strong>${r.well}</strong></td><td data-label="Sample OD">${r.od.toFixed(3)}</td><td data-label="S/CO"><strong>${r.ratio === null ? '—' : r.ratio.toFixed(2)}</strong></td><td data-label="Result">${r.ratio === null ? '<span class="pill res-na">Cut-off not set</span>' : `<span class="pill res-${r.cls}">${W[r.cls]}</span>`}</td></tr>`).join('') + '</tbody>';
       drawChart(list.filter(r => r.ratio !== null), g);
+      $('prList').innerHTML = VC.plist(list.filter(r => r.ratio !== null).map(r => ({ w: r.well, od: r.od, v: r.ratio.toFixed(2), code: { neg: 'NEG', eq: 'EQV', pos: 'POS' }[r.cls] + '', cls: r.cls })), 'S/CO');
 
       $('prTitle').textContent = (cfg.name || 'ELISA') + ' — Run Report';
       $('prInfo').innerHTML = `${new Date().toLocaleDateString()} · ${esc($('formulaText').textContent)}${cutoff !== null ? ' = <strong>' + cutoff.toFixed(3) + '</strong>' : ''} · equivocal zone ±${fmt(g * 100, 3)} %<br>NC mean ${m.NC === null ? '—' : m.NC.toFixed(3)} · PC mean ${m.PC === null ? '—' : m.PC.toFixed(3)}${+cfg.nCAL ? ' · CAL mean ' + (m.CAL === null ? '—' : m.CAL.toFixed(3)) : ''}${qcFail ? ' · <strong>QC FAILED</strong>' : ''}`;

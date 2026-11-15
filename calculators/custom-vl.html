@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Custom Viral Load — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+    .meth { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: end; }
+    .prm { display: grid; grid-template-columns: 80px minmax(0,1fr) minmax(0,1.4fr) 36px; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .prm.h { font-size: .7rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .prm button { padding: 6px; }
+    .expr { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1rem; }
+    .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .chipbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 12px; }
+    textarea { width: 100%; min-height: 150px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    @media (max-width: 720px) { .meth { grid-template-columns: 1fr; } .prm { grid-template-columns: 64px 1fr 1fr 36px; } }
+    @media print { .no-print-x { display: none !important; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="qpcr">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Custom Viral Load</span></div>
+    </div>
+
+    <div class="panel no-print-x" style="display:block">
+      <div class="meth">
+        <div class="field"><label for="mSel">Method (kit)</label><select id="mSel"></select></div>
+        <div class="btns" style="margin:0">
+          <button type="button" class="secondary" id="mNew">+ New</button>
+          <button type="button" class="secondary" id="mDup">Duplicate</button>
+          <button type="button" class="secondary" id="mDel" style="color:#991b1b;border-color:#fca5a5">Delete</button>
+        </div>
+      </div>
+      <div class="chipbar"><span class="hint" style="margin:0;align-self:center">Start from:</span>
+        <button type="button" class="secondary" data-pre="curve">Ct + standard curve</button>
+        <button type="button" class="secondary" data-pre="conv">copies/µL → copies/mL</button>
+        <button type="button" class="secondary" data-pre="iu">copies/mL → IU/mL</button>
+      </div>
+
+      <div class="row">
+        <div class="field"><label for="mName">Method name</label><input type="text" id="mName" /></div>
+        <div class="field"><label for="mIn">Input you enter (per sample)</label><input type="text" id="mIn" placeholder="e.g. Ct, or copies/µL" /></div>
+        <div class="field"><label for="mUnit">Result unit</label><input type="text" id="mUnit" placeholder="e.g. copies/mL" /></div>
+      </div>
+
+      <label style="font-weight:700;font-size:.85rem">Constants from the kit insert</label>
+      <div class="prm h"><span>Symbol</span><span>Value</span><span>Description</span><span></span></div>
+      <div id="prms"></div>
+      <button type="button" class="secondary" id="pAdd">+ Add constant</button>
+
+      <div class="field" style="margin-top:14px">
+        <label for="mExpr">Formula — use <b>x</b> for the entered value and your symbols</label>
+        <input type="text" id="mExpr" class="expr" placeholder="10^((x-b)/m) * Ve / Vs" autocomplete="off" spellcheck="false" />
+        <div class="hint">Operators + − × ÷ ^ and ( ). Functions: log10, ln, exp, sqrt, abs, min, max, round. Example: <code>x * Ve / Vs * D</code></div>
+        <div id="exprMsg" class="note" style="display:none"></div>
+      </div>
+
+      <div class="row">
+        <div class="field"><label for="mLod">Report “&lt; LoD” below result</label><input type="number" id="mLod" step="any" inputmode="decimal" placeholder="optional, e.g. 100" /></div>
+        <div class="field"><label for="mNd">Not detected when input ≥</label><input type="number" id="mNd" step="any" inputmode="decimal" placeholder="optional, e.g. 40 (Ct)" /></div>
+        <div class="field"><label for="mFmt">Show result as</label><select id="mFmt"><option value="sci">Scientific (1.23 × 10⁴)</option><option value="plain">Plain number</option></select></div>
+      </div>
+    </div>
+
+    <h2>Samples</h2>
+    <div class="note no-print-x">Paste one value per line. To name a sample, write <code>name, value</code> or <code>name&lt;Tab&gt;value</code>. Unnamed lines become Sample 1, Sample 2 …</div>
+    <textarea id="smp" class="no-print-x" placeholder="28.4&#10;31.2&#10;Sample X, 36.8&#10;Undetected"></textarea>
+
+    <div class="print-only" id="prHead" style="margin-bottom:8px"></div>
+    <div class="tbl-wrap" style="margin-top:12px"><table class="tbl" id="resTbl"></table></div>
+    <div class="action-row no-print-x"><button type="button" class="secondary" id="cpy">Copy results</button><button type="button" class="secondary" onclick="window.print()">Print (B&amp;W)</button></div>
+
+    <div class="version-tag">Viro Calculator • v5.2</div>
+  </div>
+
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const { $, esc, fmt, sci } = VC;
+    const KEY = 'viro_customvl';
+
+    /* ---------- tiny safe expression parser (no eval) ---------- */
+    const FN = { log10: Math.log10, ln: Math.log, log: Math.log10, exp: Math.exp, sqrt: Math.sqrt, abs: Math.abs, min: Math.min, max: Math.max, round: Math.round, pow: Math.pow };
+    function compile(src) {
+      const t = []; const re = /\s*(\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+|[A-Za-z_µ][A-Za-z_0-9µ]*|[-+*/^(),])/y;
+      const s = src.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/,(?=\d)/g, ',');
+      let i = 0; re.lastIndex = 0;
+      while (i < s.length) { if (/^\s*$/.test(s.slice(i))) break; re.lastIndex = i; const m = re.exec(s); if (!m) throw new Error('Unexpected character “' + s.slice(i).trim()[0] + '”'); t.push(m[1]); i = re.lastIndex; }
+      let p = 0;
+      const peek = () => t[p], next = () => t[p++];
+      function expr() { let a = term(); while (peek() === '+' || peek() === '-') { const o = next(), b = term(), l = a; a = env => o === '+' ? l(env) + b(env) : l(env) - b(env); } return a; }
+      function term() { let a = unary(); while (peek() === '*' || peek() === '/') { const o = next(), b = unary(), l = a; a = env => o === '*' ? l(env) * b(env) : l(env) / b(env); } return a; }
+      function unary() { if (peek() === '-') { next(); const a = unary(); return env => -a(env); } if (peek() === '+') { next(); return unary(); } return pw(); }
+      function pw() { const a = atom(); if (peek() === '^') { next(); const b = unary(); return env => Math.pow(a(env), b(env)); } return a; }
+      function atom() {
+        const k = next(); if (k === undefined) throw new Error('Formula ends too early');
+        if (k === '(') { const a = expr(); if (next() !== ')') throw new Error('Missing )'); return a; }
+        if (/^[\d.]/.test(k)) { const v = parseFloat(k); return () => v; }
+        if (/^[A-Za-zµ_]/.test(k)) {
+          if (peek() === '(') { const f = FN[k.toLowerCase()]; if (!f) throw new Error('Unknown function ' + k); next(); const args = []; if (peek() !== ')') { do { args.push(expr()); } while (peek() === ',' && next()); } if (next() !== ')') throw new Error('Missing )'); return env => f(...args.map(a => a(env))); }
+          if (k === 'pi') return () => Math.PI;
+          return env => { if (!(k in env)) throw new Error('Unknown symbol “' + k + '”'); return env[k]; };
+        }
+        throw new Error('Unexpected “' + k + '”');
+      }
+      const f = expr(); if (p < t.length) throw new Error('Unexpected “' + t[p] + '”');
+      return f;
+    }
+
+    /* ---------- data ---------- */
+    const PRE = {
+      curve: { name: 'Ct + standard curve', inp: 'Ct', unit: 'copies/mL', expr: '10^((x - b) / m) * Ve / Vs', prm: [['m', '-3.32', 'Slope of standard curve'], ['b', '38', 'Intercept (Ct at 1 copy)'], ['Ve', '60', 'Elution volume (µL)'], ['Vs', '0.2', 'Sample volume extracted (mL)']], lod: '', nd: '40' },
+      conv: { name: 'copies/µL → copies/mL', inp: 'copies/µL', unit: 'copies/mL', expr: 'x * Ve / Vs * D', prm: [['Ve', '60', 'Elution volume (µL)'], ['Vs', '0.2', 'Sample volume extracted (mL)'], ['D', '1', 'Dilution factor']], lod: '', nd: '' },
+      iu: { name: 'copies/mL → IU/mL', inp: 'copies/mL', unit: 'IU/mL', expr: 'x / cf', prm: [['cf', '1', 'copies per IU (from kit insert)']], lod: '', nd: '' }
+    };
+    const uid = () => 'm' + Math.random().toString(36).slice(2, 8);
+    const mk = (pre, name) => Object.assign({ id: uid(), fmt: 'sci', smp: '' }, JSON.parse(JSON.stringify(pre)), name ? { name } : {});
+    let D = VC.store.get(KEY, null);
+    if (!D || !D.methods || !D.methods.length) { const a = mk(PRE.curve); D = { cur: a.id, methods: [a, mk(PRE.conv), mk(PRE.iu)] }; }
+    const save = () => VC.store.set(KEY, D);
+    const M = () => D.methods.find(m => m.id === D.cur) || D.methods[0];
+
+    function fillSel() { $('mSel').innerHTML = D.methods.map(m => `<option value="${m.id}">${esc(m.name || 'Untitled')}</option>`).join(''); $('mSel').value = M().id; }
+    function load() {
+      const m = M();
+      $('mName').value = m.name; $('mIn').value = m.inp; $('mUnit').value = m.unit; $('mExpr').value = m.expr;
+      $('mLod').value = m.lod; $('mNd').value = m.nd; $('mFmt').value = m.fmt; $('smp').value = m.smp || '';
+      drawPrm(); calc();
+    }
+    function drawPrm() {
+      $('prms').innerHTML = M().prm.map((p, i) => `<div class="prm"><input type="text" data-i="${i}" data-k="0" value="${esc(p[0])}" aria-label="Symbol" /><input type="number" step="any" inputmode="decimal" data-i="${i}" data-k="1" value="${esc(p[1])}" aria-label="Value" /><input type="text" data-i="${i}" data-k="2" value="${esc(p[2])}" aria-label="Description" /><button type="button" class="secondary" data-del="${i}" aria-label="Remove">✕</button></div>`).join('') || '<div class="hint">No constants — add one if your formula needs it.</div>';
+      $('prms').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { M().prm[+inp.dataset.i][+inp.dataset.k] = inp.value; calc(); }));
+      $('prms').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => { M().prm.splice(+b.dataset.del, 1); drawPrm(); calc(); }));
+    }
+
+    /* ---------- calculation ---------- */
+    const parseLines = txt => {
+      let n = 0; const out = [];
+      txt.split(/\r?\n/).forEach(line => {
+        line = line.trim(); if (!line) return; n++;
+        let name = 'Sample ' + n, val = line; const mm = line.match(/^(.*?)(?:\t|,|;)\s*([^\t,;]*)$/);
+        if (mm && mm[1].trim() && !/^[\d.\s]+$/.test(mm[1])) { name = mm[1].trim(); val = mm[2]; }
+        out.push({ name, raw: val.trim() });
+      });
+      return out;
+    };
+    function calc() {
+      const m = M(); save();
+      let f = null; const msg = $('exprMsg'); msg.style.display = 'none';
+      const env = {}; m.prm.forEach(p => { const v = parseFloat(p[1]); if (p[0] && !isNaN(v)) env[p[0]] = v; });
+      try { f = compile(m.expr || ''); f(Object.assign({ x: 1 }, env)); }
+      catch (e) { f = null; if ((m.expr || '').trim()) { msg.className = 'note err'; msg.textContent = 'Formula: ' + e.message; msg.style.display = ''; } }
+      const lod = parseFloat(m.lod), nd = parseFloat(m.nd);
+      const showv = v => m.fmt === 'plain' ? (Math.abs(v) >= 100 ? Math.round(v).toLocaleString('en-US') : fmt(v, 4)) : sci(v, 3);
+      const rows = parseLines(m.smp || '').map(s => {
+        const x = parseFloat(s.raw.replace(',', '.'));
+        const r = { name: s.name, inp: s.raw };
+        if (isNaN(x)) { r.res = 'Not detected'; r.cls = 'res-neg'; r.log = '—'; return r; }
+        if (!isNaN(nd) && x >= nd) { r.res = 'Not detected'; r.cls = 'res-neg'; r.log = '—'; return r; }
+        if (!f) { r.res = '—'; r.log = '—'; return r; }
+        let v; try { v = f(Object.assign({}, env, { x })); } catch (e) { v = NaN; }
+        if (!isFinite(v)) { r.res = 'Error'; r.cls = 'res-pos'; r.log = '—'; return r; }
+        if (!isNaN(lod) && v < lod) { r.res = '< ' + showv(lod) + ' ' + (m.unit || ''); r.cls = 'res-eq'; r.log = '< ' + (lod > 0 ? Math.log10(lod).toFixed(2) : '—'); return r; }
+        r.res = showv(v) + ' ' + (m.unit || ''); r.log = v > 0 ? Math.log10(v).toFixed(2) : '—'; r.cls = 'res-pos'; r.val = v;
+        return r;
+      });
+      $('resTbl').innerHTML = rows.length ? `<thead><tr><th>Sample</th><th>${esc(m.inp || 'Input')}</th><th>Result</th><th>log₁₀</th></tr></thead><tbody>` + rows.map(r => `<tr><td><strong>${esc(r.name)}</strong></td><td>${esc(r.inp)}</td><td><span class="pill ${r.cls || 'res-na'}">${esc(r.res)}</span></td><td>${r.log}</td></tr>`).join('') + '</tbody>' : '<tbody><tr><td class="hint">Paste values above to see results.</td></tr></tbody>';
+      $('prHead').innerHTML = `<strong>${esc(m.name)}</strong> · ${new Date().toLocaleDateString()}<br>${esc(m.expr)} ${m.prm.map(p => esc(p[0]) + ' = ' + esc(p[1])).join(', ')}`;
+      window._rows = rows;
+    }
+
+    /* ---------- wiring ---------- */
+    [['mName', 'name'], ['mIn', 'inp'], ['mUnit', 'unit'], ['mExpr', 'expr'], ['mLod', 'lod'], ['mNd', 'nd'], ['mFmt', 'fmt'], ['smp', 'smp']].forEach(([id, k]) =>
+      $(id).addEventListener('input', () => { M()[k] = $(id).value; if (id === 'mName') fillSel(); calc(); }));
+    $('mSel').addEventListener('change', () => { D.cur = $('mSel').value; load(); });
+    $('mNew').addEventListener('click', () => { const a = mk({ name: 'New method', inp: 'Ct', unit: 'copies/mL', expr: 'x', prm: [], lod: '', nd: '' }); D.methods.push(a); D.cur = a.id; fillSel(); load(); $('mName').select(); });
+    $('mDup').addEventListener('click', () => { const a = mk(M(), M().name + ' (copy)'); a.smp = ''; D.methods.push(a); D.cur = a.id; fillSel(); load(); });
+    $('mDel').addEventListener('click', () => { if (D.methods.length < 2) { alert('Keep at least one method.'); return; } if (!confirm('Delete method “' + M().name + '”?')) return; D.methods = D.methods.filter(x => x.id !== D.cur); D.cur = D.methods[0].id; fillSel(); load(); });
+    $('pAdd').addEventListener('click', () => { M().prm.push(['', '', '']); drawPrm(); });
+    document.querySelectorAll('[data-pre]').forEach(b => b.addEventListener('click', () => { const m = M(), p = JSON.parse(JSON.stringify(PRE[b.dataset.pre])); Object.assign(m, p, { name: m.name }); load(); }));
+    $('cpy').addEventListener('click', () => VC.copy((window._rows || []).map(r => [r.name, r.inp, r.res, r.log].join('\t')).join('\n'), $('cpy')));
+    fillSel(); load();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  });
+  </script>
+</body>
+</html>

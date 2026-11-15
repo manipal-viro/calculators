@@ -94,7 +94,8 @@
       .banner { border: 2px solid #000 !important; background: none !important; color: #000 !important; }
       .qcc, .tile { border: 1px solid #000 !important; }
       .qcc svg { display: none; }
-      .cmt { color: #000 !important; }
+      .tbl td, .tbl th { padding: 2px 6px !important; font-size: 9pt; }
+      .tiles, .chart-card, .sum-row, h2.no-print { display: none !important; }
       .sum-row { grid-template-columns: 1fr; } .donut { display: none; }
       #resTbl thead { display: table-header-group !important; } #resTbl { display: table !important; } #resTbl tbody { display: table-row-group !important; }
       #resTbl tr { display: table-row !important; } #resTbl td { display: table-cell !important; text-align: left !important; } #resTbl td::before { display: none !important; }
@@ -160,7 +161,7 @@
       <button type="button" class="secondary" id="printBtn">Print report (B&amp;W)</button>
       <button type="button" class="secondary" id="clearAll" style="color:#991b1b; border-color:#fca5a5">Clear plate</button>
     </div>
-    <p class="hint no-print">Tap a sample name to rename it. Results are saved on this device automatically.</p>
+    <p class="hint no-print">Tab / Enter moves to the next OD. Tap a sample name to rename it. Results are saved on this device automatically.</p>
 
     <h2>3 · Results — Immune Status Ratio</h2>
     <div class="sum-row">
@@ -188,7 +189,7 @@
       <p class="hint">Run validity: mean NC ≤ 0.200 · mean PC ≥ 0.500 · mean CC &gt; mean NC · PC/NC (discrimination capacity, R<sub>PC/NC</sub>) ≥ 5.0. ISR = sample OD₄₅₀ ÷ mean CC OD₄₅₀. ISR and PC/NC are compared as displayed, to 2 decimals.</p>
     </details>
 
-    <div class="version-tag">Viro Calculator • v5.1</div>
+    <div class="version-tag">Viro Calculator • v5.2</div>
   </div>
 
   <script src="../js/common.js"></script>
@@ -225,7 +226,7 @@
     function buildSamples() {
       $('samples').innerHTML = S.samples.map((s, i) => `
         <div class="sbox" id="sb${i}">
-          <input class="sid" type="text" data-i="${i}" data-f="id" aria-label="Sample name" value="${esc(s.id || 'Sample ' + (i + 1))}" />
+          <input class="sid" type="text" tabindex="-1" data-i="${i}" data-f="id" aria-label="Sample name" value="${esc(s.id || 'Sample ' + (i + 1))}" />
           <input class="od" type="number" step="any" inputmode="decimal" data-i="${i}" data-f="od" placeholder="OD" aria-label="OD of ${esc(label(s, i))}" value="${s.od}" />
           <div class="isr" id="si${i}"></div></div>`).join('');
       $('samples').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
@@ -235,7 +236,7 @@
         calc();
       }));
       $('samples').querySelectorAll('.sid').forEach(inp => inp.addEventListener('focus', () => inp.select()));
-      VC.enterNav([...document.querySelectorAll('#samples .od')]);
+      VC.seqNav([...CTL.map(id => $(id)), ...document.querySelectorAll('#samples .od')]);
     }
 
     /* ---------- little visuals ---------- */
@@ -331,17 +332,17 @@
         <div class="tile" style="border-top-color:#dc2626"><div class="k">Positive</div><div class="v" style="color:#991b1b">${valid ? counts.pos : '—'}</div></div>`;
 
       if (!rows.length) $('resTbl').innerHTML = '<tbody><tr><td class="hint">Enter sample ODs above.</td></tr></tbody>';
-      else $('resTbl').innerHTML = '<thead><tr><th>Sample</th><th>OD₄₅₀</th><th>ISR</th><th>Result</th><th>Comment</th></tr></thead><tbody>' +
+      else $('resTbl').innerHTML = '<thead><tr><th>Sample</th><th>OD₄₅₀</th><th>ISR</th><th>Result</th></tr></thead><tbody>' +
         rows.map(r => {
-          let pill, cm = '';
+          let pill;
           if (r.isr === null) pill = '<span class="pill res-na">Need CC</span>';
           else if (!valid) pill = `<span class="pill res-na">${complete ? 'Run invalid' : 'QC pending'}</span>`;
-          else { pill = `<span class="pill res-${r.cls}">${NAMES[r.cls]}</span>`; cm = COMMENT[r.cls]; }
-          return `<tr><td data-label="Sample"><strong>${esc(r.id)}</strong></td><td data-label="OD₄₅₀">${r.od.toFixed(3)}</td><td data-label="ISR"><strong>${r.isr === null ? '—' : r.r2.toFixed(2)}</strong></td><td data-label="Result">${pill}</td><td class="cmt" data-label="Comment">${cm}</td></tr>`;
+          else pill = `<span class="pill res-${r.cls}">${NAMES[r.cls]}</span>`;
+          return `<tr><td data-label="Sample"><strong>${esc(r.id)}</strong></td><td data-label="OD₄₅₀">${r.od.toFixed(3)}</td><td data-label="ISR"><strong>${r.isr === null ? '—' : r.r2.toFixed(2)}</strong></td><td data-label="Result">${pill}</td></tr>`;
         }).join('') + '</tbody>';
 
       drawChart(rows.filter(r => r.isr !== null), valid);
-      $('prInfo').innerHTML = `Kit: InBios CHIKjj Detect™ IgM ELISA · Lot: ${esc(S.info.lot || '—')} · Date: ${esc(S.info.date || '—')} · Performed by: ${esc(S.info.oper || '—')}<br>NC mean ${f3(ncM)} · PC mean ${f3(pcM)} · CC mean ${f3(ccM)} · PC/NC ${ratio === null ? '—' : ratio.toFixed(2)} · Run: <strong>${!complete ? 'QC INCOMPLETE' : valid ? 'VALID' : 'INVALID'}</strong>`;
+      $('prInfo').innerHTML = `Kit: InBios CHIKjj Detect™ IgM ELISA · Lot: ${esc(S.info.lot || '—')} · Date: ${esc(S.info.date || '—')} · Performed by: ${esc(S.info.oper || '—')}<br>NC mean ${f3(ncM)} · PC mean ${f3(pcM)} · CC mean ${f3(ccM)} · PC/NC ${ratio === null ? '—' : ratio.toFixed(2)} · Run: <strong>${!complete ? 'QC INCOMPLETE' : valid ? 'VALID' : 'INVALID'}</strong>${valid ? ` · Neg ${counts.neg} · Equiv ${counts.eq} · Pos ${counts.pos}` : ''}`;
     }
 
     function drawChart(rows, valid) {
@@ -368,7 +369,6 @@
 
     /* ---------- wiring ---------- */
     CTL.forEach(id => { $(id).value = S.ctl[id] ?? ''; $(id).addEventListener('input', calc); });
-    VC.enterNav(CTL.map(id => $(id)));
     ['ncMax', 'pcMin', 'rMin', 'eqLo', 'eqHi'].forEach(id => { $(id).value = S.lim[id]; $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!isNaN(v)) { S.lim[id] = v; calc(); } }); });
     [['lot', 'lot'], ['runDate', 'date'], ['oper', 'oper']].forEach(([id, k]) => { $(id).value = S.info[k] || ''; $(id).addEventListener('input', () => { S.info[k] = $(id).value; calc(); }); });
     $('addMore').addEventListener('click', () => { if (S.samples.length < 40) { for (let i = 0; i < 5; i++) S.samples.push({ id: '', od: '' }); buildSamples(); calc(); } });

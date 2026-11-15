@@ -75,12 +75,13 @@
     }
   </style>
   <script src="../js/shell.js" defer></script>
+  <script src="../js/common.js"></script>
 </head>
 <body data-theme="dengue">
   <div class="container wide">
     <a href="../index.html" class="back-link no-print">← Back to Viro Calculator</a>
     <div class="page-head">
-      <img src="../icon.png" alt="" />
+      <img src="../icons/icon-192.png" alt="" />
       <div class="titles">
         <h1>Viro Calculator</h1>
         <span class="page-chip no-print">Dengue ELISA Dual Assay (IgM & NS1 Ag) — Full PC Workstation View</span>
@@ -99,7 +100,7 @@
       <input type="number" id="calFactor" step="any" placeholder="e.g. 0.83" value="" />
     </div>
 
-    <p class="sub-text no-print">Paste your reader OD values below (Supports direct paste from reader software into Row A):</p>
+    <p class="sub-text no-print">Enter ODs well by well (Tab goes A1 → H1, then A2 …) or paste a block from your reader into any well:</p>
 
     <div class="legend no-print"><span class="lg-nc">A1 · NC</span><span class="lg-pc">B1 · PC</span><span class="lg-cal">C1–E1 · CAL</span></div>
 
@@ -134,14 +135,14 @@
     <!-- Results Table Preview -->
     <div style="margin-top: 24px;">
       <h2 id="resultsTitle">Calculated Results — Dengue IgM</h2>
-      <div class="results-wrap">
+      <div class="results-wrap no-print-list">
         <table class="grid-table">
           <thead>
             <tr>
               <th>Well</th>
               <th>Sample OD</th>
-              <th>Panbio Units (Ratio)</th>
-              <th>Interpretation</th>
+              <th>Panbio Units</th>
+              <th>Result</th>
             </tr>
           </thead>
           <tbody id="resultsBody">
@@ -151,7 +152,9 @@
       </div>
     </div>
 
-    <div class="version-tag no-print">Viro Calculator • v5.1</div>
+    <div class="plist-wrap"><h3 id="prHead" style="margin:0 0 6px"></h3><div id="prList"></div></div>
+
+    <div class="version-tag no-print">Viro Calculator • v5.2</div>
   </div>
 
   <script type="module">
@@ -207,6 +210,21 @@
       }
       body.appendChild(tr);
     });
+
+    const seq = [];
+    for (let c = 1; c <= 12; c++) rows.forEach(r => seq.push(document.getElementById(`cell_${r}_${c}`)));
+    VC.seqNav(seq);
+    seq.forEach(inp => inp.addEventListener('paste', e => {
+      const t = (e.clipboardData || window.clipboardData).getData('text');
+      if (!/[\t\n]/.test(t.trim())) return;
+      e.preventDefault();
+      const [, r0, c0] = inp.id.match(/cell_(.)_(\d+)/); let ri = rows.indexOf(r0);
+      t.trim().split(/\r?\n/).forEach((line, dr) => line.split('\t').forEach((v, dc) => {
+        const el = document.getElementById(`cell_${rows[ri + dr]}_${+c0 + dc}`);
+        if (el) { const f = parseFloat(v.replace(',', '.')); el.value = isNaN(f) ? '' : f; }
+      }));
+      storeCurrentGrid(); calculateDengue(); saveStateToCloud();
+    }));
 
     window.switchAssay = function(assay) {
       storeCurrentGrid();
@@ -275,8 +293,9 @@
 
       let hasResults = false;
 
-      rows.forEach(r => {
-        for (let c = 1; c <= 12; c++) {
+      const plist = [];
+      for (let c = 1; c <= 12; c++) {
+        for (const r of rows) {
           if ((r === 'A' || r === 'B' || r === 'C' || r === 'D' || r === 'E') && c === 1) continue;
           
           const val = parseFloat(document.getElementById(`cell_${r}_${c}`).value);
@@ -284,18 +303,11 @@
             hasResults = true;
             const ratio = (val / cutoff) * 10;
             
-            let interpretation = '';
-            let cls = '';
-            if (ratio < 9) {
-              interpretation = 'Negative (< 9 Units)';
-              cls = 'res-neg';
-            } else if (ratio >= 9 && ratio <= 11) {
-              interpretation = 'Equivocal (9–11 Units)';
-              cls = 'res-eq';
-            } else {
-              interpretation = 'Positive (> 11 Units)';
-              cls = 'res-pos';
-            }
+            let interpretation = '', cls = '', code = '', pc = '';
+            if (ratio < 9) { interpretation = 'Negative'; cls = 'res-neg'; code = 'NEG'; pc = 'neg'; }
+            else if (ratio <= 11) { interpretation = 'Equivocal'; cls = 'res-eq'; code = 'EQV'; pc = 'eq'; }
+            else { interpretation = 'Positive'; cls = 'res-pos'; code = 'POS'; pc = 'pos'; }
+            plist.push({ w: r + c, od: val, v: ratio.toFixed(1), code, cls: pc });
 
             let tr = document.createElement('tr');
             tr.innerHTML = `
@@ -307,7 +319,9 @@
             resultsBody.appendChild(tr);
           }
         }
-      });
+      }
+      document.getElementById('prHead').textContent = `Dengue ${currentAssay === 'IgM' ? 'IgM' : 'NS1 Ag'} ELISA — ${new Date().toLocaleDateString()} · Cal. factor ${calFactor || '—'} · Cut-off ${cutoff.toFixed(3)} · NC ${ncVal.toFixed(3)} · Panbio Units`;
+      document.getElementById('prList').innerHTML = VC.plist(plist, 'Units');
 
       if (!hasResults) {
         resultsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted);">No valid sample OD values entered for ${currentAssay}. Auto-saved locally.</td></tr>`;
