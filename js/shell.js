@@ -11,10 +11,13 @@
     { t: 'Serology · ELISA', items: [
       { n: 'Dengue ELISA',        s: 'Dengue',     ic: '🦟', c: '#e11d48', f: 'calculators/dengue-elisa.html' },
       { n: 'Chikungunya IgM',     s: 'Chik IgM',   ic: '🧫', c: '#db2777', f: 'calculators/chik-igm-elisa.html' },
+      { n: 'Wash Buffer Prep', s: 'Wash buffer', ic: '🧴', c: '#4d7c0f', f: 'calculators/wash-buffer.html' },
       { n: 'Generic ELISA (S/CO)', s: 'ELISA S/CO', ic: '📊', c: '#4d7c0f', f: 'calculators/generic-elisa.html' } ] },
     { t: 'Molecular · PCR', items: [
       { n: 'RealStar® Viral Load', s: 'Viral load', ic: '🧪', c: '#1478d4', f: 'calculators/realstar-vl.html' },
       { n: 'Custom Viral Load', s: 'Custom VL',   ic: '🧮', c: '#4f46e5', f: 'calculators/custom-vl.html' },
+      { n: 'Custom Master Mix', s: 'Custom MM', ic: '🧫', c: '#7c3aed', f: 'calculators/custom-mastermix.html' },
+      { n: 'AM16 Kit Order', s: 'AM16 order', ic: '📦', c: '#7c3aed', f: 'calculators/altona-am16-order.html' },
       { n: 'Master Mix Prep',      s: 'Master mix', ic: '💧', c: '#7c3aed', f: 'calculators/altona-mastermix.html' },
       { n: 'qPCR Tools',           s: 'qPCR',       ic: '📈', c: '#4f46e5', f: 'calculators/qpcr-tools.html' } ] },
     { t: 'Virology · Cell culture', items: [
