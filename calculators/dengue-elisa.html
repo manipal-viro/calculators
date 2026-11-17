@@ -130,6 +130,7 @@
     <div class="action-row no-print" style="margin-top: 16px;">
       <button type="button" onclick="calculateDengue()">Calculate Results</button>
       <button type="button" class="secondary" onclick="window.print()">Print Report (B&W Optimized)</button>
+      <button type="button" class="secondary" onclick="resetPlate()" style="color:#991b1b; border-color:#fca5a5">Reset plate</button>
     </div>
 
     <!-- Results Table Preview -->
@@ -246,6 +247,17 @@
       loadGridToUI();
       calculateDengue();
     }
+
+    window.resetPlate = function() {
+      const name = currentAssay === 'IgM' ? 'Dengue IgM' : 'Dengue NS1 Ag';
+      if (!confirm('Reset the ' + name + ' plate?\nAll OD values and the calibration factor for this assay will be cleared (also on your other synced devices).')) return;
+      assayData[currentAssay] = { calFactor: '', grid: {} };
+      document.getElementById('calFactor').value = '';
+      loadGridToUI();
+      calculateDengue();
+      saveStateToCloud();
+      document.getElementById('cell_A_1').focus();
+    };
 
     function storeCurrentGrid() {
       assayData[currentAssay].calFactor = document.getElementById('calFactor').value;
