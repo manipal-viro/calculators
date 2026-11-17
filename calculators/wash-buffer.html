@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Wash Buffer Preparation — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+    .rbig { text-align: left; }
+    .rbig .line { font-size: 1.15rem; font-weight: 800; margin: 6px 0 0; }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="elisa">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">ELISA Wash Buffer Preparation</span></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><label for="wells">Wells to wash</label><input type="number" id="wells" min="1" step="1" inputmode="numeric" placeholder="e.g. 96" /></div>
+      <div class="field"><label for="vol">Volume per well per wash (µL)</label><input type="number" id="vol" step="any" inputmode="decimal" value="300" /></div>
+      <div class="field"><label for="mode">Washing</label><select id="mode"><option value="auto">Automatic washer (strips of 8)</option><option value="man">Manual (exact wells)</option></select></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><label for="wtype">Wash type</label><select id="wtype"><option value="cycle">Cycle (several washes per cycle)</option><option value="single">Single wash</option></select></div>
+      <div class="field" id="fWpc"><label for="wpc">Washes per cycle</label><input type="number" id="wpc" min="1" step="1" inputmode="numeric" value="5" /></div>
+      <div class="field" id="fCyc"><label for="cyc">Number of cycles</label><input type="number" id="cyc" min="1" step="1" inputmode="numeric" value="1" /></div>
+      <div class="field" id="fSgl" style="display:none"><label for="sgl">Number of single washes</label><input type="number" id="sgl" min="1" step="1" inputmode="numeric" value="1" /></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><label for="dil">Wash buffer dilution</label>
+        <select id="dil"><option value="10">1:10</option><option value="20">1:20</option><option value="25">1:25</option><option value="30">1:30</option><option value="40">1:40</option><option value="50">1:50</option><option value="custom">Custom…</option></select></div>
+      <div class="field" id="fDc" style="display:none"><label for="dilc">Custom 1 :</label><input type="number" id="dilc" min="1" step="any" inputmode="decimal" value="10" /></div>
+      <div class="field"><label for="conv">“1:N” means</label><select id="conv"><option value="tot">1 part concentrate in N parts total</option><option value="add">1 part concentrate + N parts diluent</option></select></div>
+      <div class="field"><label for="ovg">Extra for priming / dead volume (%)</label><input type="number" id="ovg" min="0" step="any" inputmode="decimal" value="0" /></div>
+    </div>
+
+    <div class="result-box rbig">
+      <div style="font-weight:700">Wash buffer required</div>
+      <div class="val" id="rTot">—</div>
+      <div class="line" id="rMix"></div>
+      <div class="sub" id="rSub"></div>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+    <div class="note" id="note" style="display:none"></div>
+
+    <div class="version-tag">Viro Calculator • v5.2</div>
+  </div>
+
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const { $, fmt } = VC, KEY = 'viro_wash';
+    const IDS = ['wells', 'vol', 'mode', 'wtype', 'wpc', 'cyc', 'sgl', 'dil', 'dilc', 'conv', 'ovg'];
+    const S = VC.store.get(KEY, {});
+    IDS.forEach(id => { if (S[id] !== undefined) $(id).value = S[id]; });
+    const ml = v => v >= 1000 ? fmt(v / 1000, 4) + ' L' : fmt(v, 4) + ' mL';
+    function calc() {
+      IDS.forEach(id => S[id] = $(id).value); VC.store.set(KEY, S);
+      const single = $('wtype').value === 'single';
+      $('fWpc').style.display = $('fCyc').style.display = single ? 'none' : '';
+      $('fSgl').style.display = single ? '' : 'none';
+      $('fDc').style.display = $('dil').value === 'custom' ? '' : 'none';
+      const wells = Math.max(0, Math.floor(parseFloat($('wells').value) || 0)), vol = parseFloat($('vol').value) || 0;
+      const washes = single ? Math.max(1, Math.floor(parseFloat($('sgl').value) || 1)) : Math.max(1, Math.floor(parseFloat($('wpc').value) || 1)) * Math.max(1, Math.floor(parseFloat($('cyc').value) || 1));
+      const auto = $('mode').value === 'auto', strips = Math.ceil(wells / 8), washed = auto ? strips * 8 : wells;
+      const N = $('dil').value === 'custom' ? (parseFloat($('dilc').value) || 0) : +$('dil').value;
+      const parts = $('conv').value === 'tot' ? N : N + 1;       // total parts per 1 part concentrate
+      const ovg = Math.max(0, parseFloat($('ovg').value) || 0) / 100;
+      const note = $('note'); note.style.display = 'none';
+      if (!wells || !vol || parts < 1) { $('rTot').textContent = '—'; $('rMix').textContent = ''; $('rSub').textContent = 'Enter the number of wells to wash.'; $('tiles').innerHTML = ''; return; }
+      const base = washed * vol * washes / 1000;                  // mL
+      const tot = base * (1 + ovg), conc = tot / parts, water = tot - conc;
+      $('rTot').textContent = ml(tot);
+      $('rMix').textContent = `${ml(conc)} concentrate + ${ml(water)} distilled water`;
+      $('rSub').textContent = `${washed} wells × ${fmt(vol, 4)} µL × ${washes} wash${washes > 1 ? 'es' : ''}` + (ovg ? ` + ${fmt(ovg * 100, 3)} % extra` : '') + ` → 1 : ${fmt(parts, 4)} dilution`;
+      $('tiles').innerHTML = [
+        ['Wells entered', wells], [auto ? 'Strips (8 wells)' : 'Wells washed', auto ? strips + ' → ' + washed + ' wells' : washed],
+        ['Total washes', washes], ['Per wash (all wells)', ml(washed * vol / 1000)], ['Concentrate', ml(conc)], ['Distilled water', ml(water)]
+      ].map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v" style="font-size:1.2rem">${v}</div></div>`).join('');
+      if (auto && washed !== wells) { note.textContent = `Automatic washer: ${wells} wells are rounded up to ${strips} strips = ${washed} wells, because the washer always dispenses into full strips of 8.`; note.style.display = ''; }
+    }
+    IDS.forEach(id => { $(id).addEventListener('input', calc); $(id).addEventListener('change', calc); });
+    calc();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  });
+  </script>
+</body>
+</html>

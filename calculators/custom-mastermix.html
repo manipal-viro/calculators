@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Custom Master Mix — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+    .sync { display: inline-block; font-size: .75rem; font-weight: 800; padding: 3px 12px; border-radius: 999px; background: #eef2f6; color: #475569; }
+    .sync.ok { background: #dcfce7; color: #166534; } .sync.off { background: #fef3c7; color: #92400e; }
+    .meth { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: end; }
+    .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .rg { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr) 36px; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .rg button { padding: 6px; }
+    .nfw td { background: var(--accent-soft); }
+    .tot td { font-weight: 800; border-top: 2px solid var(--accent); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    textarea { width: 100%; min-height: 90px; }
+    .big { font-size: 1.15rem; }
+    @media (max-width: 720px) { .meth { grid-template-columns: 1fr; } }
+    @media print { .no-print-x { display: none !important; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="mastermix">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Custom Master Mix</span></div>
+    </div>
+
+    <div class="no-print-x" style="margin-bottom:10px"><span class="sync" id="sync">Saved on this device</span></div>
+
+    <div class="meth no-print-x">
+      <div class="field"><label for="tSel">Test</label><select id="tSel"></select></div>
+      <div class="field"><label for="rxn">Reactions required</label><input type="number" id="rxn" min="1" step="1" inputmode="numeric" placeholder="e.g. 24" /></div>
+    </div>
+
+    <div class="result-box" style="text-align:left; padding:16px; margin-top:12px">
+      <div style="font-weight:700" id="rTitle">Master mix</div>
+      <div class="val" id="rVal">—</div>
+      <div class="sub" id="rSub"></div>
+    </div>
+
+    <div class="tbl-wrap"><table class="tbl" id="tbl"></table></div>
+    <div class="note" id="warn" style="display:none"></div>
+    <div id="procView" class="hint" style="white-space:pre-wrap; margin-top:10px"></div>
+    <div class="action-row no-print-x"><button type="button" class="secondary" id="cpy">Copy</button><button type="button" class="secondary" onclick="window.print()">Print</button></div>
+
+    <details class="no-print-x" id="editor" style="margin-top:18px">
+      <summary>Edit / add tests (saved automatically)</summary>
+      <div class="btns" style="margin:10px 0">
+        <button type="button" class="secondary" id="tNew">+ New test</button>
+        <button type="button" class="secondary" id="tDup">Duplicate</button>
+        <button type="button" class="secondary" id="tDel" style="color:#991b1b;border-color:#fca5a5">Delete</button>
+      </div>
+      <div class="row">
+        <div class="field"><label for="eName">Test name</label><input type="text" id="eName" placeholder="e.g. HBV, Dengue RT-PCR" /></div>
+        <div class="field"><label for="eTot">Total volume per reaction (µL)</label><input type="number" id="eTot" min="0" step="any" inputmode="decimal" /></div>
+        <div class="field"><label for="eTpl">Template / sample per reaction (µL)</label><input type="number" id="eTpl" min="0" step="any" inputmode="decimal" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="ePP">Primers &amp; probe</label><select id="ePP"><option value="sep">Separate: Forward, Reverse, Probe</option><option value="mix">Primer-Probe mix</option></select></div>
+        <div class="field"><label for="eOvg">Extra volume (%)</label><input type="number" id="eOvg" min="0" step="any" inputmode="decimal" /></div>
+      </div>
+      <label style="font-weight:700;font-size:.85rem">Reagent volume per reaction (µL) — water is calculated automatically</label>
+      <div id="eRg" style="margin-top:6px"></div>
+      <button type="button" class="secondary" id="rAdd">+ Add reagent</button>
+      <div class="field" style="margin-top:14px"><label for="eNote">Procedure / notes (shown under the result)</label><textarea id="eNote" placeholder="e.g. Thaw reagents on ice, vortex, spin down. Mix in a clean hood. Dispense 20 µL per well, add 5 µL template."></textarea></div>
+    </details>
+
+    <div class="version-tag">Viro Calculator • v5.2</div>
+  </div>
+
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const { $, esc, fmt } = VC, KEY = 'viro_custom_mm', DEV = (VC.store.get('viro_dev', null) || (() => { const d = Math.random().toString(36).slice(2); VC.store.set('viro_dev', d); return d; })());
+    const uid = () => 't' + Math.random().toString(36).slice(2, 8);
+    const blank = name => ({ id: uid(), name: name || 'New test', tot: '', tpl: '', pp: 'sep', ovg: 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, extra: [], note: '' });
+    let D = VC.store.get(KEY, null);
+    if (!D || !D.tests || !D.tests.length) { const t = blank('Test 1'); D = { tests: [t], cur: t.id, savedAt: 0 }; }
+    const T = () => D.tests.find(t => t.id === D.cur) || D.tests[0];
+    const n = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+    const rows = t => {                                  // [{name, v, calc?}] in bench order
+      const r = [{ k: 'nfw', name: 'NFW (Nuclease-Free Water)', calc: true }, { k: 'buf', name: 'PCR Buffer (MM)' }];
+      if (t.pp === 'mix') r.push({ k: 'ppm', name: 'Primer-Probe mix' }); else r.push({ k: 'fwd', name: 'Forward primer' }, { k: 'rev', name: 'Reverse primer' }, { k: 'probe', name: 'Probe' });
+      r.push({ k: 'enz', name: 'Enzyme' });
+      t.extra.forEach((e, i) => r.push({ k: 'x' + i, name: e.n || 'Reagent ' + (i + 1), ex: i }));
+      return r.map(x => (x.k === 'nfw' ? x : { ...x, v: x.ex !== undefined ? n(t.extra[x.ex].v) : n(t.v[x.k]) }));
+    };
+
+    /* ---------- save + cloud sync ---------- */
+    let push = null, timer = null;
+    const setSync = (cls, txt) => { $('sync').className = 'sync ' + cls; $('sync').textContent = txt; };
+    function save() {
+      D.savedAt = Date.now(); VC.store.set(KEY, D);
+      if (push) { setSync('', 'Saving…'); clearTimeout(timer); timer = setTimeout(() => push(), 600); }
+    }
+    (async () => {
+      try {
+        const [A, FS] = await Promise.all([import('https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js'), import('https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js')]);
+        const app = A.initializeApp({ apiKey: "AIzaSyCdl2Ds5b4Sn-KL94UQCifRZsg3_xU91oM", authDomain: "viro-calculator.firebaseapp.com", projectId: "viro-calculator", storageBucket: "viro-calculator.firebasestorage.app", messagingSenderId: "668811903388", appId: "1:668811903388:web:e0b40f5f1f508091fd8859" });
+        const ref = FS.doc(FS.getFirestore(app), 'labSessions', 'custom_mastermix');
+        push = () => FS.setDoc(ref, { json: JSON.stringify(D), savedAt: D.savedAt, by: DEV }).then(() => setSync('ok', 'Synced ✓'), () => setSync('off', 'Sync failed — saved on this device'));
+        FS.onSnapshot(ref, snap => {
+          if (snap.metadata.hasPendingWrites) return;
+          if (!snap.exists()) { if (D.savedAt) push(); else setSync('ok', 'Synced ✓'); return; }
+          const r = snap.data();
+          if (r.savedAt > D.savedAt) {
+            try { const nd = JSON.parse(r.json); if (nd && nd.tests && nd.tests.length) { const cur = D.cur; D = nd; if (!D.tests.some(t => t.id === cur)) D.cur = D.tests[0].id; else D.cur = cur; VC.store.set(KEY, D); fillSel(); loadEditor(); draw(); } } catch (e) { /* ignore */ }
+            setSync('ok', 'Synced ✓ (updated from another device)');
+          } else if (r.savedAt < D.savedAt) push(); else setSync('ok', 'Synced ✓');
+        }, () => setSync('off', 'Offline — saved on this device'));
+      } catch (e) { setSync('off', 'Offline — saved on this device'); }
+    })();
+
+    /* ---------- prepare view ---------- */
+    function draw() {
+      const t = T(), rx = Math.floor(n($('rxn').value)), ovg = 1 + n(t.ovg) / 100;
+      const tot = n(t.tot), tpl = n(t.tpl), rs = rows(t);
+      const others = rs.filter(r => !r.calc).reduce((s, r) => s + r.v, 0), nfw = tot - tpl - others, mm = tot - tpl;
+      const warn = $('warn'); warn.style.display = 'none';
+      $('rTitle').textContent = t.name + ' — master mix';
+      if (!tot) { $('rVal').textContent = '—'; $('rSub').textContent = 'Set the total volume and reagent volumes under “Edit / add tests”.'; $('tbl').innerHTML = ''; $('procView').textContent = t.note || ''; return; }
+      if (nfw < -1e-9) { warn.className = 'note err'; warn.textContent = `Reagents + template (${fmt(others + tpl, 4)} µL) exceed the total volume (${fmt(tot, 4)} µL) — check the volumes.`; warn.style.display = ''; }
+      const f = v => fmt(v, 4);
+      rs[0].v = Math.max(0, nfw);
+      const scale = rx > 0 ? rx * ovg : 0;
+      $('tbl').innerHTML = '<thead><tr><th>Reagent</th><th class="num">Per reaction (µL)</th><th class="num">' + (rx ? 'For ' + rx + ' rxn' + (rx > 1 ? 's' : '') + (n(t.ovg) ? ' (+' + fmt(n(t.ovg), 3) + ' %)' : '') + ' (µL)' : 'Enter reactions') + '</th></tr></thead><tbody>' +
+        rs.map(r => `<tr class="${r.calc ? 'nfw' : ''}"><td>${esc(r.name)}</td><td class="num">${f(r.v)}</td><td class="num"><b>${scale ? f(r.v * scale) : '—'}</b></td></tr>`).join('') +
+        `<tr class="tot"><td>Master mix total</td><td class="num">${f(mm)}</td><td class="num">${scale ? f(mm * scale) : '—'}</td></tr>` +
+        (tpl ? `<tr><td>Template / sample (add per well)</td><td class="num">${f(tpl)}</td><td class="num">${scale ? f(tpl * rx) : '—'}</td></tr>` : '') +
+        `<tr class="tot"><td>Total volume per single reaction</td><td class="num">${f(tot)}</td><td class="num">${rx ? f(tot * rx) : '—'}</td></tr></tbody>`;
+      $('rVal').textContent = scale ? f(mm * scale) + ' µL' : '—';
+      $('rSub').textContent = scale ? `Dispense ${f(mm)} µL per well${tpl ? ' + ' + f(tpl) + ' µL template = ' + f(tot) + ' µL' : ''}` : 'Enter the number of reactions.';
+      $('procView').textContent = t.note ? 'Procedure:\n' + t.note : '';
+      window._txt = `${t.name} — ${rx} reactions${n(t.ovg) ? ' (+' + n(t.ovg) + ' %)' : ''}\n` + rs.map(r => `${r.name}: ${scale ? f(r.v * scale) : f(r.v)} µL`).join('\n') + `\nMaster mix total: ${scale ? f(mm * scale) : f(mm)} µL\nTotal per reaction: ${f(tot)} µL`;
+    }
+
+    /* ---------- editor ---------- */
+    function fillSel() { $('tSel').innerHTML = D.tests.map(t => `<option value="${t.id}">${esc(t.name || 'Untitled')}</option>`).join(''); $('tSel').value = T().id; }
+    function loadEditor() {
+      const t = T(); $('eName').value = t.name; $('eTot').value = t.tot; $('eTpl').value = t.tpl; $('ePP').value = t.pp; $('eOvg').value = t.ovg; $('eNote').value = t.note || '';
+      const base = rows(t).filter(r => !r.calc).filter(r => r.ex === undefined);
+      $('eRg').innerHTML = base.map(r => `<div class="rg"><span>${esc(r.name)}</span><input type="number" min="0" step="any" inputmode="decimal" data-k="${r.k}" value="${esc(t.v[r.k])}" placeholder="µL" /><span></span></div>`).join('') +
+        t.extra.map((e, i) => `<div class="rg"><input type="text" data-xn="${i}" value="${esc(e.n)}" placeholder="Reagent name" /><input type="number" min="0" step="any" inputmode="decimal" data-xv="${i}" value="${esc(e.v)}" placeholder="µL" /><button type="button" class="secondary" data-xd="${i}" aria-label="Remove">✕</button></div>`).join('');
+      $('eRg').querySelectorAll('[data-k]').forEach(i => i.addEventListener('input', () => { T().v[i.dataset.k] = i.value; save(); draw(); }));
+      $('eRg').querySelectorAll('[data-xn]').forEach(i => i.addEventListener('input', () => { T().extra[+i.dataset.xn].n = i.value; save(); draw(); }));
+      $('eRg').querySelectorAll('[data-xv]').forEach(i => i.addEventListener('input', () => { T().extra[+i.dataset.xv].v = i.value; save(); draw(); }));
+      $('eRg').querySelectorAll('[data-xd]').forEach(b => b.addEventListener('click', () => { T().extra.splice(+b.dataset.xd, 1); save(); loadEditor(); draw(); }));
+    }
+    [['eName', 'name'], ['eTot', 'tot'], ['eTpl', 'tpl'], ['eOvg', 'ovg'], ['eNote', 'note']].forEach(([id, k]) => $(id).addEventListener('input', () => { T()[k] = $(id).value; if (k === 'name') fillSel(); save(); draw(); }));
+    $('ePP').addEventListener('change', () => { T().pp = $('ePP').value; save(); loadEditor(); draw(); });
+    $('tSel').addEventListener('change', () => { D.cur = $('tSel').value; VC.store.set(KEY, D); loadEditor(); draw(); });
+    $('rxn').addEventListener('input', () => { VC.store.set(KEY + '_rxn', $('rxn').value); draw(); });
+    $('tNew').addEventListener('click', () => { const t = blank(); D.tests.push(t); D.cur = t.id; save(); fillSel(); loadEditor(); draw(); $('eName').select(); });
+    $('tDup').addEventListener('click', () => { const t = JSON.parse(JSON.stringify(T())); t.id = uid(); t.name += ' (copy)'; D.tests.push(t); D.cur = t.id; save(); fillSel(); loadEditor(); draw(); });
+    $('tDel').addEventListener('click', () => { if (D.tests.length < 2) { alert('Keep at least one test.'); return; } if (!confirm('Delete test “' + T().name + '”? (also on your other devices)')) return; D.tests = D.tests.filter(t => t.id !== D.cur); D.cur = D.tests[0].id; save(); fillSel(); loadEditor(); draw(); });
+    $('rAdd').addEventListener('click', () => { T().extra.push({ n: '', v: '' }); save(); loadEditor(); draw(); });
+    $('cpy').addEventListener('click', () => VC.copy(window._txt || '', $('cpy')));
+    $('rxn').value = VC.store.get(KEY + '_rxn', '');
+    fillSel(); loadEditor(); draw();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  });
+  </script>
+</body>
+</html>

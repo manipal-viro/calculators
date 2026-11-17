@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AltoStar AM16 Consumables Order — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+    .tbl td small { display: block; color: var(--muted); font-size: .72rem; }
+    .cat td { background: var(--accent-soft); color: var(--accent-dark); font-weight: 800; font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; }
+    .est { color: #b45309; font-weight: 800; font-size: .7rem; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .adv input { width: 78px; padding: 6px; text-align: right; }
+    .order b { font-size: 1.05rem; color: var(--accent-dark); }
+    .save { color: #166534; font-weight: 800; }
+    @media (max-width: 720px) { .tbl-wrap { overflow-x: auto; } .tbl { min-width: 640px; } }
+    @media print { .no-print-x { display: none !important; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="mastermix">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">AltoStar AM16 — Consumables Order</span></div>
+    </div>
+
+    <div class="row no-print-x">
+      <div class="field"><label for="samples">Total samples required</label><input type="number" id="samples" min="1" step="1" inputmode="numeric" placeholder="e.g. 480" /></div>
+      <div class="field"><label for="assays">Assays (tests) per sample</label><input type="number" id="assays" min="1" step="1" inputmode="numeric" value="1" /></div>
+      <div class="field"><label for="avg">Average samples per run</label><input type="number" id="avg" min="1" step="1" inputmode="numeric" placeholder="e.g. 16" /></div>
+    </div>
+    <div class="row no-print-x">
+      <div class="field"><label for="max">Max samples per run</label><input type="number" id="max" min="1" step="1" inputmode="numeric" value="48" /></div>
+      <div class="field"><label for="ctl">PCR controls per assay per run</label><select id="ctl"><option value="5">Quantitative: QS1–QS4 + NTC (5)</option><option value="2">Qualitative: QS4 + NTC (2)</option></select></div>
+      <div class="field"><label for="mrg">Safety margin (%)</label><input type="number" id="mrg" min="0" step="any" inputmode="decimal" value="10" /></div>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+    <div class="note" id="warn" style="display:none"></div>
+
+    <h2>What to order</h2>
+    <div class="tbl-wrap"><table class="tbl order" id="tbl"></table></div>
+    <div class="action-row no-print-x"><button type="button" class="secondary" id="cpy">Copy order list</button><button type="button" class="secondary" onclick="window.print()">Print</button></div>
+
+    <details class="adv no-print-x">
+      <summary>Consumption per run (edit)</summary>
+      <p class="hint">Needed = runs × per run + samples × per sample + runs × assays × per assay-run. Items marked <span class="est">estimate</span> are not stated in the Altona insert — replace them with the numbers shown by AltoStar Connect for your own run set-up. Edited values are remembered on this device.</p>
+      <div class="field" style="max-width:260px"><label for="rpt">Reactions per Master A / B tube</label><input type="number" id="rpt" min="1" step="1" inputmode="numeric" value="12" /></div>
+      <div class="tbl-wrap"><table class="tbl" id="adv"></table></div>
+      <div class="action-row"><button type="button" class="secondary" id="rst">Reset to defaults</button></div>
+    </details>
+
+    <div class="version-tag">Viro Calculator • v5.2</div>
+  </div>
+
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const { $, esc, fmt } = VC, KEY = 'viro_am16';
+    // k: special rule  |  e: estimate (not in insert)  |  r/s/a: per run / per sample / per assay-run  |  p: pack size
+    const ITEMS = [
+      ['Purification & Liquid Handling', [
+        { n: 'Processing Plate', d: 'Fully-skirted, barcoded 96 deep-well plate', r: 1, p: 50 },
+        { n: 'Eluate Plate', d: 'Semi-skirted, barcoded 96 multi-well plate', r: 1, p: 50 },
+        { n: 'Eluate Plate Sealing Foil', d: 'Sealing foil for eluate plate', r: 1, p: 100 },
+        { n: '1000 µl CO-RE Tips', d: 'Filter tips for large sample and buffer volumes', s: 1, p: 3840, e: 1 },
+        { n: '300 µl CO-RE Tips', d: 'Filter tips for small volumes and reagent transfers', s: 2, p: 5760, e: 1 },
+        { n: 'Container Re-Sealing Foil', d: 'Re-sealing foil for Lysis and Wash Buffer containers', r: 1, p: 120, e: 1 },
+        { n: 'Waste Bag', d: 'Autoclavable sterile bag for system waste', r: 1, p: 500 } ]],
+      ['Sample & Micro Tubes', [
+        { n: 'Sample Tube', d: '7 ml sample tube with cap (82 x 13 mm)', s: 1, p: 1000 },
+        { n: 'Sample Tube Cap', d: 'Ribbed plug for sample tubes', s: 1, p: 2500 },
+        { n: '2 ml Tube', d: 'Polypropylene 2 ml micro tube', p: 500 },
+        { n: 'Dymo Labels', d: 'Durable polypropylene labels for barcode printer', s: 1, p: 1000 } ]],
+      ['Core Purification Reagents', [
+        { n: 'AltoStar Purification Kit 1.5', d: 'Silica-coated magnetic bead kit (Box 1 & Box 2) — rxns', s: 1, p: 1152, e: 1 },
+        { n: 'AltoStar Internal Control 1.5', d: 'Universal internal control — pack size is kit dependent', s: 1, p: 0, e: 1 } ]],
+      ['Downstream PCR Setup', [
+        { n: 'PCR Plate', d: 'Semi-skirted, barcoded 96 multi-well plate (white wells)', k: 'plate', p: 25 },
+        { n: 'PCR Plate Sealing Foil', d: 'Sealing foil for PCR plate', k: 'plate', p: 100 },
+        { n: 'Pooling Tube', d: 'Barcoded tube for pooling PCR reagents (1 per assay per run)', a: 1, p: 100 },
+        { n: 'Screw Cap - Red', d: 'QS1–QS4 (and Positive Control)', k: 'red', p: 500 },
+        { n: 'Screw Cap - Blue', d: 'Master A (1 per tube)', k: 'tube', p: 500 },
+        { n: 'Screw Cap - Orange', d: 'Positive Control', a: 0, p: 500 },
+        { n: 'Screw Cap - Purple', d: 'Master B (1 per tube)', k: 'tube', p: 500 },
+        { n: 'Screw Cap - White', d: 'NTC (1 per assay per run)', a: 1, p: 500 } ]]
+    ];
+    const FLAT = ITEMS.flatMap(([, l]) => l);
+    const DEF = FLAT.map(i => ({ r: i.r || 0, s: i.s || 0, a: i.a || 0, p: i.p || 0 }));
+    const S = Object.assign({ samples: '', assays: 1, avg: '', max: 48, ctl: 5, mrg: 10, rpt: 12, it: DEF.map(x => ({ ...x })) }, VC.store.get(KEY, {}));
+    if (!S.it || S.it.length !== FLAT.length) S.it = DEF.map(x => ({ ...x }));
+    const F = ['samples', 'assays', 'avg', 'max', 'ctl', 'mrg', 'rpt'];
+    F.forEach(id => $(id).value = S[id]);
+
+    function advTable() {
+      $('adv').innerHTML = '<thead><tr><th>Item</th><th class="num">Per run</th><th class="num">Per sample</th><th class="num">Per assay-run</th><th class="num">Pack size</th></tr></thead><tbody>' +
+        FLAT.map((it, i) => {
+          const sp = it.k, f = (k) => sp && k !== 'p' ? '<td class="num hint">rule</td>' : `<td class="num"><input type="number" min="0" step="any" inputmode="decimal" data-i="${i}" data-k="${k}" value="${S.it[i][k]}" /></td>`;
+          return `<tr><td>${esc(it.n)}${it.e ? ' <span class="est">estimate</span>' : ''}</td>${f('r')}${f('s')}${f('a')}${f('p')}</tr>`;
+        }).join('') + '</tbody>';
+      $('adv').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { S.it[+inp.dataset.i][inp.dataset.k] = parseFloat(inp.value) || 0; calc(); }));
+    }
+
+    const runsFor = (total, cap) => { const a = []; let left = total; while (left > 0) { a.push(Math.min(cap, left)); left -= cap; } return a; };
+    function need(i, n, ctlN, qs, assays, rpt) {            // consumption of item i in one run with n samples
+      const it = FLAT[i], c = S.it[i], per = (n, ctl) => ctl + n;
+      if (it.k === 'plate') return Math.ceil(assays * per(n, ctlN) / 96);
+      if (it.k === 'red') return assays * qs;
+      if (it.k === 'tube') return assays * Math.ceil(per(n, ctlN) / rpt);
+      return c.r + c.s * n + c.a * assays;
+    }
+    function calc() {
+      F.forEach(id => S[id] = $(id).value); VC.store.set(KEY, S);
+      const total = Math.floor(parseFloat($('samples').value) || 0), assays = Math.max(1, Math.floor(parseFloat($('assays').value) || 1));
+      const max = Math.max(1, Math.floor(parseFloat($('max').value) || 48)), avgIn = Math.floor(parseFloat($('avg').value) || 0);
+      const cap = avgIn > 0 ? Math.min(avgIn, max) : 0, ctlN = +$('ctl').value, qs = ctlN === 5 ? 4 : 1, mrg = Math.max(0, parseFloat($('mrg').value) || 0) / 100, rpt = Math.max(1, parseFloat($('rpt').value) || 12);
+      const warn = $('warn'); warn.style.display = 'none';
+      if (!total || !cap) { $('tiles').innerHTML = ''; $('tbl').innerHTML = '<tbody><tr><td class="hint">Enter total samples and the average samples per run.</td></tr></tbody>'; return; }
+      const runs = runsFor(total, cap), full = runsFor(total, max);
+      const sum = (arr, i) => arr.reduce((t, n) => t + need(i, n, ctlN, qs, assays, rpt), 0);
+      const rx = arr => arr.reduce((t, n) => t + assays * (n + ctlN), 0);
+      const fill = cap / max * 100;
+      $('tiles').innerHTML = [['Runs needed', runs.length], ['Samples per run', cap + (runs.length > 1 && runs[runs.length - 1] !== cap ? ' (last ' + runs[runs.length - 1] + ')' : '')], ['Run fill', fmt(fill, 3) + ' %'], ['PCR reactions', rx(runs) + ' (incl. controls)']]
+        .map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v" style="font-size:1.25rem">${v}</div></div>`).join('');
+      if (avgIn > max) { warn.className = 'note err'; warn.textContent = `Average per run is above the maximum (${max}); the calculation uses ${max} per run.`; warn.style.display = ''; }
+      else if (full.length < runs.length) { warn.className = 'note'; warn.textContent = `At ${cap} samples per run you need ${runs.length} runs. Filling each run to ${max} would need only ${full.length} — saving ${runs.length - full.length} run${runs.length - full.length > 1 ? 's' : ''} of consumables (see “Saved” column).`; warn.style.display = ''; }
+      const basis = i => { const it = FLAT[i], c = S.it[i]; if (it.k === 'plate') return '1 per 96 wells'; if (it.k === 'red') return qs + ' per assay-run'; if (it.k === 'tube') return '1 per ' + rpt + ' rxns'; const b = []; if (c.r) b.push(c.r + '/run'); if (c.s) b.push(c.s + '/sample'); if (c.a) b.push(c.a + '/assay-run'); return b.join(' + ') || '—'; };
+      let k = 0, html = '<thead><tr><th>Item</th><th>Basis</th><th class="num">Needed</th><th class="num">+ margin</th><th class="num">Pack size</th><th class="num">Packs to order</th><th class="num">Saved if full runs</th></tr></thead><tbody>', list = [];
+      ITEMS.forEach(([cat, items]) => {
+        html += `<tr class="cat"><td colspan="7">${esc(cat)}</td></tr>`;
+        items.forEach(it => {
+          const i = k++, need1 = sum(runs, i), need2 = sum(full, i), withM = Math.ceil(need1 * (1 + mrg)), pk = S.it[i].p;
+          const packs = need1 === 0 ? '—' : pk > 0 ? Math.ceil(withM / pk) : 'enter pack size';
+          if (need1 > 0 && pk > 0) list.push(`${it.n}: ${packs} × ${pk.toLocaleString('en-US')} (need ${withM})`);
+          html += `<tr><td>${esc(it.n)}${it.e ? ' <span class="est">estimate</span>' : ''}<small>${esc(it.d)}</small></td><td>${basis(i)}</td><td class="num">${need1.toLocaleString('en-US')}</td><td class="num">${need1 ? withM.toLocaleString('en-US') : '—'}</td><td class="num">${pk ? pk.toLocaleString('en-US') : '—'}</td><td class="num"><b>${packs}</b></td><td class="num save">${need1 > need2 ? '−' + (need1 - need2).toLocaleString('en-US') : ''}</td></tr>`;
+        });
+      });
+      $('tbl').innerHTML = html + '</tbody>'; window._list = list;
+    }
+    F.forEach(id => { $(id).addEventListener('input', calc); $(id).addEventListener('change', calc); });
+    $('cpy').addEventListener('click', () => VC.copy((window._list || []).join('\n'), $('cpy')));
+    $('rst').addEventListener('click', () => { if (!confirm('Reset all consumption values to defaults?')) return; S.it = DEF.map(x => ({ ...x })); advTable(); calc(); });
+    advTable(); calc();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  });
+  </script>
+</body>
+</html>

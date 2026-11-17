@@ -65,7 +65,14 @@
       </div>
     </div>
 
-    <div class="version-tag">Viro Calculator • v5.1</div>
+    <div class="result-box" style="text-align: left; padding: 18px; margin-top: 14px;">
+      <div style="font-size: 0.85rem; opacity: 0.9;">Total volume (Master A + Master B):</div>
+      <div class="val" id="resTotal" style="font-size: 1.4rem;">0.0 µL</div>
+      <div class="sub" id="resSum">Master A + Master B = Total volume</div>
+      <div class="sub" id="resPer">Per reaction: 0.0 µL</div>
+    </div>
+
+    <div class="version-tag">Viro Calculator • v5.2</div>
   </div>
 
   <script>
@@ -83,6 +90,9 @@
         document.getElementById('tubesA').textContent = 'Tubes required: 0 (12 rxns/tube)';
         document.getElementById('resB').textContent = '0.0 µL';
         document.getElementById('tubesB').textContent = 'Tubes required: 0 (12 rxns/tube)';
+        document.getElementById('resTotal').textContent = '0.0 µL';
+        document.getElementById('resSum').textContent = 'Master A + Master B = Total volume';
+        document.getElementById('resPer').textContent = 'Per reaction: 0.0 µL';
         return;
       }
 
@@ -96,6 +106,9 @@
       document.getElementById('tubesA').textContent = `Tubes required: ${tubesNeeded} tube(s)`;
 
       document.getElementById('resB').textContent = `${totalVolB.toFixed(1)} µL`;
+      document.getElementById('resTotal').textContent = `${(totalVolA + totalVolB).toFixed(1)} µL`;
+      document.getElementById('resSum').textContent = `Master A ${totalVolA.toFixed(1)} µL + Master B ${totalVolB.toFixed(1)} µL = ${(totalVolA + totalVolB).toFixed(1)} µL`;
+      document.getElementById('resPer').textContent = `Per reaction: ${(vA + vB).toFixed(1)} µL (${vA} + ${vB})`;
       document.getElementById('tubesB').textContent = `Tubes required: ${tubesNeeded} tube(s)`;
     }
 
