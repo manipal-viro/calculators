@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/shell.css" />
   <script src="../js/shell.js" defer></script>
+  <script src="../js/auth.js" defer></script>
 </head>
 <body data-theme="vl">
   <div class="container">
@@ -101,28 +102,13 @@
       <div id="presetList"></div>
     </details>
 
-    <div class="version-tag">Viro Calculator • v5.1</div>
+    <div class="version-tag">Viro Calculator • v5.2</div>
   </div>
 
   <!-- Firebase Modular Scripts -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
-
-    // Your Firebase configuration (Add your keys here later)
-    const firebaseConfig = {
-      apiKey: "AIzaSyCdl2Ds5b4Sn-KL94UQCifRZsg3_xU91oM",
-      authDomain: "viro-calculator.firebaseapp.com",
-      projectId: "viro-calculator",
-      storageBucket: "viro-calculator.firebasestorage.app",
-      messagingSenderId: "668811903388",
-      appId: "1:668811903388:web:e0b40f5f1f508091fd8859"
-    };
-
-    // Initialize Firebase & Firestore
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const sessionDocRef = doc(db, "labSessions", "active_run");
+    // department-private cloud sync (see js/auth.js); null while signed out -> data stays on this device
+    let sessionDocRef = null, unsubCloud = null;
 
     const DEFAULT_METHODS = [
       { id: 'default-1', name: 'QIAamp Mini (140 µL / 60 µL)', sample: 140, elution: 60 },
@@ -157,14 +143,17 @@
       localStorage.setItem('virocalc_history', JSON.stringify(window.runHistory));
       
       // Push to Firestore Cloud if configured
-      if (firebaseConfig.apiKey) {
-        setDoc(sessionDocRef, { history: window.runHistory }, { merge: true }).catch(err => console.error("Cloud sync error:", err));
+      if (sessionDocRef) {
+        VCAuth.fs.setDoc(sessionDocRef, { history: window.runHistory }, { merge: true }).catch(err => console.error("Cloud sync error:", err));
       }
     }
 
     // Listen to real-time changes from Firestore (Computer A ⇄ Computer B sync)
-    if (firebaseConfig.apiKey) {
-      onSnapshot(sessionDocRef, (docSnap) => {
+    if (window.VCAuth) VCAuth.onState(() => {
+      if (unsubCloud) { unsubCloud(); unsubCloud = null; }
+      sessionDocRef = VCAuth.docRef('viro_run_history');
+      if (!sessionDocRef) return;
+      unsubCloud = VCAuth.fs.onSnapshot(sessionDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data && data.history) {
@@ -174,7 +163,7 @@
           }
         }
       });
-    }
+    });
 
     window.renderMethods = function() {
       methodSelect.innerHTML = '';
