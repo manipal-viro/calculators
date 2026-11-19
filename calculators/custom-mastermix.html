@@ -42,6 +42,7 @@
     </div>
 
     <div class="no-print-x" style="margin-bottom:10px"><span class="sync" id="sync">Saved on this device</span></div>
+    <div class="field no-print-x" style="max-width:320px"><label for="who">Your name (recorded on protocols you add or edit)</label><input type="text" id="who" placeholder="e.g. Dr. Rao" autocomplete="name" /></div>
 
     <div class="meth no-print-x">
       <div class="field"><label for="tSel">Test</label><select id="tSel"></select></div>
@@ -56,6 +57,7 @@
 
     <div class="tbl-wrap"><table class="tbl" id="tbl"></table></div>
     <div class="note" id="warn" style="display:none"></div>
+    <div id="meta" class="hint" style="margin-top:10px"></div>
     <div id="procView" class="hint" style="white-space:pre-wrap; margin-top:10px"></div>
     <div class="action-row no-print-x"><button type="button" class="secondary" id="cpy">Copy</button><button type="button" class="secondary" onclick="window.print()">Print</button></div>
 
@@ -88,7 +90,10 @@
   window.addEventListener('DOMContentLoaded', () => {
     const { $, esc, fmt } = VC, KEY = 'viro_custom_mm', DEV = (VC.store.get('viro_dev', null) || (() => { const d = Math.random().toString(36).slice(2); VC.store.set('viro_dev', d); return d; })());
     const uid = () => 't' + Math.random().toString(36).slice(2, 8);
-    const blank = name => ({ id: uid(), name: name || 'New test', tot: '', tpl: '', pp: 'sep', ovg: 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, extra: [], note: '' });
+    const me = () => ($('who').value || '').trim() || VC.store.get('viro_user_name', '') || 'Unknown';
+    const stamp = t => { t.editBy = me(); t.editAt = Date.now(); };
+    const fdt = ms => ms ? new Date(ms).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    const blank = name => ({ id: uid(), name: name || 'New test', tot: '', tpl: '', pp: 'sep', ovg: 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, extra: [], note: '', by: me(), at: Date.now() });
     let D = VC.store.get(KEY, null);
     if (!D || !D.tests || !D.tests.length) { const t = blank('Test 1'); D = { tests: [t], cur: t.id, savedAt: 0 }; }
     const T = () => D.tests.find(t => t.id === D.cur) || D.tests[0];
@@ -133,6 +138,7 @@
       const others = rs.filter(r => !r.calc).reduce((s, r) => s + r.v, 0), nfw = tot - tpl - others, mm = tot - tpl;
       const warn = $('warn'); warn.style.display = 'none';
       $('rTitle').textContent = t.name + ' — master mix';
+      $('meta').textContent = (t.by ? 'Added by ' + t.by + ' · ' + fdt(t.at) : 'Added by: not recorded') + (t.editAt && (t.editAt !== t.at) ? '  |  Last edited by ' + (t.editBy || 'Unknown') + ' · ' + fdt(t.editAt) : '');
       if (!tot) { $('rVal').textContent = '—'; $('rSub').textContent = 'Set the total volume and reagent volumes under “Edit / add tests”.'; $('tbl').innerHTML = ''; $('procView').textContent = t.note || ''; return; }
       if (nfw < -1e-9) { warn.className = 'note err'; warn.textContent = `Reagents + template (${fmt(others + tpl, 4)} µL) exceed the total volume (${fmt(tot, 4)} µL) — check the volumes.`; warn.style.display = ''; }
       const f = v => fmt(v, 4);
@@ -156,20 +162,22 @@
       const base = rows(t).filter(r => !r.calc).filter(r => r.ex === undefined);
       $('eRg').innerHTML = base.map(r => `<div class="rg"><span>${esc(r.name)}</span><input type="number" min="0" step="any" inputmode="decimal" data-k="${r.k}" value="${esc(t.v[r.k])}" placeholder="µL" /><span></span></div>`).join('') +
         t.extra.map((e, i) => `<div class="rg"><input type="text" data-xn="${i}" value="${esc(e.n)}" placeholder="Reagent name" /><input type="number" min="0" step="any" inputmode="decimal" data-xv="${i}" value="${esc(e.v)}" placeholder="µL" /><button type="button" class="secondary" data-xd="${i}" aria-label="Remove">✕</button></div>`).join('');
-      $('eRg').querySelectorAll('[data-k]').forEach(i => i.addEventListener('input', () => { T().v[i.dataset.k] = i.value; save(); draw(); }));
-      $('eRg').querySelectorAll('[data-xn]').forEach(i => i.addEventListener('input', () => { T().extra[+i.dataset.xn].n = i.value; save(); draw(); }));
-      $('eRg').querySelectorAll('[data-xv]').forEach(i => i.addEventListener('input', () => { T().extra[+i.dataset.xv].v = i.value; save(); draw(); }));
+      $('eRg').querySelectorAll('[data-k]').forEach(i => i.addEventListener('input', () => { T().v[i.dataset.k] = i.value; stamp(T()); save(); draw(); }));
+      $('eRg').querySelectorAll('[data-xn]').forEach(i => i.addEventListener('input', () => { T().extra[+i.dataset.xn].n = i.value; stamp(T()); save(); draw(); }));
+      $('eRg').querySelectorAll('[data-xv]').forEach(i => i.addEventListener('input', () => { T().extra[+i.dataset.xv].v = i.value; stamp(T()); save(); draw(); }));
       $('eRg').querySelectorAll('[data-xd]').forEach(b => b.addEventListener('click', () => { T().extra.splice(+b.dataset.xd, 1); save(); loadEditor(); draw(); }));
     }
-    [['eName', 'name'], ['eTot', 'tot'], ['eTpl', 'tpl'], ['eOvg', 'ovg'], ['eNote', 'note']].forEach(([id, k]) => $(id).addEventListener('input', () => { T()[k] = $(id).value; if (k === 'name') fillSel(); save(); draw(); }));
-    $('ePP').addEventListener('change', () => { T().pp = $('ePP').value; save(); loadEditor(); draw(); });
+    [['eName', 'name'], ['eTot', 'tot'], ['eTpl', 'tpl'], ['eOvg', 'ovg'], ['eNote', 'note']].forEach(([id, k]) => $(id).addEventListener('input', () => { T()[k] = $(id).value; stamp(T()); if (k === 'name') fillSel(); save(); draw(); }));
+    $('ePP').addEventListener('change', () => { T().pp = $('ePP').value; stamp(T()); save(); loadEditor(); draw(); });
     $('tSel').addEventListener('change', () => { D.cur = $('tSel').value; VC.store.set(KEY, D); loadEditor(); draw(); });
     $('rxn').addEventListener('input', () => { VC.store.set(KEY + '_rxn', $('rxn').value); draw(); });
-    $('tNew').addEventListener('click', () => { const t = blank(); D.tests.push(t); D.cur = t.id; save(); fillSel(); loadEditor(); draw(); $('eName').select(); });
-    $('tDup').addEventListener('click', () => { const t = JSON.parse(JSON.stringify(T())); t.id = uid(); t.name += ' (copy)'; D.tests.push(t); D.cur = t.id; save(); fillSel(); loadEditor(); draw(); });
+    $('tNew').addEventListener('click', () => { if (!$('who').value.trim()) { $('who').focus(); alert('Please enter your name first — it is recorded with the protocol.'); return; } const t = blank(); D.tests.push(t); D.cur = t.id; save(); fillSel(); loadEditor(); draw(); $('eName').select(); });
+    $('tDup').addEventListener('click', () => { const t = JSON.parse(JSON.stringify(T())); t.id = uid(); t.name += ' (copy)'; t.by = me(); t.at = Date.now(); delete t.editBy; delete t.editAt; D.tests.push(t); D.cur = t.id; save(); fillSel(); loadEditor(); draw(); });
     $('tDel').addEventListener('click', () => { if (D.tests.length < 2) { alert('Keep at least one test.'); return; } if (!confirm('Delete test “' + T().name + '”? (also on your other devices)')) return; D.tests = D.tests.filter(t => t.id !== D.cur); D.cur = D.tests[0].id; save(); fillSel(); loadEditor(); draw(); });
     $('rAdd').addEventListener('click', () => { T().extra.push({ n: '', v: '' }); save(); loadEditor(); draw(); });
     $('cpy').addEventListener('click', () => VC.copy(window._txt || '', $('cpy')));
+    $('who').value = VC.store.get('viro_user_name', '');
+    $('who').addEventListener('input', () => VC.store.set('viro_user_name', $('who').value.trim()));
     $('rxn').value = VC.store.get(KEY + '_rxn', '');
     fillSel(); loadEditor(); draw();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
