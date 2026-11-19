@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function dept(d) { return /databases/$(database)/documents/departments/$(d); }
+    function isMember(d) { return signedIn() && exists(/databases/$(database)/documents/departments/$(d)/members/$(request.auth.uid)); }
+
+    // each user's own profile (which department they belong to)
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /departments/{d} {
+      // only members can read the department (name, join code, domain)
+      allow read: if isMember(d);
+      // anyone signed in can create a NEW department id (cannot overwrite an existing one)
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid
+                    && request.resource.data.code is string && request.resource.data.code.size() >= 4;
+      allow update: if isMember(d) && resource.data.createdBy == request.auth.uid;
+
+      match /members/{uid} {
+        allow read: if isMember(d);
+        // join with the department code, or with a verified e-mail from the department's domain,
+        // or as the creator of the department
+        allow create: if signedIn() && request.auth.uid == uid && (
+              request.resource.data.get('code', '') == get(dept(d)).data.code
+           || get(dept(d)).data.createdBy == request.auth.uid
+           || (get(dept(d)).data.get('domain', '') != '' && request.auth.token.email_verified == true
+               && request.auth.token.email.matches('.*@' + get(dept(d)).data.domain)));
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+
+      // private department data: Dengue ODs, viral-load history, master-mix protocols
+      match /data/{docId} {
+        allow read, write: if isMember(d);
+      }
+    }
+
+    // everything else (including the old open "labSessions") is closed
+    match /{document=**} { allow read, write: if false; }
+  }
+}
