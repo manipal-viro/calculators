@@ -62,6 +62,10 @@
     return `<div class="${cls}" data-vc-install style="display:none"><span class="vc-install-ic">📲</span><span data-vc-install-txt></span><button type="button" data-vc-install-btn style="display:none">Install</button></div>`;
   }
 
+  // account chip + auth module (loaded on every page so the chip works everywhere)
+  const acct = () => '<button type="button" class="vc-acct" data-vc-acct></button>';
+  if (!window.VCAuth && !document.querySelector('script[src*="auth.js"]')) { const s = document.createElement('script'); s.src = ROOT + 'js/auth.js'; document.head.append(s); }
+
   function build() {
     const body = document.body;
     body.classList.toggle('vc-home', isHome);
@@ -77,7 +81,7 @@
       const hero = hub.querySelector('.hero');
       const wrap = document.createElement('div');
       wrap.innerHTML = installBlock('vc-install');
-      if (hero) hero.after(wrap.firstChild);
+      if (hero) { hero.after(wrap.firstChild); hero.insertAdjacentHTML('beforeend', acct()); }
     }
 
     if (isHome) { bindInstall(); renderInstall(); return; }
@@ -93,7 +97,7 @@
       SECTIONS.map(sec => `<div class="vc-side-sec">${esc(sec.t)}</div>` +
         sec.items.map(t => `<a class="vc-link${on(t)}" style="--c:${t.c}" href="${ROOT}${t.f}" title="${esc(t.n)}"><span class="ic">${t.ic}</span><span class="lbl">${esc(t.n)}</span></a>`).join('')).join('') +
       installBlock('vc-install vc-install-side') +
-      `<div class="vc-side-foot">v5.2</div>`;
+      acct() + `<div class="vc-side-foot">v5.3</div>`;
     body.prepend(side);
 
     /* ----- phone app header ----- */
@@ -114,7 +118,7 @@
     /* ----- tools sheet ----- */
     const scrim = document.createElement('div'); scrim.className = 'vc-scrim';
     const sheet = document.createElement('div'); sheet.className = 'vc-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'All calculators');
-    sheet.innerHTML = '<div class="grab"></div>' + installBlock('vc-install') +
+    sheet.innerHTML = '<div class="grab"></div>' + acct() + installBlock('vc-install') +
       SECTIONS.map(sec => `<h4>${esc(sec.t)}</h4><div class="grid">` +
         sec.items.map(t => `<a class="vc-tile${on(t)}" style="--c:${t.c}" href="${ROOT}${t.f}"><span class="ic">${t.ic}</span>${esc(t.s)}</a>`).join('') + '</div>').join('');
     body.append(scrim, sheet);
