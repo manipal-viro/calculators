@@ -32,6 +32,7 @@
     @media print { .no-print-x { display: none !important; } }
   </style>
   <script src="../js/common.js" defer></script>
+  <script src="../js/auth.js" defer></script>
 </head>
 <body data-theme="mastermix">
   <div class="container mid">
@@ -90,7 +91,7 @@
   window.addEventListener('DOMContentLoaded', () => {
     const { $, esc, fmt } = VC, KEY = 'viro_custom_mm', DEV = (VC.store.get('viro_dev', null) || (() => { const d = Math.random().toString(36).slice(2); VC.store.set('viro_dev', d); return d; })());
     const uid = () => 't' + Math.random().toString(36).slice(2, 8);
-    const me = () => ($('who').value || '').trim() || VC.store.get('viro_user_name', '') || 'Unknown';
+    const me = () => (window.VCAuth && VCAuth.state.user ? VCAuth.who() : '') || ($('who').value || '').trim() || VC.store.get('viro_user_name', '') || 'Unknown';
     const stamp = t => { t.editBy = me(); t.editAt = Date.now(); };
     const fdt = ms => ms ? new Date(ms).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
     const blank = name => ({ id: uid(), name: name || 'New test', tot: '', tpl: '', pp: 'sep', ovg: 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, extra: [], note: '', by: me(), at: Date.now() });
@@ -113,23 +114,22 @@
       D.savedAt = Date.now(); VC.store.set(KEY, D);
       if (push) { setSync('', 'Saving…'); clearTimeout(timer); timer = setTimeout(() => push(), 600); }
     }
-    (async () => {
-      try {
-        const [A, FS] = await Promise.all([import('https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js'), import('https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js')]);
-        const app = A.initializeApp({ apiKey: "AIzaSyCdl2Ds5b4Sn-KL94UQCifRZsg3_xU91oM", authDomain: "viro-calculator.firebaseapp.com", projectId: "viro-calculator", storageBucket: "viro-calculator.firebasestorage.app", messagingSenderId: "668811903388", appId: "1:668811903388:web:e0b40f5f1f508091fd8859" });
-        const ref = FS.doc(FS.getFirestore(app), 'labSessions', 'custom_mastermix');
-        push = () => FS.setDoc(ref, { json: JSON.stringify(D), savedAt: D.savedAt, by: DEV }).then(() => setSync('ok', 'Synced ✓'), () => setSync('off', 'Sync failed — saved on this device'));
-        FS.onSnapshot(ref, snap => {
-          if (snap.metadata.hasPendingWrites) return;
-          if (!snap.exists()) { if (D.savedAt) push(); else setSync('ok', 'Synced ✓'); return; }
-          const r = snap.data();
-          if (r.savedAt > D.savedAt) {
-            try { const nd = JSON.parse(r.json); if (nd && nd.tests && nd.tests.length) { const cur = D.cur; D = nd; if (!D.tests.some(t => t.id === cur)) D.cur = D.tests[0].id; else D.cur = cur; VC.store.set(KEY, D); fillSel(); loadEditor(); draw(); } } catch (e) { /* ignore */ }
-            setSync('ok', 'Synced ✓ (updated from another device)');
-          } else if (r.savedAt < D.savedAt) push(); else setSync('ok', 'Synced ✓');
-        }, () => setSync('off', 'Offline — saved on this device'));
-      } catch (e) { setSync('off', 'Offline — saved on this device'); }
-    })();
+    let unsub = null;
+    if (window.VCAuth) VCAuth.onState(st => {
+      if (unsub) { unsub(); unsub = null; } push = null;
+      const ref = VCAuth.docRef('custom_mastermix'), FS = VCAuth.fs;
+      if (!ref) { setSync('off', st.offline ? 'Offline — saved on this device' : st.user ? 'Join a department to sync — saved on this device' : 'Sign in to sync with your department — saved on this device'); return; }
+      push = () => FS.setDoc(ref, { json: JSON.stringify(D), savedAt: D.savedAt, by: DEV }).then(() => setSync('ok', '🔒 Synced with ' + (st.deptName || st.dept)), () => setSync('off', 'Sync failed — saved on this device'));
+      unsub = FS.onSnapshot(ref, snap => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (!snap.exists()) { if (D.savedAt) push(); else setSync('ok', '🔒 Synced with ' + (st.deptName || st.dept)); return; }
+        const r = snap.data();
+        if (r.savedAt > D.savedAt) {
+          try { const nd = JSON.parse(r.json); if (nd && nd.tests && nd.tests.length) { const cur = D.cur; D = nd; D.cur = D.tests.some(t => t.id === cur) ? cur : D.tests[0].id; VC.store.set(KEY, D); fillSel(); loadEditor(); draw(); } } catch (e) { /* ignore */ }
+          setSync('ok', '🔒 Synced (updated from another device)');
+        } else if (r.savedAt < D.savedAt) push(); else setSync('ok', '🔒 Synced with ' + (st.deptName || st.dept));
+      }, () => setSync('off', 'No access — saved on this device'));
+    });
 
     /* ---------- prepare view ---------- */
     function draw() {
