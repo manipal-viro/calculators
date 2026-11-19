@@ -207,3 +207,13 @@ body::before {
   .page-head h1 { color: #000 !important; }
   .container > * { animation: none !important; }
 }
+
+/* ---- account chip ---- */
+.vc-acct { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: rgba(255,255,255,.85); border: 1px solid #dbe6f1; border-radius: 12px; padding: 8px 10px; cursor: pointer; font: inherit; color: var(--text, #0f2a43); margin-top: 8px; }
+.vc-acct .t { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.vc-acct b { font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vc-acct small { font-size: .68rem; color: var(--muted, #52667a); }
+.vc-acct.in { border-color: #86efac; background: #f0fdf4; }
+.hero .vc-acct { width: auto; max-width: 240px; margin: 0 0 0 auto; }
+@media (max-width: 1099px) and (min-width: 721px) { .vc-side .vc-acct .t { display: none; } .vc-side .vc-acct { justify-content: center; } }
+@media print { .vc-acct { display: none !important; } }
