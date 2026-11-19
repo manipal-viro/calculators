@@ -16,6 +16,7 @@ const ASSETS = [
   './css/shell.css',
   './js/common.js',
   './js/shell.js',
+  './js/auth.js',
   './images/bg-dna.webp',
   './images/bg-virus-bl.webp',
   './images/bg-hex.webp',
