@@ -43,7 +43,6 @@
     </div>
 
     <div class="no-print-x" style="margin-bottom:10px"><span class="sync" id="sync">Saved on this device</span></div>
-    <div class="field no-print-x" style="max-width:320px"><label for="who">Your name (recorded on protocols you add or edit)</label><input type="text" id="who" placeholder="e.g. Dr. Rao" autocomplete="name" /></div>
 
     <div class="meth no-print-x">
       <div class="field"><label for="tSel">Test</label><select id="tSel"></select></div>
@@ -64,6 +63,8 @@
 
     <details class="no-print-x" id="editor" style="margin-top:18px">
       <summary>Edit / add tests (saved automatically)</summary>
+      <div class="field" id="whoBox" style="max-width:340px;margin-top:10px"><label for="who">Your name (recorded on protocols you add or edit)</label><input type="text" id="who" placeholder="e.g. Dr. Rao" autocomplete="name" /></div>
+      <div class="hint" id="whoAcct" style="display:none;margin-top:10px"></div>
       <div class="btns" style="margin:10px 0">
         <button type="button" class="secondary" id="tNew">+ New test</button>
         <button type="button" class="secondary" id="tDup">Duplicate</button>
@@ -177,6 +178,8 @@
     $('rAdd').addEventListener('click', () => { T().extra.push({ n: '', v: '' }); save(); loadEditor(); draw(); });
     $('cpy').addEventListener('click', () => VC.copy(window._txt || '', $('cpy')));
     $('who').value = VC.store.get('viro_user_name', '');
+    const whoUI = () => { const acct = window.VCAuth && VCAuth.state.user; $('whoBox').style.display = acct ? 'none' : ''; $('whoAcct').style.display = acct ? '' : 'none'; if (acct) $('whoAcct').textContent = 'Protocols are recorded under your account: ' + VCAuth.who(); };
+    whoUI(); if (window.VCAuth) VCAuth.onState(whoUI);
     $('who').addEventListener('input', () => VC.store.set('viro_user_name', $('who').value.trim()));
     $('rxn').value = VC.store.get(KEY + '_rxn', '');
     fillSel(); loadEditor(); draw();
