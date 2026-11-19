@@ -75,6 +75,7 @@
     }
   </style>
   <script src="../js/shell.js" defer></script>
+  <script src="../js/auth.js" defer></script>
   <script src="../js/common.js"></script>
 </head>
 <body data-theme="dengue">
@@ -159,21 +160,8 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCdl2Ds5b4Sn-KL94UQCifRZsg3_xU91oM",
-    authDomain: "viro-calculator.firebaseapp.com",
-    projectId: "viro-calculator",
-    storageBucket: "viro-calculator.firebasestorage.app",
-    messagingSenderId: "668811903388",
-    appId: "1:668811903388:web:e0b40f5f1f508091fd8859"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const sessionDocRef = doc(db, "labSessions", "dengue_dual_run");
+    // department-private cloud sync (see js/auth.js); null while signed out -> data stays on this device
+    let sessionDocRef = null, unsubCloud = null;
 
     let currentAssay = 'IgM';
     const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
@@ -341,12 +329,15 @@
     }
 
     function saveStateToCloud() {
-      if (!firebaseConfig.apiKey) return;
-      setDoc(sessionDocRef, { data: assayData }, { merge: true }).catch(err => console.error("Sync error:", err));
+      if (!sessionDocRef) return;
+      VCAuth.fs.setDoc(sessionDocRef, { data: assayData }, { merge: true }).catch(err => console.error("Sync error:", err));
     }
 
-    if (firebaseConfig.apiKey) {
-      onSnapshot(sessionDocRef, (docSnap) => {
+    if (window.VCAuth) VCAuth.onState(() => {
+      if (unsubCloud) { unsubCloud(); unsubCloud = null; }
+      sessionDocRef = VCAuth.docRef('dengue_dual_run');
+      if (!sessionDocRef) return;
+      unsubCloud = VCAuth.fs.onSnapshot(sessionDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const remote = docSnap.data().data;
           if (remote) {
@@ -358,7 +349,7 @@
           }
         }
       });
-    }
+    });
 
     document.getElementById('calFactor').addEventListener('input', () => {
       calculateDengue();
