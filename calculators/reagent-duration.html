@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Reagent Duration — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .tbl tr.me td { background: var(--accent-soft); font-weight: 800; }
+    @media print { .no-print-x { display: none !important; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="mastermix">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Reagent Duration</span></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><label for="rx">Reactions in stock / ordered</label><input type="number" id="rx" min="1" step="1" inputmode="numeric" placeholder="e.g. 1000" /></div>
+      <div class="field"><label for="rpd">Runs per day</label><input type="number" id="rpd" min="0.1" step="any" inputmode="decimal" value="1" /></div>
+      <div class="field"><label for="wd">Working days per week</label><select id="wd"><option value="7">7</option><option value="6">6</option><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="ctl">Controls per run</label><input type="number" id="ctl" min="0" step="1" inputmode="numeric" value="3" /></div>
+      <div class="field"><label for="smp">Average samples per run</label><input type="number" id="smp" min="0" step="any" inputmode="decimal" placeholder="e.g. 30" /></div>
+      <div class="field"><label for="rep">Replicates per sample</label><input type="number" id="rep" min="1" step="1" inputmode="numeric" value="1" /></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="smin">Fewest samples per run (optional)</label><input type="number" id="smin" min="0" step="any" inputmode="decimal" /></div>
+      <div class="field"><label for="smax">Most samples per run (optional)</label><input type="number" id="smax" min="0" step="any" inputmode="decimal" /></div>
+      <div class="field"><label for="ext">Extra for repeats / failed runs (%)</label><input type="number" id="ext" min="0" step="any" inputmode="decimal" value="0" /></div>
+    </div>
+
+    <div class="result-box" style="text-align:left; padding:16px">
+      <div style="font-weight:700">Your reagent will last</div>
+      <div class="val" id="rDays">—</div>
+      <div class="sub" id="rSub"></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="note" id="warn" style="display:none"></div>
+
+    <h2>If the sample load changes</h2>
+    <div class="tbl-wrap"><table class="tbl" id="scen"></table></div>
+
+    <h2>How much to order</h2>
+    <div class="row no-print-x">
+      <div class="field"><label for="tgt">I want it to last (calendar days)</label><input type="number" id="tgt" min="1" step="1" inputmode="numeric" value="30" /></div>
+      <div class="field"><label for="pack">Kit size, reactions per kit (optional)</label><input type="number" id="pack" min="1" step="1" inputmode="numeric" placeholder="e.g. 96" /></div>
+    </div>
+    <div class="tbl-wrap"><table class="tbl" id="ord"></table></div>
+
+    <div class="version-tag">Viro Calculator • v5.3</div>
+  </div>
+
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const { $, fmt } = VC, KEY = 'viro_rdays';
+    const IDS = ['rx', 'rpd', 'wd', 'ctl', 'smp', 'rep', 'smin', 'smax', 'ext', 'tgt', 'pack'];
+    const S = VC.store.get(KEY, {}); IDS.forEach(id => { if (S[id] !== undefined) $(id).value = S[id]; });
+    const g = id => parseFloat($(id).value);
+    const fd = ms => new Date(ms).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+    const dayStr = d => d >= 1 ? Math.floor(d) + ' day' + (Math.floor(d) === 1 ? '' : 's') : '< 1 day';
+    function model(smp) {
+      const rep = Math.max(1, g('rep') || 1), ctl = Math.max(0, g('ctl') || 0), ext = 1 + Math.max(0, g('ext') || 0) / 100;
+      const rpd = g('rpd') > 0 ? g('rpd') : 1, wd = +$('wd').value, rx = g('rx') || 0;
+      const per = (smp * rep + ctl) * ext;                           // reactions used by one run
+      const runs = per > 0 ? Math.floor(rx / per) : 0;
+      const work = Math.floor(runs / rpd);                           // working days
+      const cal = Math.ceil(work * 7 / wd);                          // calendar days
+      return { per, runs, work, cal, left: rx - Math.round(runs * per), rpd, wd };
+    }
+    // reactions needed to cover `cal` calendar days
+    const needFor = (smp, cal) => { const rep = Math.max(1, g('rep') || 1), ctl = Math.max(0, g('ctl') || 0), ext = 1 + Math.max(0, g('ext') || 0) / 100, rpd = g('rpd') > 0 ? g('rpd') : 1, wd = +$('wd').value;
+      const runs = Math.ceil(cal * wd / 7 * rpd); return { runs, rx: Math.ceil(runs * (smp * rep + ctl) * ext) }; };
+    function calc() {
+      IDS.forEach(id => S[id] = $(id).value); VC.store.set(KEY, S);
+      const rx = g('rx'), smp = g('smp'), warn = $('warn'); warn.style.display = 'none';
+      if (!rx || isNaN(smp)) { $('rDays').textContent = '—'; $('rSub').textContent = 'Enter the reactions you have and the average samples per run.'; $('tiles').innerHTML = ''; $('scen').innerHTML = ''; $('ord').innerHTML = ''; return; }
+      const m = model(smp);
+      if (m.per > rx) { warn.className = 'note err'; warn.textContent = 'One run needs more reactions than you have.'; warn.style.display = ''; }
+      $('rDays').textContent = m.runs ? dayStr(m.cal) + ' (' + m.runs + ' run' + (m.runs === 1 ? '' : 's') + ')' : '0 days';
+      $('rSub').textContent = m.runs ? `${fmt(m.per, 4)} reactions per run (${fmt(smp, 4)} samples${g('rep') > 1 ? ' × ' + g('rep') : ''} + ${g('ctl') || 0} controls)` + (g('ext') ? ' + ' + g('ext') + ' % extra' : '') + ` · about ${fd(Date.now() + m.cal * 864e5)}` : '';
+      $('tiles').innerHTML = [['Runs possible', m.runs], ['Working days', m.work], ['Calendar days', m.cal], ['Weeks', fmt(m.cal / 7, 3)], ['Reactions per run', fmt(m.per, 4)], ['Left over', m.left]]
+        .map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v" style="font-size:1.2rem">${v}</div></div>`).join('');
+      // scenarios
+      const lo = g('smin'), hi = g('smax'), set = new Set([smp]); [lo, hi].forEach(x => { if (!isNaN(x)) set.add(x); });
+      [-10, -5, 5, 10, 20].forEach(d => { if (smp + d > 0) set.add(smp + d); });
+      $('scen').innerHTML = '<thead><tr><th class="num">Samples / run</th><th class="num">Reactions / run</th><th class="num">Runs</th><th class="num">Working days</th><th class="num">Calendar days</th></tr></thead><tbody>' +
+        [...set].filter(x => x >= 0).sort((a, b) => a - b).map(x => { const r = model(x); return `<tr class="${x === smp ? 'me' : ''}"><td class="num">${fmt(x, 4)}${x === smp ? ' (average)' : x === lo ? ' (fewest)' : x === hi ? ' (most)' : ''}</td><td class="num">${fmt(r.per, 4)}</td><td class="num">${r.runs}</td><td class="num">${r.work}</td><td class="num"><b>${r.cal}</b></td></tr>`; }).join('') + '</tbody>';
+      // order
+      const tgt = Math.max(1, Math.floor(g('tgt') || 0)), pk = g('pack');
+      const rows = [['Average (' + fmt(smp, 4) + ')', smp]]; if (!isNaN(lo)) rows.unshift(['Fewest (' + fmt(lo, 4) + ')', lo]); if (!isNaN(hi)) rows.push(['Most (' + fmt(hi, 4) + ')', hi]);
+      $('ord').innerHTML = `<thead><tr><th>Samples per run</th><th class="num">Runs in ${tgt} days</th><th class="num">Reactions needed</th>${pk > 0 ? '<th class="num">Kits to order</th>' : ''}</tr></thead><tbody>` +
+        rows.map(([l, x]) => { const n = needFor(x, tgt); return `<tr><td>${l}</td><td class="num">${n.runs}</td><td class="num"><b>${n.rx}</b></td>${pk > 0 ? `<td class="num"><b>${Math.ceil(n.rx / pk)}</b></td>` : ''}</tr>`; }).join('') + '</tbody>';
+    }
+    IDS.forEach(id => { $(id).addEventListener('input', calc); $(id).addEventListener('change', calc); });
+    calc();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+  });
+  </script>
+</body>
+</html>
