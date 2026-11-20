@@ -17,6 +17,7 @@
       { n: 'RealStar® Viral Load', s: 'Viral load', ic: '🧪', c: '#1478d4', f: 'calculators/realstar-vl.html' },
       { n: 'Custom Viral Load', s: 'Custom VL',   ic: '🧮', c: '#4f46e5', f: 'calculators/custom-vl.html' },
       { n: 'Custom Master Mix', s: 'Custom MM', ic: '🧫', c: '#7c3aed', f: 'calculators/custom-mastermix.html' },
+      { n: 'Reagent Duration', s: 'Duration', ic: '⏳', c: '#7c3aed', f: 'calculators/reagent-duration.html' },
       { n: 'AM16 Kit Order', s: 'AM16 order', ic: '📦', c: '#7c3aed', f: 'calculators/altona-am16-order.html' },
       { n: 'Master Mix Prep',      s: 'Master mix', ic: '💧', c: '#7c3aed', f: 'calculators/altona-mastermix.html' },
       { n: 'qPCR Tools',           s: 'qPCR',       ic: '📈', c: '#4f46e5', f: 'calculators/qpcr-tools.html' } ] },
