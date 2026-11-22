@@ -12,6 +12,8 @@
       { n: 'Dengue ELISA',        s: 'Dengue',     ic: '🦟', c: '#e11d48', f: 'calculators/dengue-elisa.html' },
       { n: 'Chikungunya IgM',     s: 'Chik IgM',   ic: '🧫', c: '#db2777', f: 'calculators/chik-igm-elisa.html' },
       { n: 'Wash Buffer Prep', s: 'Wash buffer', ic: '🧴', c: '#4d7c0f', f: 'calculators/wash-buffer.html' },
+      { n: 'Sensitivity / Specificity', s: 'Se / Sp', ic: '🎯', c: '#db2777', f: 'calculators/diagnostic-2x2.html' },
+      { n: 'Sample Pooling', s: 'Pooling', ic: '🧩', c: '#4d7c0f', f: 'calculators/pooling-dorfman.html' },
       { n: 'Generic ELISA (S/CO)', s: 'ELISA S/CO', ic: '📊', c: '#4d7c0f', f: 'calculators/generic-elisa.html' } ] },
     { t: 'Molecular · PCR', items: [
       { n: 'RealStar® Viral Load', s: 'Viral load', ic: '🧪', c: '#1478d4', f: 'calculators/realstar-vl.html' },
@@ -20,14 +22,18 @@
       { n: 'Reagent Duration', s: 'Duration', ic: '⏳', c: '#7c3aed', f: 'calculators/reagent-duration.html' },
       { n: 'AM16 Kit Order', s: 'AM16 order', ic: '📦', c: '#7c3aed', f: 'calculators/altona-am16-order.html' },
       { n: 'Master Mix Prep',      s: 'Master mix', ic: '💧', c: '#7c3aed', f: 'calculators/altona-mastermix.html' },
+      { n: 'PCR Amplicon & Tm', s: 'Primer Tm', ic: '🧬', c: '#4f46e5', f: 'calculators/pcr-tm.html' },
       { n: 'qPCR Tools',           s: 'qPCR',       ic: '📈', c: '#4f46e5', f: 'calculators/qpcr-tools.html' } ] },
     { t: 'Virology · Cell culture', items: [
       { n: 'Viral Titer',          s: 'Titer',      ic: '🧬', c: '#15803d', f: 'calculators/viral-titer.html' },
+      { n: 'Xenomonitoring MIR / MLE', s: 'MIR / MLE', ic: '🦟', c: '#15803d', f: 'calculators/xeno-mir-mle.html' },
       { n: 'MOI Calculator',       s: 'MOI',        ic: '🎯', c: '#a21caf', f: 'calculators/moi-calc.html' },
       { n: 'Neubauer & Splitting', s: 'Cell count', ic: '🔬', c: '#0d9488', f: 'calculators/neubauer-calc.html' } ] },
     { t: 'Lab utilities', items: [
       { n: 'Dilution & Serial',    s: 'Dilution',   ic: '⚗️', c: '#0e7490', f: 'calculators/dilution-calc.html' },
       { n: 'Centrifuge RPM ⇄ RCF', s: 'RPM ⇄ ×g',   ic: '🌀', c: '#a16207', f: 'calculators/rcf-calc.html' },
+      { n: 'Unit Converter', s: 'Units', ic: '🔄', c: '#a16207', f: 'calculators/unit-converter.html' },
+      { n: 'Scientific Calculator', s: 'Calculator', ic: '🧮', c: '#0d9488', f: 'calculators/sci-calc.html' },
       { n: 'Room Fumigation',      s: 'Fumigation', ic: '🧯', c: '#ea580c', f: 'calculators/fumigation-calc.html' } ] }
   ];
 
@@ -98,7 +104,7 @@
       SECTIONS.map(sec => `<div class="vc-side-sec">${esc(sec.t)}</div>` +
         sec.items.map(t => `<a class="vc-link${on(t)}" style="--c:${t.c}" href="${ROOT}${t.f}" title="${esc(t.n)}"><span class="ic">${t.ic}</span><span class="lbl">${esc(t.n)}</span></a>`).join('')).join('') +
       installBlock('vc-install vc-install-side') +
-      acct() + `<div class="vc-side-foot">v5.3</div>`;
+      acct() + `<div class="vc-side-foot">v5.5</div>`;
     body.prepend(side);
 
     /* ----- phone app header ----- */
