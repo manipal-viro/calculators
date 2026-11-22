@@ -1,6 +1,6 @@
 // Network-first service worker: always tries the live site first (so GitHub Pages
 // updates show up immediately) and falls back to the cache when offline.
-const CACHE_NAME = 'viro-calc-v5.4';
+const CACHE_NAME = 'viro-calc-v5.5';
 const ASSETS = [
   './',
   './index.html',
@@ -39,6 +39,12 @@ const ASSETS = [
   './calculators/wash-buffer.html',
   './calculators/altona-am16-order.html',
   './calculators/custom-mastermix.html',
+  './calculators/xeno-mir-mle.html',
+  './calculators/diagnostic-2x2.html',
+  './calculators/pooling-dorfman.html',
+  './calculators/pcr-tm.html',
+  './calculators/unit-converter.html',
+  './calculators/sci-calc.html',
   './calculators/reagent-duration.html',
   './calculators/generic-elisa.html',
   './calculators/chik-igm-elisa.html'
