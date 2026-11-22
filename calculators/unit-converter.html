@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Unit Converter — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+
+    .cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .cats button { border: 1.5px solid var(--border, #cbd5e1); background: #fff; color: var(--accent-dark); border-radius: 999px; padding: 8px 14px; cursor: pointer; font: inherit; font-weight: 700; }
+    .cats button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .cv { background: #fff; border: 1px solid var(--border, #dbe6f1); border-top: 5px solid var(--accent); border-radius: 14px; padding: 16px; }
+    .cv h2 { margin: 0 0 12px; font-size: 1.1rem; color: var(--accent-dark); }
+    .cvrow { display: grid; grid-template-columns: minmax(0,1fr) 44px minmax(0,1fr); gap: 10px; align-items: end; }
+    .cvbox label { display: block; font-size: .75rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .cvbox input, .cvbox select { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+    .cvbox input { font-size: 1.3rem; font-weight: 800; padding: 10px; }
+    .swap { height: 44px; border-radius: 50%; border: 2px solid var(--accent); background: #fff; color: var(--accent-dark); font-size: 1.2rem; cursor: pointer; margin-bottom: 8px; }
+    .bd { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .bd td { padding: 7px 8px; border-bottom: 1px solid #e5edf5; font-size: .92rem; cursor: pointer; }
+    .bd td.v { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; word-break: break-all; }
+    .bd tr:hover td { background: var(--accent-soft); } .bd tr.to td { background: var(--accent-soft); }
+    .bd td small { color: var(--muted); margin-left: 6px; }
+    @media (max-width: 560px) { .cvrow { grid-template-columns: 1fr; } .swap { width: 100%; border-radius: 12px; height: 40px; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="rcf">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Unit Converter</span></div>
+    </div>
+
+    <div class="cats" id="cats" role="tablist"></div>
+    <div class="cv" id="cv"></div>
+
+    <div class="version-tag">Viro Calculator • v5.5</div>
+  </div>
+  <script>
+  window.addEventListener("DOMContentLoaded", () => {
+
+    const { $, esc } = VC, KEY = 'viro_units';
+    const L = (arr) => arr.map(([k, n, f]) => ({ k, n, f }));
+    const CATS = [
+      { id: 'len', name: 'Length', ic: '📏', base: 'm', u: L([['nm', 'Nanometre (nm)', 1e-9], ['µm', 'Micrometre (µm)', 1e-6], ['mm', 'Millimetre (mm)', 1e-3], ['cm', 'Centimetre (cm)', 1e-2], ['m', 'Metre (m)', 1], ['km', 'Kilometre (km)', 1e3], ['in', 'Inch (in)', 0.0254], ['ft', 'Foot (ft)', 0.3048], ['yd', 'Yard (yd)', 0.9144], ['mi', 'Mile (mi)', 1609.344], ['nmi', 'Nautical mile', 1852], ['Å', 'Ångström (Å)', 1e-10]]), d: ['cm', 'in'] },
+      { id: 'area', name: 'Area', ic: '⬛', base: 'm²', u: L([['mm²', 'Square millimetre (mm²)', 1e-6], ['cm²', 'Square centimetre (cm²)', 1e-4], ['m²', 'Square metre (m²)', 1], ['km²', 'Square kilometre (km²)', 1e6], ['ha', 'Hectare (ha)', 1e4], ['in²', 'Square inch (in²)', 0.00064516], ['ft²', 'Square foot (ft²)', 0.09290304], ['yd²', 'Square yard (yd²)', 0.83612736], ['ac', 'Acre (ac)', 4046.8564224], ['mi²', 'Square mile (mi²)', 2589988.110336]]), d: ['m²', 'ft²'] },
+      { id: 'mass', name: 'Mass / Weight', ic: '⚖️', base: 'g', u: L([['pg', 'Picogram (pg)', 1e-12], ['ng', 'Nanogram (ng)', 1e-9], ['µg', 'Microgram (µg)', 1e-6], ['mg', 'Milligram (mg)', 1e-3], ['g', 'Gram (g)', 1], ['kg', 'Kilogram (kg)', 1e3], ['t', 'Tonne (t)', 1e6], ['oz', 'Ounce (oz)', 28.349523125], ['lb', 'Pound (lb)', 453.59237], ['st', 'Stone (st)', 6350.29318], ['ct', 'Carat (ct)', 0.2], ['gr', 'Grain (gr)', 0.06479891], ['Da', 'Dalton / amu (Da)', 1.66053906660e-24]]), d: ['g', 'mg'] },
+      { id: 'vol', name: 'Volume', ic: '🧪', base: 'L', u: L([['nL', 'Nanolitre (nL)', 1e-9], ['µL', 'Microlitre (µL)', 1e-6], ['mL', 'Millilitre (mL)', 1e-3], ['cL', 'Centilitre (cL)', 1e-2], ['dL', 'Decilitre (dL)', 0.1], ['L', 'Litre (L)', 1], ['m³', 'Cubic metre (m³)', 1000], ['cm³', 'Cubic centimetre (cm³)', 1e-3], ['tsp', 'Teaspoon (US)', 0.00492892159375], ['tbsp', 'Tablespoon (US)', 0.01478676478125], ['fl oz', 'Fluid ounce (US)', 0.0295735295625], ['cup', 'Cup (US)', 0.2365882365], ['pt', 'Pint (US)', 0.473176473], ['qt', 'Quart (US)', 0.946352946], ['gal', 'Gallon (US)', 3.785411784], ['in³', 'Cubic inch (in³)', 0.016387064], ['ft³', 'Cubic foot (ft³)', 28.316846592]]), d: ['mL', 'µL'] },
+      { id: 'conc', name: 'Lab concentration', ic: '🧫', base: 'g/L', mw: true, u: [].concat(L([['pg/mL', 'pg/mL', 1e-9], ['ng/mL', 'ng/mL', 1e-6], ['µg/mL', 'µg/mL', 1e-3], ['mg/mL', 'mg/mL', 1], ['g/mL', 'g/mL', 1000], ['ng/L', 'ng/L', 1e-9], ['µg/L', 'µg/L (= ppb)', 1e-6], ['mg/L', 'mg/L (= ppm)', 1e-3], ['g/L', 'g/L', 1], ['mg/dL', 'mg/dL', 0.01], ['g/dL', 'g/dL', 10], ['ppm', 'ppm (mg/L, aqueous)', 1e-3], ['ppb', 'ppb (µg/L, aqueous)', 1e-6]]), L([['pM', 'pM (picomolar)', 1e-12], ['nM', 'nM (nanomolar)', 1e-9], ['µM', 'µM (micromolar)', 1e-6], ['mM', 'mM (millimolar)', 1e-3], ['M', 'M (molar)', 1]]).map(x => ({ ...x, mol: true }))), d: ['ng/mL', 'pg/mL'] },
+      { id: 'temp', name: 'Temperature', ic: '🌡️', base: 'K', temp: true, u: L([['°C', 'Celsius (°C)', 0], ['°F', 'Fahrenheit (°F)', 0], ['K', 'Kelvin (K)', 0], ['°R', 'Rankine (°R)', 0]]), d: ['°C', '°F'] },
+      { id: 'pres', name: 'Pressure', ic: '🎚️', base: 'Pa', u: L([['Pa', 'Pascal (Pa)', 1], ['hPa', 'Hectopascal (hPa)', 100], ['kPa', 'Kilopascal (kPa)', 1e3], ['MPa', 'Megapascal (MPa)', 1e6], ['bar', 'Bar', 1e5], ['mbar', 'Millibar (mbar)', 100], ['atm', 'Atmosphere (atm)', 101325], ['psi', 'psi', 6894.757293168], ['mmHg', 'mmHg', 101325 / 760], ['Torr', 'Torr', 101325 / 760], ['inHg', 'inHg', 3386.389], ['kgf/cm²', 'kgf/cm²', 98066.5]]), d: ['psi', 'kPa'] },
+      { id: 'spd', name: 'Speed', ic: '🏃', base: 'm/s', u: L([['m/s', 'Metre/second (m/s)', 1], ['km/h', 'Kilometre/hour (km/h)', 1 / 3.6], ['mph', 'Mile/hour (mph)', 0.44704], ['kn', 'Knot (kn)', 1852 / 3600], ['ft/s', 'Foot/second (ft/s)', 0.3048], ['cm/s', 'Centimetre/second', 0.01], ['c', 'Speed of light (c)', 299792458]]), d: ['km/h', 'mph'] },
+      { id: 'time', name: 'Time', ic: '⏱️', base: 's', u: L([['ns', 'Nanosecond (ns)', 1e-9], ['µs', 'Microsecond (µs)', 1e-6], ['ms', 'Millisecond (ms)', 1e-3], ['s', 'Second (s)', 1], ['min', 'Minute (min)', 60], ['h', 'Hour (h)', 3600], ['d', 'Day (d)', 86400], ['wk', 'Week (wk)', 604800], ['mo', 'Month (30.4375 d)', 2629800], ['yr', 'Year (365.25 d)', 31557600]]), d: ['h', 'min'] },
+      { id: 'data', name: 'Digital storage', ic: '💾', base: 'B', u: L([['bit', 'Bit', 0.125], ['B', 'Byte (B)', 1], ['KB', 'Kilobyte (KB, 1000 B)', 1e3], ['MB', 'Megabyte (MB)', 1e6], ['GB', 'Gigabyte (GB)', 1e9], ['TB', 'Terabyte (TB)', 1e12], ['PB', 'Petabyte (PB)', 1e15], ['KiB', 'Kibibyte (KiB, 1024 B)', 1024], ['MiB', 'Mebibyte (MiB)', Math.pow(1024, 2)], ['GiB', 'Gibibyte (GiB)', Math.pow(1024, 3)], ['TiB', 'Tebibyte (TiB)', Math.pow(1024, 4)]]), d: ['GB', 'MB'] }
+    ];
+    // ---- conversion ----
+    const tK = { '°C': v => v + 273.15, '°F': v => (v - 32) * 5 / 9 + 273.15, 'K': v => v, '°R': v => v * 5 / 9 };
+    const fK = { '°C': v => v - 273.15, '°F': v => (v - 273.15) * 9 / 5 + 32, 'K': v => v, '°R': v => v * 9 / 5 };
+    function conv(cat, v, from, to, mw) {
+      if (cat.temp) return fK[to](tK[from](v));
+      const a = cat.u.find(x => x.k === from), b = cat.u.find(x => x.k === to);
+      if (cat.mw) {                                               // base g/L; molar units need molecular weight
+        if ((a.mol || b.mol) && !(a.mol && b.mol) && !(mw > 0)) return NaN;
+        if (a.mol && b.mol) return v * a.f / b.f;
+        const gl = a.mol ? v * a.f * mw : v * a.f;
+        return b.mol ? gl / mw / b.f : gl / b.f;
+      }
+      return v * a.f / b.f;
+    }
+    function fmtN(v) {
+      if (!isFinite(v)) return '—'; if (v === 0) return '0';
+      const a = Math.abs(v); if (a >= 1e12 || a < 1e-6) return v.toExponential(6).replace(/\.?0+e/, 'e').replace('e+', ' × 10^').replace('e', ' × 10^');
+      return String(parseFloat(v.toPrecision(10)));
+    }
+    const num = s => { const x = parseFloat(String(s).replace(/,/g, '.').replace(/\s/g, '')); return isNaN(x) ? NaN : x; };
+    // ---- state ----
+    const ST = VC.store.get(KEY, {}); ST.cat = ST.cat || 'len'; ST.s = ST.s || {};
+    const get = c => { const s = ST.s[c.id] = ST.s[c.id] || {}; s.ua = s.ua || c.d[0]; s.ub = s.ub || c.d[1]; if (s.a === undefined) s.a = '1'; if (s.mw === undefined) s.mw = ''; return s; };
+    const save = () => VC.store.set(KEY, ST);
+    function drawCats() { $('cats').innerHTML = CATS.map(c => `<button type="button" class="${c.id === ST.cat ? 'on' : ''}" data-c="${c.id}">${c.ic} ${c.name}</button>`).join(''); $('cats').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { ST.cat = b.dataset.c; save(); drawCats(); drawCard(); })); }
+    const opts = (c, sel) => c.u.map(u => `<option value="${esc(u.k)}" ${u.k === sel ? 'selected' : ''}>${esc(u.n)}</option>`).join('');
+    function drawCard() {
+      const c = CATS.find(x => x.id === ST.cat), s = get(c);
+      $('cv').innerHTML = `<h2>${c.ic} ${c.name}</h2>
+        <div class="cvrow"><div class="cvbox"><label for="ia">From</label><input id="ia" type="text" inputmode="decimal" autocomplete="off" value="${esc(s.a)}" /><select id="ua" aria-label="From unit">${opts(c, s.ua)}</select></div>
+        <button type="button" class="swap" id="sw" title="Swap units" aria-label="Swap units">⇄</button>
+        <div class="cvbox"><label for="ib">To</label><input id="ib" type="text" inputmode="decimal" autocomplete="off" /><select id="ub" aria-label="To unit">${opts(c, s.ub)}</select></div></div>
+        ${c.mw ? `<div class="cvbox" style="max-width:360px"><label for="mw">Molecular weight (g/mol = Da) — needed for molar ↔ mass units</label><input id="mw" type="text" inputmode="decimal" placeholder="e.g. 58.44 for NaCl" value="${esc(s.mw)}" /></div><div class="hint" id="mwNote"></div>` : ''}
+        <table class="bd" id="bd"></table>`;
+      const mwv = () => c.mw ? num($('mw').value) : 0;
+      const fromA = () => { const v = num($('ia').value); s.a = $('ia').value; $('ib').value = isNaN(v) ? '' : fmtN(conv(c, v, s.ua, s.ub, mwv())).replace(' × 10^', 'e'); table(v); };
+      const fromB = () => { const w = num($('ib').value); if (isNaN(w)) { $('ia').value = ''; s.a = ''; table(NaN); return; } const v = conv(c, w, s.ub, s.ua, mwv()); $('ia').value = fmtN(v).replace(' × 10^', 'e'); s.a = $('ia').value; table(v); };
+      function table(v) {
+        const need = c.mw && !(mwv() > 0), rows = c.u.map(u => { const r = conv(c, v, s.ua, u.k, mwv()), blocked = isNaN(r) && !isNaN(v) && need; return `<tr data-k="${esc(u.k)}" class="${u.k === s.ub ? 'to' : ''}"><td>${esc(u.n)}</td><td class="v">${blocked ? '<small>enter molecular weight</small>' : fmtN(r)}</td></tr>`; });
+        $('bd').innerHTML = rows.join(''); save();
+        if (c.mw) $('mwNote').textContent = need ? 'Molar units (pM–M) convert only when the molecular weight is entered. ppm / ppb assume a dilute aqueous solution (1 mL ≈ 1 g).' : 'Molar ↔ mass conversion uses MW = ' + mwv() + ' g/mol.';
+        $('bd').querySelectorAll('tr').forEach(tr => tr.addEventListener('click', () => { const t = tr.querySelector('.v').textContent; if (/\d/.test(t)) VC.copy(t.replace(' × 10^', 'e'), tr.querySelector('.v')); }));
+      }
+      $('ia').addEventListener('input', fromA); $('ib').addEventListener('input', fromB);
+      $('ua').addEventListener('change', () => { s.ua = $('ua').value; fromA(); }); $('ub').addEventListener('change', () => { s.ub = $('ub').value; fromA(); });
+      $('sw').addEventListener('click', () => { const oldB = $('ib').value; [s.ua, s.ub] = [s.ub, s.ua]; $('ua').value = s.ua; $('ub').value = s.ub; $('ia').value = oldB; fromA(); });
+      if (c.mw) $('mw').addEventListener('input', () => { s.mw = $('mw').value; fromA(); });
+      fromA();
+    }
+    drawCats(); drawCard();
+
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js");
+  });
+  </script>
+</body>
+</html>

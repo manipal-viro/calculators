@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Sample Pooling (Dorfman) — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .tbl td small { display: block; color: var(--muted); font-size: .72rem; }
+    .mx td, .mx th { text-align: center; padding: 6px 4px; font-size: .85rem; white-space: nowrap; }
+    .mx td.best { outline: 3px solid #000; outline-offset: -3px; font-weight: 900; }
+    .mx td.rowh { text-align: left; font-weight: 800; background: var(--accent-soft); position: sticky; left: 0; }
+    .mx tr.you td.rowh { background: var(--accent-dark); color: #fff; }
+    .mxw { overflow-x: auto; }
+    @media print { body { background: #fff !important; } .no-print-x { display: none !important; } .mx td.best { outline: 2px solid #000; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="moi">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Sample Pooling · Dorfman Matrix</span></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><label for="prev">Expected positivity (%)</label><input type="number" id="prev" min="0" max="100" step="any" inputmode="decimal" placeholder="e.g. 2" /></div>
+      <div class="field"><label for="N">Specimens to screen</label><input type="number" id="N" min="1" step="1" inputmode="numeric" placeholder="e.g. 480" /></div>
+      <div class="field"><label for="kmax">Largest pool size allowed</label><input type="number" id="kmax" min="2" step="1" inputmode="numeric" value="24" /></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="se">Assay sensitivity (%)</label><input type="number" id="se" min="1" max="100" step="any" inputmode="decimal" value="100" /></div>
+      <div class="field"><label for="sp">Assay specificity (%)</label><input type="number" id="sp" min="1" max="100" step="any" inputmode="decimal" value="100" /></div>
+      <div class="field"><label for="kfix">Use this pool size instead (optional)</label><input type="number" id="kfix" min="2" step="1" inputmode="numeric" placeholder="auto = optimal" /></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="cap">Reactions per run (plate / rotor)</label><input type="number" id="cap" min="2" step="1" inputmode="numeric" value="96" /></div>
+      <div class="field"><label for="ctl">Controls per run</label><input type="number" id="ctl" min="0" step="1" inputmode="numeric" value="3" /></div>
+      <div class="field"><label for="cost">Cost per reaction (optional)</label><input type="number" id="cost" min="0" step="any" inputmode="decimal" placeholder="any currency" /></div>
+    </div>
+
+    <div class="note err" id="err" style="display:none"></div>
+    <div class="result-box" style="text-align:left; padding:16px">
+      <div style="font-weight:700" id="rT">Best pool size</div>
+      <div class="val" id="rV">—</div>
+      <div class="sub" id="rS"></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="tbl-wrap"><table class="tbl" id="cmp"></table></div>
+    <div class="note" id="warn" style="display:none"></div>
+
+    <h2>Tests saved per 100 specimens — pool size × positivity</h2>
+    <div class="hint">Percentage of reactions saved compared with testing every specimen individually (two-stage Dorfman, using your sensitivity and specificity). Boxed cell = best pool size for that row.</div>
+    <div class="mxw"><table class="tbl mx" id="mx"></table></div>
+    <div class="action-row no-print-x"><button type="button" id="cpy">Copy summary</button><button type="button" class="secondary" onclick="window.print()">Print</button></div>
+
+    <div class="version-tag">Viro Calculator • v5.5</div>
+  </div>
+  <script>
+  window.addEventListener("DOMContentLoaded", () => {
+
+    const { $, fmt } = VC, KEY = 'viro_pool';
+    const IDS = ['prev', 'N', 'kmax', 'se', 'sp', 'kfix', 'cap', 'ctl', 'cost'];
+    const S = VC.store.get(KEY, {}); IDS.forEach(i => { if (S[i] !== undefined) $(i).value = S[i]; });
+    const g = i => parseFloat($(i).value);
+    let TXT = '';
+    // probability that a pool of size s tests positive
+    const pPos = (s, p, se, sp) => { const q = Math.pow(1 - p, s); return se * (1 - q) + (1 - sp) * q; };
+    // expected tests for N specimens split into pools of k (last pool may be smaller)
+    function tests(N, k, p, se, sp) {
+      const full = Math.floor(N / k), rem = N - full * k;
+      let s1 = full + (rem ? 1 : 0), s2 = full * k * pPos(k, p, se, sp) + (rem ? rem * pPos(rem, p, se, sp) : 0);
+      return { pools: s1, retest: s2, total: s1 + s2, full, rem };
+    }
+    const perSpec = (k, p, se, sp) => 1 / k + pPos(k, p, se, sp);
+    const runs = (n, cap, ctl) => Math.ceil(n / Math.max(1, cap - ctl));
+    function calc() {
+      IDS.forEach(i => S[i] = $(i).value); VC.store.set(KEY, S);
+      const pp = g('prev') / 100, N = Math.floor(g('N')), se = (g('se') || 100) / 100, sp = (g('sp') || 100) / 100, cap = Math.floor(g('cap')) || 96, ctl = Math.floor(g('ctl')) || 0, cost = g('cost');
+      let kmax = Math.floor(g('kmax')) || 24; const err = $('err'); err.style.display = 'none'; $('warn').style.display = 'none';
+      drawMatrix(isNaN(pp) ? null : pp, se, sp, kmax);
+      if (isNaN(pp) || !(N > 0)) { $('rV').textContent = '—'; $('rS').textContent = 'Enter the expected positivity and the number of specimens.'; $('tiles').innerHTML = ''; $('cmp').innerHTML = ''; TXT = ''; return; }
+      if (pp < 0 || pp >= 1) { err.textContent = 'Positivity must be between 0 and 100 %.'; err.style.display = ''; return; }
+      if (cap - ctl < 1) { err.textContent = 'Controls per run must be fewer than reactions per run.'; err.style.display = ''; return; }
+      kmax = Math.max(2, Math.min(kmax, N));
+      let best = { k: 1, e: N };
+      for (let k = 2; k <= kmax; k++) { const e = tests(N, k, pp, se, sp).total; if (e < best.e - 1e-9) best = { k, e }; }
+      const kfix = Math.floor(g('kfix')), k = kfix >= 2 ? Math.min(kfix, N) : best.k;
+      if (k === 1) { $('rV').textContent = 'Test individually'; $('rS').textContent = 'At this positivity pooling would not save any reactions.'; $('tiles').innerHTML = ''; $('cmp').innerHTML = ''; const w = $('warn'); w.className = 'note'; w.textContent = 'Pooling pays off only at low positivity (roughly below 25–30 %).'; w.style.display = ''; TXT = ''; return; }
+      const t = tests(N, k, pp, se, sp), exp = Math.round(t.total), retest = Math.round(t.retest);
+      const r1 = runs(t.pools, cap, ctl), r2 = runs(retest, cap, ctl), r0 = runs(N, cap, ctl);
+      const rxP = Math.round(t.pools + retest + ctl * ((t.pools ? r1 : 0) + (retest ? r2 : 0))), rx0 = N + ctl * r0, saved = rx0 - rxP;
+      $('rT').textContent = kfix >= 2 ? 'Pool size (your choice)' : 'Optimal pool size';
+      $('rV').textContent = k + ' specimens per pool';
+      $('rS').textContent = `${t.full} pool${t.full === 1 ? '' : 's'} of ${k}` + (t.rem ? ` + 1 pool of ${t.rem}` : '') + ` → about ${exp} reactions instead of ${N} (${fmt((1 - t.total / N) * 100, 3)} % fewer, before controls)`;
+      const sen = se * se;
+      $('tiles').innerHTML = [['Stage 1: pool tests', t.pools], ['Stage 2: expected retests', retest], ['Expected total', exp], ['Saved (before controls)', Math.round(N - t.total)],
+        ['Runs, pooled', r1 + (retest ? r2 : 0)], ['Runs, individual', r0], ['Reactions incl. controls', rxP + ' vs ' + rx0], ['Reactions saved per ' + N, saved + (rx0 ? ' (' + fmt(saved / rx0 * 100, 3) + ' %)' : '')]]
+        .map(([a, b]) => `<div class="tile"><div class="k">${a}</div><div class="v" style="font-size:1.25rem">${b}</div></div>`).join('');
+      // comparison around the optimum
+      const ks = new Set([2, 3, 4, 5, 8, 10, 12, 16, 20, 24, 32, 48, k, best.k]); [...ks].forEach(x => { if (x > kmax && x !== k) ks.delete(x); });
+      $('cmp').innerHTML = '<thead><tr><th>Pool size</th><th class="num">Pool tests</th><th class="num">Expected retests</th><th class="num">Total reactions</th><th class="num">Saved</th><th class="num">Chance a pool is positive</th></tr></thead><tbody>' +
+        [...ks].filter(x => x >= 2 && x <= N).sort((a, b) => a - b).map(x => { const tt = tests(N, x, pp, se, sp); return `<tr style="${x === k ? 'font-weight:800;background:var(--accent-soft)' : ''}"><td>${x}${x === best.k ? ' (optimal)' : ''}</td><td class="num">${tt.pools}</td><td class="num">${Math.round(tt.retest)}</td><td class="num">${Math.round(tt.total)}</td><td class="num">${fmt((1 - tt.total / N) * 100, 3)} %</td><td class="num">${fmt(pPos(x, pp, se, sp) * 100, 3)} %</td></tr>`; }).join('') + '</tbody>';
+      const w = $('warn'); w.className = 'note'; const msgs = [];
+      if (se < 1) msgs.push(`With sensitivity ${fmt(se * 100, 3)} %, a single infected specimen is detected in the pooled strategy with probability about ${fmt(sen * 100, 3)} % (pool test × individual retest). Dilution in larger pools can lower it further — validate your pool size on your assay.`);
+      else msgs.push('Assumes the assay detects one positive specimen diluted in a pool. Validate the largest pool size on your assay before use.');
+      if (cost > 0) msgs.push(`Estimated reagent saving: ${fmt(saved * cost, 6)} (${saved} reactions × ${cost}).`);
+      w.textContent = msgs.join(' '); w.style.display = '';
+      TXT = `Sample pooling (Dorfman)\nPositivity ${fmt(pp * 100, 3)} %, specimens ${N}, Se ${fmt(se * 100, 3)} %, Sp ${fmt(sp * 100, 3)} %\nPool size ${k}: ${t.full} pools of ${k}${t.rem ? ' + 1 of ' + t.rem : ''}\nExpected reactions: ${exp} (stage 1: ${t.pools}, retests: ${retest}) vs ${N} individually\nWith controls (${ctl}/run, ${cap}/run): ${rxP} vs ${rx0} reactions; runs ${r1 + (retest ? r2 : 0)} vs ${r0}`;
+    }
+    function drawMatrix(pp, se, sp, kmax) {
+      const ks = [2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32].filter(x => x <= Math.max(kmax, 2)), ps = [0.5, 1, 2, 3, 5, 8, 10, 15, 20, 30];
+      let rowsP = ps.map(x => ({ p: x / 100, you: false })); if (pp !== null && pp > 0 && pp < 1) rowsP = [{ p: pp, you: true }].concat(rowsP.filter(r => Math.abs(r.p - pp) > 1e-9));
+      $('mx').innerHTML = '<thead><tr><th style="text-align:left">Positivity</th>' + ks.map(k => `<th>k=${k}</th>`).join('') + '<th>Best k</th></tr></thead><tbody>' +
+        rowsP.map(r => { const vals = ks.map(k => 1 - perSpec(k, r.p, se, sp)), mx = Math.max(...vals), bi = vals.indexOf(mx), bk = mx > 0 ? ks[bi] : '—';
+          return `<tr class="${r.you ? 'you' : ''}"><td class="rowh">${fmt(r.p * 100, 3)} %${r.you ? ' (yours)' : ''}</td>` + vals.map((v, i) => `<td class="${i === bi && mx > 0 ? 'best' : ''}" style="${v > 0 ? 'background:rgba(0,0,0,' + (0.04 + 0.2 * v) + ')' : 'color:#888'}">${v > 0 ? fmt(v * 100, 3) + ' %' : '0'}</td>`).join('') + `<td><b>${bk}</b></td></tr>`; }).join('') + '</tbody>';
+    }
+    IDS.forEach(i => $(i).addEventListener('input', calc));
+    $('cpy').addEventListener('click', () => VC.copy(TXT || 'No data', $('cpy')));
+    calc();
+
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js");
+  });
+  </script>
+</body>
+</html>

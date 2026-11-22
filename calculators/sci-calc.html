@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Scientific Calculator — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+
+    .calc { max-width: 880px; margin: 0 auto; }
+    .tabs2 { display: inline-flex; border: 2px solid var(--accent-dark); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+    .tabs2 button { border: 0; background: #fff; color: var(--accent-dark); padding: 8px 16px; cursor: pointer; font: inherit; font-weight: 800; }
+    .tabs2 button.on { background: var(--accent-dark); color: #fff; }
+    .shell { display: grid; grid-template-columns: minmax(0,1fr) 250px; gap: 16px; align-items: start; }
+    .body { background: #1f2933; border-radius: 22px; padding: 16px; box-shadow: 0 18px 40px rgba(15,35,60,.35); }
+    .scr { background: #c8d6c0; border-radius: 12px; padding: 10px 12px 8px; margin-bottom: 14px; color: #111; border: 3px solid #0f1720; }
+    .flags { display: flex; gap: 8px; font-size: .68rem; font-weight: 800; color: #3b4a3b; min-height: 14px; }
+    .flags span { opacity: .25; } .flags span.on { opacity: 1; }
+    #ex { width: 100%; box-sizing: border-box; background: transparent; border: 0; outline: 0; font: 600 1.25rem ui-monospace, Menlo, Consolas, monospace; color: #111; text-align: right; padding: 4px 0; }
+    #rs { text-align: right; font: 800 2rem ui-monospace, Menlo, Consolas, monospace; min-height: 42px; word-break: break-all; line-height: 1.15; }
+    #rs.err { font-size: 1.1rem; color: #7f1d1d; }
+    .keys { display: grid; gap: 14px; grid-template-columns: minmax(0,1fr); }
+    .keys.sci { grid-template-columns: minmax(0,5fr) minmax(0,4fr); }
+    .pad { display: grid; gap: 7px; }
+    .p5 { grid-template-columns: repeat(5, 1fr); } .p4 { grid-template-columns: repeat(4, 1fr); }
+    .pad button { height: 46px; border: 0; border-radius: 10px; font: 700 1rem system-ui, sans-serif; cursor: pointer; background: #3e4c59; color: #fff; box-shadow: 0 3px 0 #101820; padding: 0; }
+    .pad button:active { transform: translateY(2px); box-shadow: 0 1px 0 #101820; }
+    .pad button.fn { background: #52606d; font-size: .88rem; } .pad button.num { background: #f5f7fa; color: #111; } .pad button.op { background: var(--accent); }
+    .pad button.ac { background: #c0392b; } .pad button.eq { background: #16a34a; grid-column: span 3; } .pad button.on { background: var(--accent-dark); }
+    .pad button.mem { background: #323f4b; font-size: .8rem; }
+    .hist { background: #fff; border: 1px solid var(--border, #dbe6f1); border-radius: 14px; padding: 12px; max-height: 480px; overflow: auto; }
+    .hist h3 { margin: 0 0 8px; font-size: .85rem; text-transform: uppercase; color: var(--accent-dark); display: flex; justify-content: space-between; align-items: center; }
+    .hist h3 button { border: 0; background: none; color: var(--accent-dark); cursor: pointer; font: inherit; font-size: .75rem; text-decoration: underline; }
+    .hist div.h { padding: 7px 4px; border-bottom: 1px solid #eef2f6; cursor: pointer; font-size: .82rem; word-break: break-all; } .hist div.h:hover { background: var(--accent-soft); }
+    .hist div.h b { display: block; font-size: 1rem; color: var(--accent-dark); }
+    .cp { margin-top: 10px; width: 100%; }
+    @media (max-width: 820px) { .shell { grid-template-columns: 1fr; } .keys.sci { grid-template-columns: 1fr; } }
+    @media print { .no-print-x { display: none !important; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="neubauer">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Scientific Calculator</span></div>
+    </div>
+
+    <div class="calc">
+      <div class="tabs2 no-print-x"><button type="button" id="tStd">Standard</button><button type="button" id="tSci" class="on">Scientific</button></div>
+      <div class="shell">
+        <div>
+          <div class="body">
+            <div class="scr"><div class="flags"><span id="fD">DEG</span><span id="fM">M</span><span id="f2">2nd</span></div>
+              <input id="ex" type="text" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Expression" />
+              <div id="rs" aria-live="polite">0</div></div>
+            <div class="keys sci" id="keys"><div class="pad p5" id="sci"></div><div class="pad p4" id="std"></div></div>
+          </div>
+          <button type="button" class="secondary cp no-print-x" id="cpy">Copy result</button>
+        </div>
+        <div class="hist no-print-x"><h3>History <button type="button" id="hc">clear</button></h3><div id="hl"></div></div>
+      </div>
+    </div>
+
+    <div class="version-tag">Viro Calculator • v5.5</div>
+  </div>
+  <script>
+  window.addEventListener("DOMContentLoaded", () => {
+
+    const { $, esc } = VC, KEY = 'viro_sci';
+    const ST = Object.assign({ mode: 'sci', ang: 'DEG', mem: 0, ans: 0, hist: [], expr: '' }, VC.store.get(KEY, {}));
+    let second = false, justEq = false;
+    const save = () => VC.store.set(KEY, ST);
+
+    /* ---------------- math helpers ---------------- */
+    const G = [676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    function gamma(z) { if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z)); z -= 1; let x = 0.99999999999980993; G.forEach((c, i) => x += c / (z + i + 1)); const t = z + G.length - 0.5; return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x; }
+    function fact(n) { if (n < 0 && Number.isInteger(n)) throw new Error('Factorial of a negative integer'); if (Number.isInteger(n)) { if (n > 170) return Infinity; let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; } return gamma(n + 1); }
+    const nCr = (n, r) => { if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0 || r < 0 || r > n) throw new Error('nCr needs integers 0 ≤ r ≤ n'); r = Math.min(r, n - r); let v = 1; for (let i = 1; i <= r; i++) v = v * (n - r + i) / i; return Math.round(v); };
+    const nPr = (n, r) => { if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0 || r < 0 || r > n) throw new Error('nPr needs integers 0 ≤ r ≤ n'); let v = 1; for (let i = 0; i < r; i++) v *= n - i; return v; };
+    const toRad = x => ST.ang === 'DEG' ? x * Math.PI / 180 : ST.ang === 'GRAD' ? x * Math.PI / 200 : x;
+    const fromRad = x => ST.ang === 'DEG' ? x * 180 / Math.PI : ST.ang === 'GRAD' ? x * 200 / Math.PI : x;
+    const near0 = y => Math.abs(y) < 1e-15 ? 0 : parseFloat(y.toPrecision(14));
+    const per = () => ST.ang === 'DEG' ? 180 : ST.ang === 'GRAD' ? 200 : Math.PI;
+    function sinD(x) { if (ST.ang !== 'RAD' && Math.abs(x % per()) < 1e-12) return 0; return near0(Math.sin(toRad(x))); }
+    function cosD(x) { if (ST.ang !== 'RAD' && Math.abs((x - per() / 2) % per()) < 1e-12) return 0; return near0(Math.cos(toRad(x))); }
+    function tanD(x) { if (ST.ang !== 'RAD') { if (Math.abs(x % per()) < 1e-12) return 0; if (Math.abs((x - per() / 2) % per()) < 1e-12) throw new Error('tan undefined'); } return near0(Math.tan(toRad(x))); }
+    const chk = v => { if (Number.isNaN(v)) throw new Error('Invalid input'); return v; };
+    const F = {
+      sin: sinD, cos: cosD, tan: tanD,
+      asin: x => { if (Math.abs(x) > 1) throw new Error('asin needs −1 … 1'); return fromRad(Math.asin(x)); }, acos: x => { if (Math.abs(x) > 1) throw new Error('acos needs −1 … 1'); return fromRad(Math.acos(x)); }, atan: x => fromRad(Math.atan(x)),
+      sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, asinh: Math.asinh, acosh: x => chk(Math.acosh(x)), atanh: x => { if (Math.abs(x) >= 1) throw new Error('atanh needs −1 … 1'); return Math.atanh(x); },
+      log: x => { if (x <= 0) throw new Error('log needs a positive number'); return Math.log10(x); }, ln: x => { if (x <= 0) throw new Error('ln needs a positive number'); return Math.log(x); }, log2: x => { if (x <= 0) throw new Error('log₂ needs a positive number'); return Math.log2(x); },
+      exp: Math.exp, sqrt: x => { if (x < 0) throw new Error('√ of a negative number'); return Math.sqrt(x); }, cbrt: Math.cbrt, abs: Math.abs, fact, ncr: nCr, npr: nPr,
+      root: (x, y) => { if (y === 0) throw new Error('0th root'); if (x < 0 && y % 2 !== 0 && Number.isInteger(y)) return -Math.pow(-x, 1 / y); if (x < 0) throw new Error('even root of a negative number'); return Math.pow(x, 1 / y); },
+      floor: Math.floor, ceil: Math.ceil, round: Math.round, rand: () => Math.random()
+    };
+    const AR = { ncr: 2, npr: 2, root: 2, rand: 0 };
+
+    /* ---------------- parser ---------------- */
+    function evaluate(src) {
+      const s = src.replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/').replace(/π/g, 'pi').replace(/√/g, 'sqrt').replace(/∛/g, 'cbrt');
+      const T = [], re = /\s*(\d+\.?\d*(?:E[+-]?\d+)?|\.\d+(?:E[+-]?\d+)?|[A-Za-z][A-Za-z0-9]*|[-+*/^()!%,])/y; let i = 0;
+      while (i < s.length) { if (/^\s*$/.test(s.slice(i))) break; re.lastIndex = i; const m = re.exec(s); if (!m) throw new Error('Unexpected character'); T.push(/^[A-Za-z]/.test(m[1]) ? m[1].toLowerCase() : m[1]); i = re.lastIndex; }
+      if (!T.length) return null;
+      let p = 0; const peek = () => T[p], next = () => T[p++];
+      const isStart = t => t !== undefined && (/^[\d.]/.test(t) || t === '(' || (/^[a-z]/.test(t) && t !== 'mod'));
+      function expr() {
+        let a = term();
+        while (peek() === '+' || peek() === '-') { const o = next(), b = term(); const bv = b.pct ? a.v * b.v : b.v; a = { v: o === '+' ? a.v + bv : a.v - bv }; }
+        return a;
+      }
+      function term() {
+        let a = unary();
+        for (;;) {
+          const t = peek();
+          if (t === '*' || t === '/') { next(); const b = unary(); if (t === '/') { if (b.v === 0) throw new Error('Cannot divide by zero'); a = { v: a.v / b.v }; } else a = { v: a.v * b.v }; }
+          else if (t === 'mod') { next(); const b = unary(); if (b.v === 0) throw new Error('Cannot divide by zero'); a = { v: ((a.v % b.v) + b.v) % b.v }; }
+          else if (isStart(t)) { const b = unary(); a = { v: a.v * b.v }; }
+          else break;
+        }
+        return a;
+      }
+      function unary() { if (peek() === '-') { next(); const a = unary(); return { v: -a.v }; } if (peek() === '+') { next(); return unary(); } return pw(); }
+      function pw() { const a = post(); if (peek() === '^') { next(); const b = unary(); const v = Math.pow(a.v, b.v); if (Number.isNaN(v)) throw new Error('Invalid power'); return { v }; } return a; }
+      function post() {
+        let a = atom();
+        for (;;) {
+          if (peek() === '!') { next(); a = { v: fact(a.v) }; }
+          else if (peek() === '%') { next(); a = { v: a.v / 100, pct: true }; }
+          else break;
+        }
+        return a;
+      }
+      function atom() {
+        const t = next(); if (t === undefined) throw new Error('Incomplete expression');
+        if (t === '(') { const a = expr(); if (next() !== ')') throw new Error('Missing )'); return a; }
+        if (/^[\d.]/.test(t)) return { v: parseFloat(t) };
+        if (t === 'pi') return { v: Math.PI }; if (t === 'e') return { v: Math.E }; if (t === 'ans') return { v: ST.ans };
+        if (F[t]) {
+          const n = AR[t] === undefined ? 1 : AR[t];
+          if (peek() === '(') { next(); const args = []; if (peek() !== ')') { do { args.push(expr().v); } while (peek() === ',' && next()); } if (next() !== ')') throw new Error('Missing )'); if (args.length !== n) throw new Error(t + ' needs ' + n + ' value' + (n === 1 ? '' : 's')); return { v: F[t](...args) }; }
+          if (n === 1) { const a = unary(); return { v: F[t](a.v) }; }
+          throw new Error(t + ' needs ( )');
+        }
+        throw new Error('Unknown “' + t + '”');
+      }
+      const r = expr(); if (p < T.length) throw new Error('Unexpected “' + T[p] + '”');
+      if (!isFinite(r.v)) throw new Error(Number.isNaN(r.v) ? 'Invalid' : 'Result too large');
+      return r.v;
+    }
+    function fmt(v) {
+      if (v === 0) return '0'; const a = Math.abs(v);
+      if (a >= 1e15 || a < 1e-9) return v.toExponential(11).replace(/\.?0+e/, 'E').replace('E+', 'E').replace('e+', 'E').replace('e', 'E');
+      let s = parseFloat(v.toPrecision(12)).toString(); if (/e/.test(s)) s = v.toPrecision(12);
+      return s;
+    }
+
+    /* ---------------- keypad ---------------- */
+    const SCI = [
+      [['2nd', 'fn', 'T2'], ['DEG', 'fn', 'ANG'], ['π', 'fn', 'π'], ['e', 'fn', 'e'], ['Ans', 'fn', 'ans']],
+      [['sin', 'fn', 'sin('], ['cos', 'fn', 'cos('], ['tan', 'fn', 'tan('], ['log', 'fn', 'log('], ['ln', 'fn', 'ln(']],
+      [['sinh', 'fn', 'sinh('], ['cosh', 'fn', 'cosh('], ['tanh', 'fn', 'tanh('], ['√x', 'fn', '√('], ['∛x', 'fn', '∛(']],
+      [['x²', 'fn', '^2'], ['xʸ', 'fn', '^'], ['n!', 'fn', '!'], ['nPr', 'fn', 'nPr('], ['nCr', 'fn', 'nCr(']],
+      [['|x|', 'fn', 'abs('], ['mod', 'fn', ' mod '], ['EXP', 'fn', 'E'], ['1/x', 'fn', 'INV'], ['x,y', 'fn', ',']],
+      [['MC', 'mem', 'MC'], ['MR', 'mem', 'MR'], ['M+', 'mem', 'M+'], ['M−', 'mem', 'M-'], ['MS', 'mem', 'MS']]
+    ];
+    const SEC = { sin: ['sin⁻¹', 'asin('], cos: ['cos⁻¹', 'acos('], tan: ['tan⁻¹', 'atan('], log: ['10ˣ', '10^'], ln: ['eˣ', 'e^'], sinh: ['sinh⁻¹', 'asinh('], cosh: ['cosh⁻¹', 'acosh('], tanh: ['tanh⁻¹', 'atanh('], '√x': ['ʸ√x', 'root('], '∛x': ['log₂', 'log2('], 'x²': ['x³', '^3'] };
+    const STD = [[['AC', 'ac', 'AC'], ['⌫', 'fn', 'BS'], ['(', 'fn', '('], [')', 'fn', ')']], [['7', 'num', '7'], ['8', 'num', '8'], ['9', 'num', '9'], ['÷', 'op', '÷']], [['4', 'num', '4'], ['5', 'num', '5'], ['6', 'num', '6'], ['×', 'op', '×']], [['1', 'num', '1'], ['2', 'num', '2'], ['3', 'num', '3'], ['−', 'op', '−']], [['0', 'num', '0'], ['.', 'num', '.'], ['%', 'fn', '%'], ['+', 'op', '+']], [['±', 'fn', 'NEG'], ['=', 'eq', 'EQ']]];
+    function drawKeys() {
+      const mk = rows => rows.map(r => r.map(([l, c, a]) => { let lab = l, act = a; if (second && SEC[l]) { lab = SEC[l][0]; act = SEC[l][1]; } if (l === 'DEG') lab = ST.ang; return `<button type="button" class="${c}${l === '2nd' && second ? ' on' : ''}" data-a="${esc(act)}" aria-label="${esc(lab)}">${esc(lab)}</button>`; }).join('')).join('');
+      $('sci').innerHTML = mk(SCI); $('std').innerHTML = mk(STD);
+      $('keys').classList.toggle('sci', ST.mode === 'sci'); $('sci').style.display = ST.mode === 'sci' ? '' : 'none';
+      $('tSci').classList.toggle('on', ST.mode === 'sci'); $('tStd').classList.toggle('on', ST.mode !== 'sci');
+      $('fD').textContent = ST.ang; $('fD').classList.add('on'); $('fM').classList.toggle('on', ST.mem !== 0); $('f2').classList.toggle('on', second);
+      document.querySelectorAll('.pad button').forEach(b => { b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => press(b.dataset.a)); });
+    }
+    const ex = $('ex');
+    function ins(t) {
+      if (justEq && /^[\d.(a-zπe√∛]/i.test(t) && t !== 'E') { ex.value = ''; }        // new number after "=" starts afresh
+      if (justEq && /^[−\-+×÷^!%]|^ mod/.test(t)) ex.value = ST.ansText;
+      justEq = false;
+      const a = ex.selectionStart == null ? ex.value.length : ex.selectionStart, b = ex.selectionEnd == null ? a : ex.selectionEnd;
+      ex.value = ex.value.slice(0, a) + t + ex.value.slice(b); const c = a + t.length; ex.setSelectionRange(c, c); live();
+    }
+    function press(a) {
+      ex.focus({ preventScroll: true });
+      switch (a) {
+        case 'AC': ex.value = ''; justEq = false; $('rs').textContent = '0'; $('rs').className = ''; ST.expr = ''; save(); return;
+        case 'BS': { justEq = false; const s = ex.selectionStart, e2 = ex.selectionEnd; if (s !== e2) ex.value = ex.value.slice(0, s) + ex.value.slice(e2), ex.setSelectionRange(s, s); else if (s > 0) { ex.value = ex.value.slice(0, s - 1) + ex.value.slice(s); ex.setSelectionRange(s - 1, s - 1); } return live(); }
+        case 'EQ': return equals();
+        case 'T2': second = !second; return drawKeys();
+        case 'ANG': ST.ang = ST.ang === 'DEG' ? 'RAD' : ST.ang === 'RAD' ? 'GRAD' : 'DEG'; save(); drawKeys(); return live();
+        case 'ans': return ins('Ans');
+        case 'INV': { const v = ex.value.trim(); ex.value = v ? '1÷(' + v + ')' : '1÷('; justEq = false; return live(); }
+        case 'NEG': { const v = ex.value.trim(); if (!v) return ins('−'); if (/^−\(.*\)$/.test(v)) ex.value = v.slice(2, -1); else ex.value = '−(' + v + ')'; justEq = false; return live(); }
+        case 'MC': ST.mem = 0; save(); return drawKeys();
+        case 'MR': return ins(fmt(ST.mem));
+        case 'MS': case 'M+': case 'M-': { let v; try { v = evaluate(ex.value); } catch (e) { v = null; } if (v === null) v = ST.ans; ST.mem = a === 'MS' ? v : a === 'M+' ? ST.mem + v : ST.mem - v; save(); return drawKeys(); }
+        default: return ins(a);
+      }
+    }
+    function live() {
+      const r = $('rs'); r.className = '';
+      if (!ex.value.trim()) { r.textContent = '0'; return; }
+      try { const v = evaluate(ex.value); r.textContent = v === null ? '0' : fmt(v); r.style.opacity = .55; } catch (e) { r.textContent = ''; }
+      ST.expr = ex.value; save();
+    }
+    function equals() {
+      const r = $('rs'); if (!ex.value.trim()) return;
+      try {
+        const v = evaluate(ex.value); if (v === null) return;
+        const t = fmt(v); r.textContent = t; r.style.opacity = 1; r.className = '';
+        ST.hist.unshift({ e: ex.value, r: t }); ST.hist = ST.hist.slice(0, 40); ST.ans = v; ST.ansText = t; ST.expr = ''; save(); histDraw(); justEq = true;
+      } catch (e) { r.textContent = e.message; r.className = 'err'; r.style.opacity = 1; }
+    }
+    function histDraw() { $('hl').innerHTML = ST.hist.length ? ST.hist.map((h, i) => `<div class="h" data-i="${i}">${esc(h.e)}<b>= ${esc(h.r)}</b></div>`).join('') : '<div class="hint">Calculations appear here.</div>'; $('hl').querySelectorAll('.h').forEach(d => d.addEventListener('click', () => { ex.value = ST.hist[+d.dataset.i].e; justEq = false; live(); ex.focus(); })); }
+    // physical keyboard: normalise symbols, Enter = equals, Esc = clear
+    ex.addEventListener('input', () => { const p = ex.selectionStart; ex.value = ex.value.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−'); ex.setSelectionRange(p, p); justEq = false; live(); });
+    ex.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); equals(); } else if (e.key === 'Escape') press('AC'); });
+    $('tStd').addEventListener('click', () => { ST.mode = 'std'; save(); drawKeys(); }); $('tSci').addEventListener('click', () => { ST.mode = 'sci'; save(); drawKeys(); });
+    $('hc').addEventListener('click', () => { ST.hist = []; save(); histDraw(); });
+    $('cpy').addEventListener('click', () => { const t = $('rs').textContent; if (t && !$('rs').classList.contains('err')) VC.copy(t, $('cpy')); });
+    ST.ansText = ST.ansText || fmt(ST.ans);
+    drawKeys(); histDraw(); ex.value = ST.expr || ''; live();
+    window._sciEval = evaluate;   // for testing
+
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js");
+  });
+  </script>
+</body>
+</html>

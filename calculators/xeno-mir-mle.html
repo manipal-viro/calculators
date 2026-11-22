@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Xenomonitoring MIR & MLE — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+
+    .seg { display: inline-flex; border: 2px solid var(--accent-dark); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+    .seg button { border: 0; background: #fff; color: var(--accent-dark); padding: 9px 16px; font-weight: 800; cursor: pointer; font: inherit; font-weight: 800; }
+    .seg button.on { background: var(--accent-dark); color: #fff; }
+    .big td, .big th { font-size: 1rem; }
+    .res-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 14px 0; }
+    .rc { border: 2px solid var(--accent-dark); border-radius: 12px; padding: 14px; background: #fff; }
+    .rc h3 { margin: 0 0 6px; font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent-dark); }
+    .rc .v { font-size: 1.9rem; font-weight: 900; color: #000; line-height: 1.1; }
+    .rc .u { font-size: .8rem; color: var(--muted); }
+    .rc .ci { margin-top: 8px; font-size: .95rem; font-weight: 700; }
+    .rc .ci small { display: block; font-weight: 500; color: var(--muted); }
+    .rt input { width: 100%; padding: 8px; }
+    .rt td { padding: 4px 6px; }
+    .stt { display: inline-flex; border: 2px solid #000; border-radius: 8px; overflow: hidden; }
+    .stt button { border: 0; background: #fff; padding: 6px 12px; font-weight: 800; cursor: pointer; min-width: 44px; font: inherit; font-weight: 800; }
+    .stt button.pos.on { background: #000; color: #fff; } .stt button.neg.on { background: #e5e7eb; color: #000; }
+    .xbtn { border: 1px solid #999; background: #fff; border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+    textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    @media (max-width: 720px) { .rt { min-width: 480px; } .tbl-wrap { overflow-x: auto; } }
+    @media print {
+      body { background: #fff !important; } .no-print-x { display: none !important; }
+      .rc { border: 2px solid #000; break-inside: avoid; } .rc h3, .rc .u, .rc .ci small { color: #000; }
+      .rt input { border: 0; padding: 0; } .stt button:not(.on) { display: none; }
+    }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="titer">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Xenomonitoring MIR &amp; MLE</span></div>
+    </div>
+
+    <div class="no-print-x">
+      <div class="seg" role="tablist"><button type="button" id="mSum" class="on">Summary mode</button><button type="button" id="mBat">Batch pool mode</button></div>
+    </div>
+
+    <div id="vSum">
+      <div class="row">
+        <div class="field"><label for="sN">Total pools tested</label><input type="number" id="sN" min="1" step="1" inputmode="numeric" /></div>
+        <div class="field"><label for="sX">Positive pools</label><input type="number" id="sX" min="0" step="1" inputmode="numeric" /></div>
+        <div class="field"><label for="sV">Total vectors (all pools)</label><input type="number" id="sV" min="1" step="1" inputmode="numeric" /></div>
+      </div>
+      <div class="hint">Summary mode assumes all pools have the same size (total vectors ÷ total pools). Use Batch mode when pool sizes differ.</div>
+    </div>
+
+    <div id="vBat" style="display:none">
+      <div class="tbl-wrap"><table class="tbl rt" id="bt"></table></div>
+      <div class="action-row no-print-x">
+        <button type="button" class="secondary" id="bAdd">+ Add row</button>
+        <button type="button" class="secondary" id="bAdd10">+ 10 rows</button>
+        <button type="button" class="secondary" id="bPaste">Paste from Excel…</button>
+      </div>
+      <div id="pasteBox" class="no-print-x" style="display:none;margin-top:8px">
+        <div class="hint">One pool per line: <code>Pool ID, size, status</code> (status: P / + / positive, or N / − / negative). Tab-separated also works.</div>
+        <textarea id="pTxt" placeholder="P1, 25, N&#10;P2, 30, P&#10;P3, 25, N"></textarea>
+        <div class="action-row"><button type="button" class="secondary" id="pGo">Add these rows</button></div>
+      </div>
+    </div>
+
+    <div class="note err" id="err" style="display:none"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="res-grid" id="res"></div>
+    <div class="note" id="foot" style="display:none"></div>
+
+    <div class="action-row no-print-x">
+      <button type="button" id="cpy">Copy summary</button>
+      <button type="button" class="secondary" onclick="window.print()">Print</button>
+      <button type="button" class="secondary" id="rst" style="color:#991b1b;border-color:#fca5a5">Reset</button>
+    </div>
+
+    <div class="version-tag">Viro Calculator • v5.5</div>
+  </div>
+  <script>
+  window.addEventListener("DOMContentLoaded", () => {
+
+    const { $, esc } = VC, KEY = 'viro_xeno', Z = 1.959964;
+    let mode = 'sum', rows = [];
+    const blank = () => ({ id: '', size: '', st: '' });
+    const fmt = (v, d) => (isFinite(v) ? v.toFixed(d) : '—');
+
+    /* ---------- statistics ---------- */
+    // Pool-level likelihood pieces for per-vector prevalence p (probability a vector is infected)
+    function score(p, pools) {                                  // d logL / dp
+      let s = 0; const l1 = Math.log1p(-p);
+      for (const q of pools) {
+        if (q.pos) s += q.m * Math.exp((q.m - 1) * l1) / -Math.expm1(q.m * l1); else s -= q.m / (1 - p);
+      }
+      return s;
+    }
+    function info(p, pools) {                                   // Fisher information (Walter 1980)
+      let I = 0; const l1 = Math.log1p(-p);
+      for (const q of pools) I += q.m * q.m * Math.exp((q.m - 2) * l1) / -Math.expm1(q.m * l1);
+      return I;
+    }
+    // MLE by bisection on the score equation; null = undefined (every pool positive); 0 = no positive pool
+    function mle(pools) {
+      const x = pools.filter(q => q.pos).length;
+      if (!pools.length) return null; if (x === 0) return 0; if (x === pools.length) return null;
+      let lo = 1e-14, hi = 1 - 1e-12;
+      for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (score(mid, pools) > 0) lo = mid; else hi = mid; }
+      return (lo + hi) / 2;
+    }
+    // exact CI for equal pools: Clopper–Pearson bounds on the pool positive proportion, mapped through p = 1-(1-q)^(1/m)
+    function binomTail(x, N, q) {                                // P(X >= x)
+      let s = 0; for (let k = x; k <= N; k++) s += Math.exp(lgam(N + 1) - lgam(k + 1) - lgam(N - k + 1) + k * Math.log(q) + (N - k) * Math.log1p(-q)); return Math.min(1, s);
+    }
+    function lgam(z) { const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5]; let y = z, t = z + 5.5; t -= (z + 0.5) * Math.log(t); let s = 1.000000000190015; for (let j = 0; j < 6; j++) s += c[j] / ++y; return -t + Math.log(2.5066282746310005 * s / z); }
+    function cp(x, N) {
+      const bis = f => { let a = 1e-12, b = 1 - 1e-12; for (let i = 0; i < 200; i++) { const m = (a + b) / 2; if (f(m)) b = m; else a = m; } return (a + b) / 2; };
+      const lo = x === 0 ? 0 : bis(q => binomTail(x, N, q) >= 0.025);
+      const hi = x === N ? 1 : bis(q => (1 - binomTail(x + 1, N, q)) <= 0.025);
+      return [lo, hi];
+    }
+
+    /* ---------- read inputs ---------- */
+    function gather() {
+      if (mode === 'sum') {
+        const N = Math.floor(parseFloat($('sN').value)), X = Math.floor(parseFloat($('sX').value)), V = parseFloat($('sV').value);
+        if (isNaN(N) && isNaN(X) && isNaN(V)) return { empty: true };
+        if (!(N > 0) || isNaN(X) || !(V > 0)) return { err: 'Enter total pools, positive pools and total vectors.' };
+        if (X < 0 || X > N) return { err: 'Positive pools cannot exceed total pools.' };
+        if (V < N) return { err: 'Total vectors cannot be fewer than the number of pools.' };
+        const m = V / N, pools = []; for (let i = 0; i < N; i++) pools.push({ m, pos: i < X });
+        return { N, X, V, pools, equal: true, m };
+      }
+      const pools = []; let bad = null;
+      rows.forEach((r, i) => {
+        if (!r.size && !r.st && !r.id) return;
+        const m = parseFloat(r.size);
+        if (!(m >= 1) || !r.st) { bad = bad || `Row ${i + 1}: enter a pool size (≥ 1) and choose Positive or Negative.`; return; }
+        pools.push({ m, pos: r.st === 'P', id: r.id });
+      });
+      if (bad) return { err: bad }; if (!pools.length) return { empty: true };
+      const N = pools.length, X = pools.filter(q => q.pos).length, V = pools.reduce((s, q) => s + q.m, 0);
+      return { N, X, V, pools, equal: pools.every(q => q.m === pools[0].m), m: V / N };
+    }
+
+    /* ---------- compute + draw ---------- */
+    let TXT = '';
+    function calc() {
+      const g = gather(), err = $('err'); err.style.display = 'none';
+      save();
+      if (g.empty) { $('tiles').innerHTML = ''; $('res').innerHTML = ''; $('foot').style.display = 'none'; TXT = ''; return; }
+      if (g.err) { err.textContent = g.err; err.style.display = ''; $('tiles').innerHTML = ''; $('res').innerHTML = ''; $('foot').style.display = 'none'; TXT = ''; return; }
+      const { N, X, V, pools, equal, m } = g;
+      // MIR: positive pools per vector tested, Wald CI clamped at 0 (and 1)
+      const p0 = X / V, se0 = Math.sqrt(p0 * (1 - p0) / V), mir = [p0, Math.max(0, p0 - Z * se0), Math.min(1, p0 + Z * se0)];
+      // MLE
+      const ph = mle(pools); let ml = null, mlNote = '', exact = null;
+      if (ph === null) mlNote = 'Undefined — every pool is positive (no finite maximum-likelihood estimate).';
+      else {
+        const I = ph > 0 ? info(ph, pools) : null, se = I ? 1 / Math.sqrt(I) : null;
+        ml = [ph, se === null ? 0 : Math.max(0, ph - Z * se), se === null ? null : Math.min(1, ph + Z * se)];
+        if (ph === 0) { // no positive pools: one-sided upper bound (rule of three style, exact)
+          const up = 1 - Math.pow(0.025, 1 / pools.reduce((s, q) => s + q.m, 0)); ml[2] = up; mlNote = 'No positive pools: upper limit is the exact 95 % bound (0.025 quantile).';
+        }
+      }
+      if (equal && ph !== null) { const [ql, qu] = cp(X, N), f = q => 1 - Math.pow(1 - q, 1 / m); exact = [f(ql), f(qu)]; }
+      const k = v => fmt(v * 1000, 3), pc = v => fmt(v * 100, 4);
+      $('tiles').innerHTML = [['Pools', N], ['Positive pools', X], ['Total vectors', fmt(V, 0)], [equal ? 'Pool size' : 'Mean pool size', fmt(m, 2)]].map(([a, b]) => `<div class="tile"><div class="k">${a}</div><div class="v">${b}</div></div>`).join('');
+      $('res').innerHTML =
+        `<div class="rc"><h3>MIR — minimum infection rate</h3><div class="v">${k(mir[0])}</div><div class="u">per 1,000 vectors (${pc(mir[0])} %)</div><div class="ci">95 % CI: ${k(mir[1])} – ${k(mir[2])}<small>${pc(mir[1])} – ${pc(mir[2])} % · Wald, clamped at 0</small></div></div>` +
+        `<div class="rc"><h3>MLE — maximum likelihood</h3><div class="v">${ml ? k(ml[0]) : 'Undefined'}</div><div class="u">${ml ? 'per 1,000 vectors (' + pc(ml[0]) + ' %)' : esc(mlNote)}</div>${ml ? `<div class="ci">95 % CI: ${k(ml[1])} – ${ml[2] === null ? '—' : k(ml[2])}<small>${ml[2] === null ? '' : pc(ml[1]) + ' – ' + pc(ml[2]) + ' % · '}Wald (Fisher information), clamped at 0</small></div>` : ''}${exact ? `<div class="ci">Exact 95 % CI: ${k(exact[0])} – ${k(exact[1])}<small>Clopper–Pearson (equal pools)</small></div>` : ''}</div>`;
+      const ft = $('foot'); ft.style.display = '';
+      ft.textContent = equal ? `Equal pools of ${fmt(m, 2)}: MLE = 1 − (1 − x/N)^(1/m).` + (ml && ph > 0 ? '' : '') : 'Unequal pool sizes: MLE solved numerically (bisection) from the likelihood Σ positive log[1 − (1−p)^mᵢ] + Σ negative mᵢ log(1−p).';
+      if (mlNote && ml) ft.textContent += ' ' + mlNote;
+      TXT = ['Xenomonitoring — MIR & MLE', `Pools: ${N} (positive ${X}); vectors: ${fmt(V, 0)}; ${equal ? 'pool size' : 'mean pool size'}: ${fmt(m, 2)}`,
+        `MIR per 1,000: ${k(mir[0])} (${pc(mir[0])} %), 95% CI ${k(mir[1])} – ${k(mir[2])}`,
+        ml ? `MLE per 1,000: ${k(ml[0])} (${pc(ml[0])} %), 95% CI ${k(ml[1])} – ${ml[2] === null ? '—' : k(ml[2])}` : 'MLE: undefined (all pools positive)'].join('\n');
+      if (exact) TXT += `\nExact (Clopper–Pearson) 95% CI: ${k(exact[0])} – ${k(exact[1])}`;
+    }
+
+    /* ---------- batch table ---------- */
+    function drawRows() {
+      $('bt').innerHTML = '<thead><tr><th style="width:42px">#</th><th>Pool ID</th><th style="width:130px">Pool size</th><th style="width:150px">Result</th><th class="no-print-x" style="width:44px"></th></tr></thead><tbody>' +
+        rows.map((r, i) => `<tr><td>${i + 1}</td><td><input type="text" data-i="${i}" data-k="id" value="${esc(r.id)}" placeholder="Pool ${i + 1}" /></td><td><input type="number" min="1" step="1" inputmode="numeric" data-i="${i}" data-k="size" value="${esc(r.size)}" /></td>` +
+          `<td><div class="stt"><button type="button" class="pos ${r.st === 'P' ? 'on' : ''}" data-i="${i}" data-s="P">Pos</button><button type="button" class="neg ${r.st === 'N' ? 'on' : ''}" data-i="${i}" data-s="N">Neg</button></div></td><td class="no-print-x"><button type="button" class="xbtn" data-d="${i}" aria-label="Delete row">✕</button></td></tr>`).join('') + '</tbody>';
+      $('bt').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { rows[+inp.dataset.i][inp.dataset.k] = inp.value; calc(); }));
+      $('bt').querySelectorAll('[data-s]').forEach(b => b.addEventListener('click', () => { const r = rows[+b.dataset.i]; r.st = r.st === b.dataset.s ? '' : b.dataset.s; drawRows(); calc(); }));
+      $('bt').querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => { rows.splice(+b.dataset.d, 1); if (!rows.length) rows.push(blank()); drawRows(); calc(); }));
+      // Enter moves down the same column
+      $('bt').querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { if (e.key !== 'Enter') return; e.preventDefault(); const n = $('bt').querySelector(`input[data-i="${+inp.dataset.i + 1}"][data-k="${inp.dataset.k}"]`); if (n) { n.focus(); n.select(); } }));
+    }
+    function setMode(m) { mode = m; $('mSum').classList.toggle('on', m === 'sum'); $('mBat').classList.toggle('on', m === 'bat'); $('vSum').style.display = m === 'sum' ? '' : 'none'; $('vBat').style.display = m === 'bat' ? '' : 'none'; calc(); }
+    function save() { VC.store.set(KEY, { mode, s: [$('sN').value, $('sX').value, $('sV').value], rows }); }
+    const S = VC.store.get(KEY, null);
+    rows = S && S.rows && S.rows.length ? S.rows : Array.from({ length: 5 }, blank);
+    if (S && S.s) { $('sN').value = S.s[0]; $('sX').value = S.s[1]; $('sV').value = S.s[2]; }
+    ['sN', 'sX', 'sV'].forEach(id => $(id).addEventListener('input', calc));
+    $('mSum').addEventListener('click', () => setMode('sum')); $('mBat').addEventListener('click', () => setMode('bat'));
+    $('bAdd').addEventListener('click', () => { rows.push(blank()); drawRows(); });
+    $('bAdd10').addEventListener('click', () => { for (let i = 0; i < 10; i++) rows.push(blank()); drawRows(); });
+    $('bPaste').addEventListener('click', () => { $('pasteBox').style.display = $('pasteBox').style.display === 'none' ? '' : 'none'; });
+    $('pGo').addEventListener('click', () => {
+      const add = [];
+      $('pTxt').value.split(/\r?\n/).forEach(l => { l = l.trim(); if (!l) return; const p = l.split(/\t|,|;/).map(x => x.trim()); if (p.length < 3) return;
+        const s = p[2].toLowerCase(); add.push({ id: p[0], size: p[1], st: /^(p|\+|pos)/.test(s) ? 'P' : /^(n|-|−|neg)/.test(s) ? 'N' : '' }); });
+      if (!add.length) return;
+      rows = rows.filter(r => r.id || r.size || r.st).concat(add); $('pTxt').value = ''; drawRows(); calc();
+    });
+    $('cpy').addEventListener('click', () => VC.copy(TXT || 'No data', $('cpy')));
+    $('rst').addEventListener('click', () => { if (!confirm('Reset all entries?')) return; ['sN', 'sX', 'sV'].forEach(id => $(id).value = ''); rows = Array.from({ length: 5 }, blank); drawRows(); calc(); });
+    drawRows(); setMode(S && S.mode ? S.mode : 'sum');
+
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js");
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Diagnostic Sensitivity & Specificity — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+
+    .seg { display: inline-flex; border: 2px solid var(--accent-dark); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+    .seg button { border: 0; background: #fff; color: var(--accent-dark); padding: 9px 16px; cursor: pointer; font: inherit; font-weight: 800; }
+    .seg button.on { background: var(--accent-dark); color: #fff; }
+    .g2 { display: grid; grid-template-columns: minmax(90px,1fr) repeat(2, minmax(0,1.2fr)) minmax(70px,.7fr); gap: 8px; align-items: center; max-width: 640px; }
+    .g2 .h { font-weight: 800; font-size: .8rem; text-align: center; color: var(--accent-dark); }
+    .g2 .rl { font-weight: 800; font-size: .85rem; color: var(--accent-dark); }
+    .g2 input { width: 100%; text-align: center; font-size: 1.15rem; font-weight: 800; padding: 10px 4px; }
+    .g2 .tot { text-align: center; font-weight: 800; color: var(--muted); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .tbl td small { display: block; color: var(--muted); font-size: .72rem; }
+    @media print { body { background: #fff !important; } .no-print-x { display: none !important; } .g2 input { border: 1px solid #000; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="chik">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Sensitivity / Specificity (2×2)</span></div>
+    </div>
+
+    <div class="no-print-x"><div class="seg"><button type="button" id="mV" class="on">New kit vs reference</button><button type="button" id="mC">Compare two assays</button></div></div>
+
+    <div class="g2" id="g2">
+      <span></span><span class="h" id="hP">Reference +</span><span class="h" id="hN">Reference −</span><span class="h">Total</span>
+      <span class="rl" id="rP">New test +</span><input type="number" id="tp" min="0" step="1" inputmode="numeric" aria-label="True positive" /><input type="number" id="fp" min="0" step="1" inputmode="numeric" aria-label="False positive" /><span class="tot" id="t1">0</span>
+      <span class="rl" id="rN">New test −</span><input type="number" id="fn" min="0" step="1" inputmode="numeric" aria-label="False negative" /><input type="number" id="tn" min="0" step="1" inputmode="numeric" aria-label="True negative" /><span class="tot" id="t2">0</span>
+      <span class="rl">Total</span><span class="tot" id="c1">0</span><span class="tot" id="c2">0</span><span class="tot" id="c3">0</span>
+    </div>
+    <div class="row no-print-x" style="margin-top:12px" id="prevRow">
+      <div class="field" style="max-width:320px"><label for="prev">Expected prevalence in your population (%) — for PPV / NPV (optional)</label><input type="number" id="prev" min="0" max="100" step="any" inputmode="decimal" /></div>
+    </div>
+    <div class="note err" id="err" style="display:none"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="tbl-wrap"><table class="tbl" id="tbl"></table></div>
+    <div class="note" id="notes" style="display:none"></div>
+    <div class="action-row no-print-x"><button type="button" id="cpy">Copy summary</button><button type="button" class="secondary" onclick="window.print()">Print</button><button type="button" class="secondary" id="rst" style="color:#991b1b;border-color:#fca5a5">Reset</button></div>
+
+    <div class="version-tag">Viro Calculator • v5.5</div>
+  </div>
+  <script>
+  window.addEventListener("DOMContentLoaded", () => {
+
+    const { $, esc } = VC, KEY = 'viro_diag', Z = 1.959964;
+    let mode = 'v', TXT = '';
+    const ids = ['tp', 'fp', 'fn', 'tn'];
+    const f = (v, d = 1) => v === null || !isFinite(v) ? '—' : v.toFixed(d);
+    const pct = v => v === null ? '—' : f(v * 100, 1) + ' %';
+    function wilson(x, n) { if (!n) return null; const p = x / n, z2 = Z * Z, d = 1 + z2 / n, c = p + z2 / (2 * n), a = Z * Math.sqrt(p * (1 - p) / n + z2 / (4 * n * n)); return [Math.max(0, (c - a) / d), Math.min(1, (c + a) / d)]; }
+    const ciS = ci => ci ? pct(ci[0]) + ' – ' + pct(ci[1]) : '—';
+    function erfc(x) { const t = 1 / (1 + 0.5 * Math.abs(x)), r = t * Math.exp(-x * x - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277))))))))); return x >= 0 ? r : 2 - r; }
+    function lc(n, k) { let s = 0; for (let i = 1; i <= k; i++) s += Math.log((n - k + i) / i); return s; }
+    function mcnemar(b, c) {
+      const n = b + c; if (!n) return { p: 1, kind: 'no discordant pairs' };
+      if (n < 25) { let s = 0; for (let k = 0; k <= Math.min(b, c); k++) s += Math.exp(lc(n, k) - n * Math.LN2); return { p: Math.min(1, 2 * s), kind: 'exact binomial' }; }
+      const chi = Math.pow(Math.abs(b - c) - 1, 2) / n; return { p: erfc(Math.sqrt(chi / 2)), kind: 'χ² with continuity correction (χ² = ' + f(chi, 2) + ')' };
+    }
+    const kapLabel = k => k < 0 ? 'poor (worse than chance)' : k <= 0.2 ? 'slight' : k <= 0.4 ? 'fair' : k <= 0.6 ? 'moderate' : k <= 0.8 ? 'substantial' : 'almost perfect';
+
+    function labels() {
+      const v = mode === 'v';
+      $('hP').textContent = v ? 'Reference +' : 'Assay B +'; $('hN').textContent = v ? 'Reference −' : 'Assay B −';
+      $('rP').textContent = v ? 'New test +' : 'Assay A +'; $('rN').textContent = v ? 'New test −' : 'Assay A −';
+      $('prevRow').style.display = v ? '' : 'none';
+      $('mV').classList.toggle('on', v); $('mC').classList.toggle('on', !v);
+    }
+    function calc() {
+      const raw = ids.map(i => $(i).value), a = raw.map(x => parseFloat(x)), err = $('err'); err.style.display = 'none';
+      VC.store.set(KEY, { mode, v: raw, prev: $('prev').value });
+      labels();
+      const [TP, FP, FN, TN] = a.map(x => isNaN(x) ? 0 : x);
+      $('t1').textContent = TP + FP; $('t2').textContent = FN + TN; $('c1').textContent = TP + FN; $('c2').textContent = FP + TN; $('c3').textContent = TP + FP + FN + TN;
+      const N = TP + FP + FN + TN;
+      if (a.some(x => x < 0 || (!isNaN(x) && x % 1))) { err.textContent = 'Counts must be whole numbers, zero or more.'; err.style.display = ''; return clear(); }
+      if (!N) return clear();
+      const v = mode === 'v', R = [];
+      const row = (name, x, n, tip) => { const ci = wilson(x, n); R.push({ name, val: n ? x / n : null, ci, tip }); };
+      const po = (TP + TN) / N, pe = ((TP + FP) * (TP + FN) + (FN + TN) * (FP + TN)) / (N * N), kap = pe === 1 ? null : (po - pe) / (1 - pe);
+      const kse = pe === 1 ? null : Math.sqrt(po * (1 - po) / (N * Math.pow(1 - pe, 2)));
+      let tiles;
+      if (v) {
+        const Se = TP + FN ? TP / (TP + FN) : null, Sp = FP + TN ? TN / (FP + TN) : null;
+        row('Sensitivity', TP, TP + FN, 'TP / (TP + FN)'); row('Specificity', TN, FP + TN, 'TN / (TN + FP)');
+        const pv = parseFloat($('prev').value);
+        if (!isNaN(pv) && pv >= 0 && pv <= 100 && Se !== null && Sp !== null) {
+          const P = pv / 100, ppv = Se * P / (Se * P + (1 - Sp) * (1 - P)), npv = Sp * (1 - P) / (Sp * (1 - P) + (1 - Se) * P);
+          R.push({ name: 'PPV (at ' + f(pv, 1) + ' % prevalence)', val: ppv, ci: null, tip: 'Bayes from Se, Sp' }); R.push({ name: 'NPV (at ' + f(pv, 1) + ' % prevalence)', val: npv, ci: null, tip: 'Bayes from Se, Sp' });
+        }
+        row('PPV (this study)', TP, TP + FP, 'TP / (TP + FP) — depends on study prevalence'); row('NPV (this study)', TN, FN + TN, 'TN / (TN + FN) — depends on study prevalence');
+        row('Accuracy', TP + TN, N, '(TP + TN) / N'); row('Prevalence in study', TP + FN, N, '(TP + FN) / N');
+        const lrp = Se !== null && Sp !== null && Sp < 1 ? Se / (1 - Sp) : null, lrn = Se !== null && Sp !== null && Sp > 0 ? (1 - Se) / Sp : null;
+        const lrci = (l, s) => l && isFinite(s) && l > 0 ? [Math.exp(Math.log(l) - Z * s), Math.exp(Math.log(l) + Z * s)] : null;
+        const sp = Math.sqrt(1 / TP - 1 / (TP + FN) + 1 / FP - 1 / (FP + TN)), sn = Math.sqrt(1 / FN - 1 / (TP + FN) + 1 / TN - 1 / (FP + TN));
+        R.push({ name: 'Positive likelihood ratio', num: lrp, ci2: lrci(lrp, sp), tip: 'Se / (1 − Sp)' }); R.push({ name: 'Negative likelihood ratio', num: lrn, ci2: lrci(lrn, sn), tip: '(1 − Se) / Sp' });
+        R.push({ name: 'Youden’s J', num: Se !== null && Sp !== null ? Se + Sp - 1 : null, tip: 'Se + Sp − 1' });
+        tiles = [['Sensitivity', pct(Se)], ['Specificity', pct(Sp)], ['PPV', pct(TP + FP ? TP / (TP + FP) : null)], ['NPV', pct(FN + TN ? TN / (FN + TN) : null)], ['Cohen’s κ', f(kap, 3)]];
+      } else {
+        row('Positive percent agreement (PPA)', TP, TP + FN, 'TP / (TP + FN) — with B as comparator'); row('Negative percent agreement (NPA)', TN, FP + TN, 'TN / (TN + FP)');
+        row('Overall percent agreement (OPA)', TP + TN, N, '(TP + TN) / N');
+        const mc = mcnemar(FP, FN);
+        R.push({ name: 'McNemar test (A+B− vs A−B+)', num: mc.p, pv: true, tip: mc.kind + ' · discordant: ' + FP + ' vs ' + FN });
+        tiles = [['PPA', pct(TP + FN ? TP / (TP + FN) : null)], ['NPA', pct(FP + TN ? TN / (FP + TN) : null)], ['OPA', pct(po)], ['Cohen’s κ', f(kap, 3)], ['McNemar p', f(mc.p, 4)]];
+      }
+      R.push({ name: 'Cohen’s κ', num: kap, ci2: kap === null ? null : [kap - Z * kse, kap + Z * kse], k3: true, tip: 'agreement beyond chance · ' + (kap === null ? '' : kapLabel(kap)) });
+      $('tiles').innerHTML = tiles.map(([k, x]) => `<div class="tile"><div class="k">${k}</div><div class="v">${x}</div></div>`).join('');
+      const cell = r => r.val !== undefined ? pct(r.val) : r.k3 ? f(r.num, 3) : r.pv ? f(r.num, 4) : f(r.num, 3);
+      const cis = r => r.ci2 ? f(r.ci2[0], 2) + ' – ' + f(r.ci2[1], 2) : r.ci !== undefined ? ciS(r.ci) : '';
+      $('tbl').innerHTML = '<thead><tr><th>Measure</th><th class="num">Value</th><th class="num">95 % CI</th></tr></thead><tbody>' + R.map(r => `<tr><td>${esc(r.name)}<small>${esc(r.tip || '')}</small></td><td class="num"><b>${cell(r)}</b></td><td class="num">${cis(r)}</td></tr>`).join('') + '</tbody>';
+      const nt = $('notes'); nt.style.display = '';
+      nt.textContent = 'CIs for proportions: Wilson score. κ interval: Cohen’s large-sample SE. Likelihood-ratio intervals: log method.' + (v ? '' : ' PPA/NPA use Assay B as the comparator; swap the rows/columns if the roles are reversed.');
+      TXT = (v ? 'Diagnostic accuracy (new test vs reference)' : 'Assay agreement (A vs B)') + `\nTP ${TP}  FP ${FP}  FN ${FN}  TN ${TN}  (N = ${N})\n` + R.map(r => `${r.name}: ${cell(r)}${cis(r) ? ' (95% CI ' + cis(r) + ')' : ''}`).join('\n');
+    }
+    function clear() { $('tiles').innerHTML = ''; $('tbl').innerHTML = ''; $('notes').style.display = 'none'; TXT = ''; }
+    ids.concat(['prev']).forEach(i => $(i).addEventListener('input', calc));
+    $('mV').addEventListener('click', () => { mode = 'v'; calc(); }); $('mC').addEventListener('click', () => { mode = 'c'; calc(); });
+    $('cpy').addEventListener('click', () => VC.copy(TXT || 'No data', $('cpy')));
+    $('rst').addEventListener('click', () => { ids.concat(['prev']).forEach(i => $(i).value = ''); calc(); });
+    VC.seqNav(ids.map(i => $(i)));
+    const S = VC.store.get(KEY, null); if (S) { mode = S.mode || 'v'; ids.forEach((i, k) => $(i).value = (S.v || [])[k] || ''); $('prev').value = S.prev || ''; }
+    calc();
+
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js");
+  });
+  </script>
+</body>
+</html>

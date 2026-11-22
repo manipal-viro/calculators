@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PCR Amplicon & Tm Estimator — Viro Calculator</title>
+  <link rel="manifest" href="../manifest.json" />
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48" />
+  <link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ViroCalc" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0f4c81" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/shell.css" />
+  <script src="../js/shell.js" defer></script>
+  <style>
+
+    .seg { display: inline-flex; border: 2px solid var(--accent-dark); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+    .seg button { border: 0; background: #fff; color: var(--accent-dark); padding: 9px 16px; cursor: pointer; font: inherit; font-weight: 800; }
+    .seg button.on { background: var(--accent-dark); color: #fff; }
+    textarea, input.seq { width: 100%; box-sizing: border-box; font-family: ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; }
+    .pg { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 10px; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .tbl td small { display: block; color: var(--muted); font-size: .72rem; font-weight: 400; }
+    .tbl td.seqc { font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all; font-size: .8rem; }
+    .warn { color: #92400e; font-weight: 700; } .good { color: #166534; font-weight: 700; }
+    .gel { width: 100%; max-width: 560px; border-radius: 12px; display: block; }
+    .twocol { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; align-items: start; }
+    @media (max-width: 800px) { .twocol { grid-template-columns: 1fr; } .tbl-wrap { overflow-x: auto; } .tbl { min-width: 560px; } }
+    @media print { body { background: #fff !important; } .no-print-x { display: none !important; } }
+  </style>
+  <script src="../js/common.js" defer></script>
+</head>
+<body data-theme="qpcr">
+  <div class="container mid">
+    <a href="../index.html" class="back-link">← Back to Viro Calculator</a>
+    <div class="page-head">
+      <img src="../icons/icon-192.png" alt="" />
+      <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">PCR Amplicon &amp; Tm Estimator</span></div>
+    </div>
+
+    <div class="no-print-x"><div class="seg"><button type="button" id="mS" class="on">Conventional PCR (1 pair)</button><button type="button" id="mN">Nested PCR (2 pairs)</button></div></div>
+
+    <div class="pg" id="pg"></div>
+
+    <div class="row" style="margin-top:12px">
+      <div class="field"><label for="na">Monovalent salt, Na⁺/K⁺ (mM)</label><input type="number" id="na" min="0" step="any" inputmode="decimal" value="50" /></div>
+      <div class="field"><label for="mg">Mg²⁺ (mM)</label><input type="number" id="mg" min="0" step="any" inputmode="decimal" value="1.5" /></div>
+      <div class="field"><label for="dn">Total dNTPs (mM)</label><input type="number" id="dn" min="0" step="any" inputmode="decimal" value="0.8" /></div>
+      <div class="field"><label for="pc">Primer conc. (nM)</label><input type="number" id="pc" min="1" step="any" inputmode="decimal" value="250" /></div>
+    </div>
+
+    <details id="tplBox" open>
+      <summary>Template sequence (optional) — finds primer sites and calculates exact band sizes</summary>
+      <textarea id="tpl" rows="5" placeholder="Paste the target / reference sequence (plain or FASTA)…" spellcheck="false"></textarea>
+      <div class="row" style="margin-top:8px">
+        <div class="field" style="max-width:220px"><label for="mm">Mismatches allowed in search</label><select id="mm"><option>0</option><option>1</option><option>2</option><option>3</option></select></div>
+        <div class="field" id="mOutF" style="max-width:260px"><label for="manO">Expected product size, outer / single (bp)</label><input type="number" id="manO" min="1" step="1" inputmode="numeric" placeholder="if no template" /></div>
+        <div class="field" id="mInF" style="max-width:260px"><label for="manI">Expected inner product (bp)</label><input type="number" id="manI" min="1" step="1" inputmode="numeric" placeholder="nested only" /></div>
+      </div>
+    </details>
+
+    <h2>Primers</h2>
+    <div class="tbl-wrap"><table class="tbl" id="pt"></table></div>
+    <div id="pairs"></div>
+
+    <h2>Expected bands</h2>
+    <div class="twocol"><div><div class="tbl-wrap"><table class="tbl" id="bands" style="min-width:0"></table></div><div class="note" id="gelnote" style="display:none;margin-top:10px"></div></div>
+      <div><div class="field no-print-x" style="max-width:240px"><label for="lad">Ladder</label><select id="lad"><option value="100">100 bp ladder</option><option value="50">50 bp ladder</option><option value="1k">1 kb ladder</option></select></div><svg id="gel" class="gel" viewBox="0 0 360 300" role="img" aria-label="Virtual gel"></svg></div></div>
+    <div class="action-row no-print-x"><button type="button" id="cpy">Copy summary</button><button type="button" class="secondary" onclick="window.print()">Print</button></div>
+
+    <div class="version-tag">Viro Calculator • v5.5</div>
+  </div>
+  <script>
+  window.addEventListener("DOMContentLoaded", () => {
+
+    const { $, esc } = VC, KEY = 'viro_pcrtm';
+    let mode = 'S', TXT = '';
+    const PR = { S: [['Forward', 'f1'], ['Reverse', 'r1']], N: [['Outer forward', 'f1'], ['Outer reverse', 'r1'], ['Inner forward', 'f2'], ['Inner reverse', 'r2']] };
+    const IDS = ['na', 'mg', 'dn', 'pc', 'tpl', 'mm', 'manO', 'manI', 'lad'];
+    const S = VC.store.get(KEY, { seq: {}, name: {} }); if (S.mode) mode = S.mode;
+    const clean = s => String(s || '').replace(/^>.*$/gm, '').toUpperCase().replace(/U/g, 'T').replace(/[^ACGTNRYSWKMBDHV]/g, '');
+    const comp = { A: 'T', T: 'A', G: 'C', C: 'G', N: 'N', R: 'Y', Y: 'R', S: 'S', W: 'W', K: 'M', M: 'K', B: 'V', D: 'H', H: 'D', V: 'B' };
+    const rc = s => s.split('').reverse().map(c => comp[c] || 'N').join('');
+    const gcPct = s => s.length ? (s.split('').filter(c => 'GCS'.includes(c)).length / s.length * 100) : 0;
+    // SantaLucia 1998 unified nearest-neighbour parameters  [dH kcal/mol, dS cal/(K·mol)]
+    const NN = { AA: [-7.9, -22.2], TT: [-7.9, -22.2], AT: [-7.2, -20.4], TA: [-7.2, -21.3], CA: [-8.5, -22.7], TG: [-8.5, -22.7], GT: [-8.4, -22.4], AC: [-8.4, -22.4], CT: [-7.8, -21.0], AG: [-7.8, -21.0], GA: [-8.2, -22.2], TC: [-8.2, -22.2], CG: [-10.6, -27.2], GC: [-9.8, -24.4], GG: [-8.0, -19.9], CC: [-8.0, -19.9] };
+    function tmNN(s, na, mg, dn, pc) {
+      if (s.length < 8 || /[^ACGT]/.test(s)) return null;
+      let H = 0, Sx = 0; for (let i = 0; i < s.length - 1; i++) { const v = NN[s.substr(i, 2)]; H += v[0]; Sx += v[1]; }
+      [s[0], s[s.length - 1]].forEach(c => { if ('GC'.includes(c)) { H += 0.1; Sx += -2.8; } else { H += 2.3; Sx += 4.1; } });
+      const naEq = (na + 120 * Math.sqrt(Math.max(0, mg - dn))) / 1000;           // mM → M, Mg²⁺ converted to Na⁺ equivalent
+      Sx += 0.368 * (s.length - 1) * Math.log(Math.max(naEq, 1e-4));
+      return H * 1000 / (Sx + 1.987 * Math.log(pc * 1e-9 / 4)) - 273.15;
+    }
+    const tmBasic = s => { if (!s.length) return null; const gc = s.split('').filter(c => 'GCS'.includes(c)).length; return s.length < 14 ? 2 * (s.length - gc) + 4 * gc : 64.9 + 41 * (gc - 16.4) / s.length; };
+    function find(tpl, p, mm) {                    // all sites of p on the top strand, ≤ mm mismatches
+      const out = [], L = p.length; if (!L || tpl.length < L) return out;
+      for (let i = 0; i + L <= tpl.length; i++) { let bad = 0; for (let j = 0; j < L && bad <= mm; j++) { const a = tpl[i + j], b = p[j]; if (a !== b && a !== 'N' && b !== 'N') bad++; } if (bad <= mm) out.push({ pos: i, mm: bad }); }
+      return out.sort((a, b) => a.mm - b.mm);
+    }
+    function dimer(a, b) {                          // 3′ end of a complementary to any part of b ?
+      if (a.length < 6 || b.length < 6) return false; const t = rc(a.slice(-5)); return b.includes(t);
+    }
+    const f1 = (v, d = 1) => v === null || !isFinite(v) ? '—' : v.toFixed(d);
+
+    /* ---------- UI ---------- */
+    function drawInputs() {
+      $('pg').innerHTML = PR[mode].map(([n, k]) => `<div class="field"><label for="s_${k}">${n} primer (5′→3′)</label><input class="seq" id="s_${k}" type="text" spellcheck="false" autocomplete="off" value="${esc(S.seq[k] || '')}" placeholder="e.g. ATGCGATCGATCG…" /></div>`).join('');
+      PR[mode].forEach(([, k]) => $('s_' + k).addEventListener('input', () => { S.seq[k] = $('s_' + k).value; calc(); }));
+      $('mN').classList.toggle('on', mode === 'N'); $('mS').classList.toggle('on', mode === 'S'); $('mInF').style.display = mode === 'N' ? '' : 'none';
+    }
+    function calc() {
+      IDS.forEach(i => S[i] = $(i).value); S.mode = mode; VC.store.set(KEY, S);
+      const na = parseFloat($('na').value) || 50, mg = parseFloat($('mg').value) || 0, dn = parseFloat($('dn').value) || 0, pc = parseFloat($('pc').value) || 250, mm = +$('mm').value;
+      const P = {}; PR[mode].forEach(([n, k]) => { const s = clean(S.seq[k]); P[k] = { n, k, s }; });
+      const rowsP = PR[mode].map(([n, k]) => {
+        const p = P[k], s = p.s; if (!s) return `<tr><td>${n}</td><td colspan="6" class="hint">—</td></tr>`;
+        const gc = gcPct(s), nn = tmNN(s, na, mg, dn, pc), bs = tmBasic(s); p.tm = nn !== null ? nn : bs; p.gc = gc;
+        const w = []; if (s.length < 18 || s.length > 30) w.push('length outside 18–30'); if (gc < 40 || gc > 60) w.push('GC outside 40–60 %');
+        const cl = s.slice(-5).split('').filter(c => 'GC'.includes(c)).length; if (cl === 0 || cl > 3) w.push("3′ clamp: " + cl + " G/C in last 5");
+        if (/(.)\1{3,}/.test(s)) w.push('run of ≥ 4 identical bases'); if (/[^ACGT]/.test(s)) w.push('ambiguous bases — Tm approximate');
+        p.w = w; return `<tr><td>${n}</td><td class="seqc">${esc(s)}</td><td class="num">${s.length}</td><td class="num">${f1(gc)}</td><td class="num"><b>${f1(p.tm)}</b>${nn === null ? '<small>basic formula</small>' : '<small>nearest-neighbour</small>'}</td><td class="num">${f1(bs)}</td><td class="${w.length ? 'warn' : 'good'}">${w.length ? esc(w.join('; ')) : 'OK'}</td></tr>`;
+      });
+      $('pt').innerHTML = '<thead><tr><th>Primer</th><th>Sequence</th><th class="num">Length</th><th class="num">GC %</th><th class="num">Tm °C</th><th class="num">Basic Tm</th><th>Checks</th></tr></thead><tbody>' + rowsP.join('') + '</tbody>';
+
+      // ---- template search ----
+      const tpl = clean($('tpl').value), pairs = mode === 'S' ? [['', 'f1', 'r1']] : [['Outer', 'f1', 'r1'], ['Inner', 'f2', 'r2']], res = {};
+      const out = [], bands = [];
+      pairs.forEach(([nm, a, b]) => {
+        const A = P[a], B = P[b]; if (!A.s || !B.s) return;
+        const r = { name: nm || 'Product', a, b }; res[a] = r;
+        const tmA = A.tm, tmB = B.tm, d = Math.abs(tmA - tmB); let line = [];
+        if (isFinite(d)) line.push(`ΔTm ${f1(d)} °C ${d > 5 ? '<span class="warn">(> 5 °C — re-design for a similar Tm)</span>' : '<span class="good">(OK)</span>'}`);
+        if (dimer(A.s, B.s) || dimer(B.s, A.s)) line.push('<span class="warn">3′ end complementary to the other primer — risk of primer-dimer</span>');
+        if (dimer(A.s, A.s)) line.push(`<span class="warn">${esc(A.n)} 3′ end self-complementary</span>`); if (dimer(B.s, B.s)) line.push(`<span class="warn">${esc(B.n)} 3′ end self-complementary</span>`);
+        let size = null, gcProd = null;
+        if (tpl) {
+          const fs = find(tpl, A.s, mm), rs = find(tpl, rc(B.s), mm);
+          if (!fs.length) line.push(`<span class="warn">${esc(A.n)} not found on the template</span>`);
+          if (!rs.length) line.push(`<span class="warn">${esc(B.n)} (reverse complement) not found on the template</span>`);
+          let best = null; fs.forEach(f => rs.forEach(rr => { const sz = rr.pos + B.s.length - f.pos; if (sz > 0 && (!best || f.mm + rr.mm < best.mm || (f.mm + rr.mm === best.mm && sz < best.sz))) best = { f, rr, sz, mm: f.mm + rr.mm }; }));
+          if (fs.length && rs.length && !best) line.push('<span class="warn">Reverse site lies upstream of the forward site — no product</span>');
+          if (best) { size = best.sz; r.start = best.f.pos; r.end = best.rr.pos + B.s.length; gcProd = gcPct(tpl.slice(r.start, r.end)); r.hits = fs.length * rs.length; line.push(`sites: ${esc(A.n)} at ${best.f.pos + 1}${best.f.mm ? ' (' + best.f.mm + ' mm)' : ''}, ${esc(B.n)} ends at ${r.end}${best.rr.mm ? ' (' + best.rr.mm + ' mm)' : ''}`); if (fs.length * rs.length > 1) line.push(`<span class="warn">${fs.length} forward × ${rs.length} reverse sites — more than one possible product</span>`); }
+        }
+        if (size === null) { const man = parseFloat($(nm === 'Inner' ? 'manI' : 'manO').value); if (man > 0) { size = man; r.manual = true; } }
+        r.size = size;
+        const lowTm = Math.min(tmA, tmB);
+        let ta = isFinite(lowTm) ? `Annealing: start at <b>${f1(lowTm - 5, 0)} °C</b> (lowest primer Tm − 5)` : '';
+        if (size && gcProd !== null && isFinite(lowTm)) { const tmP = 81.5 + 16.6 * Math.log10(na / 1000) + 0.41 * gcProd - 675 / size, opt = 0.3 * lowTm + 0.7 * tmP - 14.9; r.ta = opt; ta += ` · optimum by Rychlik formula ≈ <b>${f1(opt, 0)} °C</b> (product Tm ${f1(tmP)} °C, GC ${f1(gcProd)} %)`; }
+        r.taText = ta; out.push(`<div class="note" style="margin-top:8px"><b>${esc(nm ? nm + ' pair' : 'Primer pair')}</b>${size ? ' — product <b>' + size + ' bp</b>' + (r.manual ? ' (entered)' : '') : ''}<br>${line.join('<br>')}${ta ? '<br>' + ta : ''}</div>`);
+        if (size) bands.push({ label: nm || 'Product', size, round: nm === 'Inner' ? 2 : 1 });
+      });
+      $('pairs').innerHTML = out.join('');
+      if (mode === 'N' && res.f1 && res.f2 && res.f1.size && res.f2.size) {
+        const o = res.f1, i = res.f2; let msg = '';
+        if (o.start !== undefined && i.start !== undefined) msg = i.start >= o.start && i.end <= o.end ? `Inner product lies inside the outer product (${i.start - o.start} bp from the 5′ end, ${o.end - i.end} bp from the 3′ end).` : 'Warning: the inner product is not inside the outer product — check primer order.';
+        else msg = i.size < o.size ? 'Inner product is smaller than the outer product (as expected for nested PCR).' : 'Warning: inner product is not smaller than the outer product.';
+        $('pairs').insertAdjacentHTML('beforeend', `<div class="note" style="margin-top:8px">${msg}</div>`);
+      }
+      // ---- bands + gel ----
+      const gelPct = s => s < 150 ? '3 %' : s < 500 ? '2 %' : s < 1000 ? '1.5 %' : s < 3000 ? '1 %' : '0.8 %';
+      $('bands').innerHTML = bands.length ? '<thead><tr><th>Round</th><th>Product</th><th class="num">Size (bp)</th><th class="num">Suggested gel</th></tr></thead><tbody>' + bands.map(b => `<tr><td>${mode === 'N' ? b.round : 1}</td><td>${esc(b.label)}</td><td class="num"><b>${b.size}</b></td><td class="num">${gelPct(b.size)} agarose</td></tr>`).join('') + '</tbody>' : '<tbody><tr><td class="hint">Enter both primers of a pair and either a template sequence or the expected product size.</td></tr></tbody>';
+      drawGel(bands);
+      TXT = 'PCR primer summary\n' + PR[mode].filter(([, k]) => P[k].s).map(([n, k]) => `${n}: ${P[k].s} | ${P[k].s.length} nt | GC ${f1(P[k].gc)} % | Tm ${f1(P[k].tm)} °C`).join('\n') + (bands.length ? '\nExpected bands: ' + bands.map(b => `${b.label} ${b.size} bp`).join(', ') : '') + '\nConditions: ' + `${na} mM salt, ${mg} mM Mg2+, ${dn} mM dNTP, ${pc} nM primer`;
+    }
+    const LAD = { '100': [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500], '50': [50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000], '1k': [250, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 8000, 10000] };
+    function drawGel(bands) {
+      const ld = LAD[$('lad').value], all = ld.concat(bands.map(b => b.size)), lo = Math.log10(Math.min(...all) * 0.8), hi = Math.log10(Math.max(...all) * 1.15), Y0 = 30, Y1 = 280;
+      const y = s => Y1 - (Math.log10(s) - lo) / (hi - lo) * (Y1 - Y0);
+      const lanes = [{ n: 'Ladder', b: ld, l: true }]; if (mode === 'N') { lanes.push({ n: 'Round 1', b: bands.filter(b => b.round === 1).map(b => b.size) }, { n: 'Round 2', b: bands.filter(b => b.round === 2).map(b => b.size) }); } else lanes.push({ n: 'Product', b: bands.map(b => b.size) });
+      const W = 360, lw = (W - 40) / lanes.length;
+      let h = `<rect width="360" height="300" rx="12" fill="#0f172a"/>`;
+      lanes.forEach((ln, i) => { const x = 20 + i * lw + 8, w = lw - 16; h += `<rect x="${x}" y="18" width="${w}" height="9" rx="2" fill="#020617" stroke="#334155"/><text x="${x + w / 2}" y="14" fill="#cbd5e1" font-size="10" text-anchor="middle">${ln.n}</text>`;
+        ln.b.forEach(s => { h += `<rect x="${x + 2}" y="${y(s) - 2}" width="${w - 4}" height="${ln.l ? 3 : 5}" rx="1.5" fill="${ln.l ? '#94a3b8' : '#fde68a'}" opacity="${ln.l ? .85 : 1}"/>`; if (ln.l) h += `<text x="${x - 3}" y="${y(s) + 3}" fill="#94a3b8" font-size="8" text-anchor="end">${s}</text>`; else h += `<text x="${x + w + 2}" y="${y(s) + 3}" fill="#fde68a" font-size="9" font-weight="700">${s}</text>`; }); });
+      $('gel').innerHTML = h;
+    }
+    IDS.forEach(i => { if (S[i] !== undefined) $(i).value = S[i]; $(i).addEventListener('input', calc); $(i).addEventListener('change', calc); });
+    $('mS').addEventListener('click', () => { mode = 'S'; drawInputs(); calc(); }); $('mN').addEventListener('click', () => { mode = 'N'; drawInputs(); calc(); });
+    $('cpy').addEventListener('click', () => VC.copy(TXT, $('cpy')));
+    drawInputs(); calc();
+
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js");
+  });
+  </script>
+</body>
+</html>
