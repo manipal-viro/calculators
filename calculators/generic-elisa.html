@@ -96,14 +96,23 @@
         <div class="field">
           <label for="formula">Cut-off formula</label>
           <select id="formula" data-cfg="formula">
+            <optgroup label="Cut-off OD (S/CO)">
             <option value="nc_add">Mean NC + constant</option>
             <option value="nc_mul">Mean NC × factor</option>
             <option value="pc_mul">Mean PC × factor</option>
             <option value="cal_mul">Mean calibrator × factor</option>
             <option value="nc_pc">Mean NC + factor × (mean PC − mean NC)</option>
             <option value="fixed">Fixed OD value</option>
+            </optgroup>
+            <optgroup label="Index / ratio methods">
+            <option value="cal_idx">Sample / Calibrator ratio (ISR / Index)</option>
+            <option value="cal_x10">Scaled calibrator index (Sample ÷ Cal × 10)</option>
+            <option value="blank_cal">Blank-corrected calibrator ratio (S−B)/(Cal−B)</option>
+            <option value="sp">Sample-to-Positive ratio S/P = (S−NC)/(PC−NC)</option>
+            </optgroup>
           </select>
         </div>
+        <div class="field" style="max-width:150px"><label for="blank">Blank OD (optional)</label><input type="number" id="blank" step="any" data-cfg="blank" placeholder="e.g. 0.050" /></div>
         <div class="field" style="max-width:180px"><label for="k" id="kLbl">Constant</label><input type="number" id="k" step="any" data-cfg="k" placeholder="from insert" /></div>
         <div class="field" style="max-width:200px"><label for="grey">Equivocal zone ± (% of cut-off)</label><input type="number" id="grey" step="any" min="0" data-cfg="grey" /></div>
         <div class="field" style="max-width:170px"><label for="ncMax">QC: mean NC OD ≤ (optional)</label><input type="number" id="ncMax" step="any" data-cfg="ncMax" /></div>
@@ -111,7 +120,7 @@
       </div>
       <div class="formula-box" id="formulaText">Cut-off = —</div>
       <p class="hint" id="layoutHint"></p>
-      <p class="hint">Set the equivocal zone to 0 if your kit has none (then S/CO &lt; 1 = negative, ≥ 1 = positive). Saved kits are stored on this device only.</p>
+      <p class="hint">Set the equivocal zone to 0 if your kit has none (then S/CO &lt; 1 = negative, ≥ 1 = positive). Blank OD, if entered, is subtracted from every well and control mean. Index methods are classified against your cut-off index with the same equivocal zone; the S/CO column shows the equivalent ratio to the cut-off OD. Saved kits are stored on this device only.</p>
     </div>
 
     <p class="sub-text no-print">Enter OD values (Tab goes A1 → H1, then A2 …; you can also paste a block copied from your reader / Excel).</p>
@@ -135,18 +144,18 @@
     <div class="plist-wrap"><div id="prList"></div></div>
 
     <div class="chart-card no-print">
-      <h3>S/CO by well <span class="u">— line at 1.0 = cut-off</span></h3>
+      <h3>Ratio to cut-off OD by well <span class="u">— line at 1.0 = cut-off</span></h3>
       <div class="chart-scroll" id="chart"></div>
     </div>
 
-    <div class="version-tag no-print">Viro Calculator • v5.2</div>
+    <div class="version-tag no-print">Viro Calculator • v5.6</div>
   </div>
 
   <script src="../js/common.js"></script>
   <script>
     const { $, num, fmt, esc } = VC;
     const ROWS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    const DEF = { name: '', nNC: 2, nPC: 1, nCAL: 0, wording: 'pn', formula: 'nc_add', k: '', grey: 10, ncMax: '', pcMin: '' };
+    const DEF = { name: '', nNC: 2, nPC: 1, nCAL: 0, wording: 'pn', formula: 'nc_add', k: '', blank: '', grey: 10, ncMax: '', pcMin: '' };
     let cfg = Object.assign({}, DEF, VC.store.get('viro_elisa_cfg', {}));
     let grid = VC.store.get('viro_elisa_grid', {});
     let kits = VC.store.get('viro_elisa_kits', []);
@@ -157,6 +166,10 @@
       pc_mul: { lbl: 'Factor (× PC)', need: ['PC'], f: (k, m) => m.PC * k, txt: k => `Cut-off = mean PC × ${fmt(k, 4)}` },
       cal_mul: { lbl: 'Factor (× calibrator)', need: ['CAL'], f: (k, m) => m.CAL * k, txt: k => `Cut-off = mean CAL × ${fmt(k, 4)}` },
       nc_pc: { lbl: 'Factor', need: ['NC', 'PC'], f: (k, m) => m.NC + k * (m.PC - m.NC), txt: k => `Cut-off = mean NC + ${fmt(k, 4)} × (mean PC − mean NC)` },
+      cal_idx: { lbl: 'Cut-off index (e.g. 1.0; zone ±10 % gives 0.9–1.1)', need: ['CAL'], idx: 'Index', f: (k, m) => m.CAL * k, d: (o, m) => o / m.CAL, txt: k => `Index = Sample ÷ mean Calibrator · cut-off index ${fmt(k, 4)}` },
+      cal_x10: { lbl: 'Cut-off index (on ×10 scale, e.g. 10)', need: ['CAL'], idx: 'Index ×10', f: (k, m) => m.CAL * k / 10, d: (o, m) => o / m.CAL * 10, txt: k => `Index = (Sample ÷ mean Calibrator) × 10 · cut-off index ${fmt(k, 4)}` },
+      blank_cal: { lbl: 'Cut-off ratio (e.g. 1.0)', need: ['CAL'], needB: true, idx: 'Ratio', f: (k, m) => m.CAL * k, d: (o, m) => o / m.CAL, txt: k => `Ratio = (Sample − Blank) ÷ (mean Cal − Blank) · cut-off ${fmt(k, 4)}` },
+      sp: { lbl: 'S/P cut-off (e.g. 0.35)', need: ['NC', 'PC'], idx: 'S/P', f: (k, m) => m.NC + k * (m.PC - m.NC), d: (o, m) => (o - m.NC) / (m.PC - m.NC), txt: k => `S/P = (Sample − NC) ÷ (PC − NC) · cut-off S/P ${fmt(k, 4)}` },
       fixed: { lbl: 'Cut-off OD', need: [], f: k => k, txt: k => `Cut-off = ${fmt(k, 4)} (fixed OD)` }
     };
     const WORDS = { pn: { neg: 'Negative', eq: 'Equivocal', pos: 'Positive' }, rn: { neg: 'Non-reactive', eq: 'Borderline', pos: 'Reactive' } };
@@ -213,6 +226,8 @@
       const vals = { NC: [], PC: [], CAL: [] };
       ROWS.forEach((_, ri) => { const t = typeOf(ri); if (!t) return; const v = parseFloat($(cellId(ri, 1)).value); if (!isNaN(v)) vals[t].push(v); });
       const m = { NC: mean(vals.NC), PC: mean(vals.PC), CAL: mean(vals.CAL) };
+      const bl = parseFloat(cfg.blank), hasB = !isNaN(bl), B = hasB ? bl : 0, IDX = F.idx || 'S/CO';
+      if (hasB) ['NC', 'PC', 'CAL'].forEach(t => { if (m[t] !== null) m[t] -= B; });
       const k = parseFloat(cfg.k), g = (parseFloat(cfg.grey) || 0) / 100;
       const W = WORDS[cfg.wording];
 
@@ -222,13 +237,14 @@
       const tiles = [];
       const q = (lbl, v, n, lim, ok, rule) => tiles.push(`<div class="tile"><div class="k">${lbl}</div><div class="v">${v === null ? '—' : v.toFixed(3)}</div><div class="s">${n ? n + ' well' + (n > 1 ? 's' : '') + ' · ' : ''}${lim === '' ? 'no limit set' : `<span class="pill ${ok ? 'res-neg' : 'res-pos'}">${ok ? 'QC pass' : 'QC fail'} (${rule})</span>`}</div></div>`);
       const ncMax = parseFloat(cfg.ncMax), pcMin = parseFloat(cfg.pcMin);
+      if (hasB) tiles.push(`<div class="tile"><div class="k">Blank</div><div class="v">${bl.toFixed(3)}</div><div class="s">subtracted from every OD</div></div>`);
       if (+cfg.nNC) q('Mean NC', m.NC, vals.NC.length + '/' + cfg.nNC, isNaN(ncMax) || m.NC === null ? '' : 1, m.NC <= ncMax, '≤ ' + ncMax);
       if (+cfg.nPC) q('Mean PC', m.PC, vals.PC.length + '/' + cfg.nPC, isNaN(pcMin) || m.PC === null ? '' : 1, m.PC >= pcMin, '≥ ' + pcMin);
       if (+cfg.nCAL) q('Mean calibrator', m.CAL, vals.CAL.length + '/' + cfg.nCAL, '', true, '');
       let cutoff = null;
-      const missing = F.need.filter(t => m[t] === null);
+      const missing = F.need.filter(t => m[t] === null); if (F.needB && !hasB) missing.push('Blank');
       if (!isNaN(k) && !missing.length) cutoff = F.f(k, m);
-      tiles.push(`<div class="tile" style="border-top-color:var(--accent-dark)"><div class="k">Cut-off OD</div><div class="v">${cutoff === null ? '—' : cutoff.toFixed(3)}</div><div class="s">${missing.length ? 'needs ' + missing.join(' & ') + ' ODs' : isNaN(k) ? 'enter the constant' : esc($('formulaText').textContent.replace('Cut-off = ', ''))}</div></div>`);
+      tiles.push(`<div class="tile" style="border-top-color:var(--accent-dark)"><div class="k">Cut-off OD</div><div class="v">${cutoff === null ? '—' : cutoff.toFixed(3)}</div><div class="s">${missing.length ? 'needs ' + missing.join(' & ') + (missing.length === 1 && missing[0] === 'Blank' ? ' OD' : ' ODs') : isNaN(k) ? 'enter the constant' : esc($('formulaText').textContent.replace('Cut-off = ', ''))}</div></div>`);
       $('qcTiles').innerHTML = tiles.join('');
       const qcFail = (+cfg.nNC && !isNaN(ncMax) && m.NC !== null && m.NC > ncMax) || (+cfg.nPC && !isNaN(pcMin) && m.PC !== null && m.PC < pcMin);
       if (qcFail) { err.textContent = 'Run QC failed — check the control limits from the insert; do not report these results.'; err.style.display = ''; }
@@ -239,13 +255,13 @@
       for (let c = 1; c <= 12; c++) for (let ri = 0; ri < 8; ri++) {
         const r = ROWS[ri], td = $(`td_${r}_${c}`); td.classList.remove('w-neg', 'w-eq', 'w-pos');
         if (c === 1 && typeOf(ri)) continue;
-        const od = parseFloat($(cellId(ri, c)).value);
-        if (isNaN(od)) continue;
+        const od0 = parseFloat($(cellId(ri, c)).value);
+        if (isNaN(od0)) continue; const od = od0 - B;
         if (cutoff === null || !(cutoff > 0)) { list.push({ well: r + c, od, ratio: null }); continue; }
         const ratio = od / cutoff;
         const cls = g === 0 ? (ratio < 1 ? 'neg' : 'pos') : (ratio < 1 - g ? 'neg' : ratio > 1 + g ? 'pos' : 'eq');
         cnt[cls]++; td.classList.add('w-' + cls);
-        list.push({ well: r + c, od, ratio, cls });
+        list.push({ well: r + c, od, ratio, cls, val: F.d ? F.d(od, m) : ratio });
       }
       $('sumTiles').innerHTML = list.length && cutoff > 0 ? `
         <div class="tile"><div class="k">Samples</div><div class="v">${list.length}</div></div>
@@ -253,13 +269,13 @@
         <div class="tile" style="border-top-color:#e0a100"><div class="k">${W.eq}</div><div class="v" style="color:#92400e">${g === 0 ? '—' : cnt.eq}</div></div>
         <div class="tile" style="border-top-color:#dc2626"><div class="k">${W.pos}</div><div class="v" style="color:#991b1b">${cnt.pos}</div></div>` : '';
       $('resTbl').innerHTML = !list.length ? '<tbody><tr><td class="hint">Enter sample ODs in the plate above.</td></tr></tbody>' :
-        '<thead><tr><th>Well</th><th>Sample OD</th><th>S/CO</th><th>Result</th></tr></thead><tbody>' +
-        list.map(r => `<tr><td data-label="Well"><strong>${r.well}</strong></td><td data-label="Sample OD">${r.od.toFixed(3)}</td><td data-label="S/CO"><strong>${r.ratio === null ? '—' : r.ratio.toFixed(2)}</strong></td><td data-label="Result">${r.ratio === null ? '<span class="pill res-na">Cut-off not set</span>' : `<span class="pill res-${r.cls}">${W[r.cls]}</span>`}</td></tr>`).join('') + '</tbody>';
+        `<thead><tr><th>Well</th><th>${hasB ? 'OD − blank' : 'Sample OD'}</th><th>${IDX}</th>${F.d ? '<th>S/CO</th>' : ''}<th>Result</th></tr></thead><tbody>` +
+        list.map(r => `<tr><td data-label="Well"><strong>${r.well}</strong></td><td data-label="Sample OD">${r.od.toFixed(3)}</td><td data-label="${IDX}"><strong>${r.ratio === null ? '—' : (F.d ? r.val : r.ratio).toFixed(2)}</strong></td>${F.d ? `<td data-label="S/CO">${r.ratio === null ? '—' : r.ratio.toFixed(2)}</td>` : ''}<td data-label="Result">${r.ratio === null ? '<span class="pill res-na">Cut-off not set</span>' : `<span class="pill res-${r.cls}">${W[r.cls]}</span>`}</td></tr>`).join('') + '</tbody>';
       drawChart(list.filter(r => r.ratio !== null), g);
-      $('prList').innerHTML = VC.plist(list.filter(r => r.ratio !== null).map(r => ({ w: r.well, od: r.od, v: r.ratio.toFixed(2), code: { neg: 'NEG', eq: 'EQV', pos: 'POS' }[r.cls] + '', cls: r.cls })), 'S/CO');
+      $('prList').innerHTML = VC.plist(list.filter(r => r.ratio !== null).map(r => ({ w: r.well, od: r.od, v: (F.d ? r.val : r.ratio).toFixed(2), code: { neg: 'NEG', eq: 'EQV', pos: 'POS' }[r.cls] + '', cls: r.cls })), IDX);
 
       $('prTitle').textContent = (cfg.name || 'ELISA') + ' — Run Report';
-      $('prInfo').innerHTML = `${new Date().toLocaleDateString()} · ${esc($('formulaText').textContent)}${cutoff !== null ? ' = <strong>' + cutoff.toFixed(3) + '</strong>' : ''} · equivocal zone ±${fmt(g * 100, 3)} %<br>NC mean ${m.NC === null ? '—' : m.NC.toFixed(3)} · PC mean ${m.PC === null ? '—' : m.PC.toFixed(3)}${+cfg.nCAL ? ' · CAL mean ' + (m.CAL === null ? '—' : m.CAL.toFixed(3)) : ''}${qcFail ? ' · <strong>QC FAILED</strong>' : ''}`;
+      $('prInfo').innerHTML = `${new Date().toLocaleDateString()} · ${esc($('formulaText').textContent)}${cutoff !== null ? ' = <strong>' + cutoff.toFixed(3) + '</strong>' : ''} · equivocal zone ±${fmt(g * 100, 3)} %<br>${hasB ? 'Blank ' + bl.toFixed(3) + ' subtracted · ' : ''}NC mean ${m.NC === null ? '—' : m.NC.toFixed(3)} · PC mean ${m.PC === null ? '—' : m.PC.toFixed(3)}${+cfg.nCAL ? ' · CAL mean ' + (m.CAL === null ? '—' : m.CAL.toFixed(3)) : ''}${qcFail ? ' · <strong>QC FAILED</strong>' : ''}`;
     }
 
     function drawChart(rows, g) {
