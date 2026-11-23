@@ -104,7 +104,7 @@
       SECTIONS.map(sec => `<div class="vc-side-sec">${esc(sec.t)}</div>` +
         sec.items.map(t => `<a class="vc-link${on(t)}" style="--c:${t.c}" href="${ROOT}${t.f}" title="${esc(t.n)}"><span class="ic">${t.ic}</span><span class="lbl">${esc(t.n)}</span></a>`).join('')).join('') +
       installBlock('vc-install vc-install-side') +
-      acct() + `<div class="vc-side-foot">v5.5</div>`;
+      acct() + `<div class="vc-side-foot">v5.6</div>`;
     body.prepend(side);
 
     /* ----- phone app header ----- */
