@@ -285,3 +285,10 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
   .no-print-list { display: none !important; }
   @page { margin: 10mm; }
 }
+
+/* v5.6 polish */
+.tile { box-shadow: 0 1px 3px rgba(15,23,42,.06); transition: transform .15s; }
+.tile:hover { transform: translateY(-1px); }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button:not(:disabled):active { transform: scale(.98); }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
