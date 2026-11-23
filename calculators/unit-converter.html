@@ -18,22 +18,36 @@
   <script src="../js/shell.js" defer></script>
   <style>
 
-    .cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-    .cats button { border: 1.5px solid var(--border, #cbd5e1); background: #fff; color: var(--accent-dark); border-radius: 999px; padding: 8px 14px; cursor: pointer; font: inherit; font-weight: 700; }
-    .cats button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .catwrap { position: relative; margin: 0 -4px 6px; }
+    .cats { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; padding: 6px 28px 16px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .cats::-webkit-scrollbar { display: none; }
+    .cat { flex: 0 0 auto; scroll-snap-align: center; width: 86px; border: 1.5px solid var(--border, #dbe6f1); background: #fff; color: var(--accent-dark); border-radius: 16px; padding: 10px 4px 9px; cursor: pointer; font: inherit; font-size: .78rem; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; line-height: 1.15; }
+    .cat .ci { font-size: 1.5rem; line-height: 1; }
+    .cat.on { background: var(--accent-dark); border-color: #f5c518; box-shadow: 0 0 0 2px #f5c518; color: #fff; }
+    .cat.on::after { content: ''; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); border: 7px solid transparent; border-top-color: var(--accent-dark); border-bottom: 0; }
+    .arr { position: absolute; top: 28px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border, #dbe6f1); background: #fff; color: var(--accent-dark); cursor: pointer; font-size: 1rem; line-height: 1; box-shadow: 0 1px 4px rgba(0,0,0,.15); z-index: 2; padding: 0; }
+    .arr.l { left: 0; } .arr.r { right: 0; }
+    .banner { background: linear-gradient(135deg, var(--accent-dark), var(--accent)); color: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+    .banner .bi { font-size: 1.9rem; background: rgba(255,255,255,.18); width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; flex: none; }
+    .banner b { display: block; font-size: 1.1rem; } .banner span { font-size: .85rem; opacity: .9; }
     .cv { background: #fff; border: 1px solid var(--border, #dbe6f1); border-top: 5px solid var(--accent); border-radius: 14px; padding: 16px; }
-    .cv h2 { margin: 0 0 12px; font-size: 1.1rem; color: var(--accent-dark); }
-    .cvrow { display: grid; grid-template-columns: minmax(0,1fr) 44px minmax(0,1fr); gap: 10px; align-items: end; }
+    .cvrow { display: block; }
     .cvbox label { display: block; font-size: .75rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
-    .cvbox input, .cvbox select { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
-    .cvbox input { font-size: 1.3rem; font-weight: 800; padding: 10px; }
-    .swap { height: 44px; border-radius: 50%; border: 2px solid var(--accent); background: #fff; color: var(--accent-dark); font-size: 1.2rem; cursor: pointer; margin-bottom: 8px; }
+    .cvbox .io { display: flex; border: 1.5px solid var(--border, #cbd5e1); border-radius: 12px; overflow: hidden; background: #fff; }
+    .cvbox .io:focus-within { border-color: var(--accent); }
+    .cvbox .io input { flex: 1 1 0; min-width: 0; border: 0; border-radius: 0; margin: 0; font-size: 1.3rem; font-weight: 800; padding: 12px; outline: none; background: transparent; }
+    .cvbox .io select { flex: 0 1 46%; min-width: 0; border: 0; border-left: 1.5px solid var(--border, #cbd5e1); border-radius: 0; margin: 0; background: var(--accent-soft); font-weight: 700; padding: 0 6px; color: var(--accent-dark); }
+    .swaprow { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+    .swaprow i { flex: 1; height: 1px; background: var(--border, #cbd5e1); }
+    .swap { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--accent); background: #fff; color: var(--accent-dark); font-size: 1.3rem; cursor: pointer; padding: 0; }
+    .bdh { margin: 16px 0 0; font-size: 1rem; color: var(--accent-dark); }
+    .bd thead th { background: var(--accent-soft); color: var(--accent-dark); text-align: left; padding: 8px; font-size: .8rem; text-transform: uppercase; }
+    .bd thead th:last-child { text-align: right; }
     .bd { width: 100%; border-collapse: collapse; margin-top: 12px; }
     .bd td { padding: 7px 8px; border-bottom: 1px solid #e5edf5; font-size: .92rem; cursor: pointer; }
     .bd td.v { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; word-break: break-all; }
-    .bd tr:hover td { background: var(--accent-soft); } .bd tr.to td { background: var(--accent-soft); }
+    .bd tr:hover td { background: var(--accent-soft); } .bd tr.to td { background: var(--accent-soft); font-weight: 800; box-shadow: inset 3px 0 0 #f5c518; }
     .bd td small { color: var(--muted); margin-left: 6px; }
-    @media (max-width: 560px) { .cvrow { grid-template-columns: 1fr; } .swap { width: 100%; border-radius: 12px; height: 40px; } }
   </style>
   <script src="../js/common.js" defer></script>
 </head>
@@ -45,10 +59,10 @@
       <div class="titles"><h1>Viro Calculator</h1><span class="page-chip">Unit Converter</span></div>
     </div>
 
-    <div class="cats" id="cats" role="tablist"></div>
+    <div class="catwrap"><button type="button" class="arr l" id="aL" aria-label="Scroll categories left">‹</button><div class="cats" id="cats" role="tablist"></div><button type="button" class="arr r" id="aR" aria-label="Scroll categories right">›</button></div>
     <div class="cv" id="cv"></div>
 
-    <div class="version-tag">Viro Calculator • v5.5</div>
+    <div class="version-tag">Viro Calculator • v5.6</div>
   </div>
   <script>
   window.addEventListener("DOMContentLoaded", () => {
@@ -91,24 +105,31 @@
     const ST = VC.store.get(KEY, {}); ST.cat = ST.cat || 'len'; ST.s = ST.s || {};
     const get = c => { const s = ST.s[c.id] = ST.s[c.id] || {}; s.ua = s.ua || c.d[0]; s.ub = s.ub || c.d[1]; if (s.a === undefined) s.a = '1'; if (s.mw === undefined) s.mw = ''; return s; };
     const save = () => VC.store.set(KEY, ST);
-    function drawCats() { $('cats').innerHTML = CATS.map(c => `<button type="button" class="${c.id === ST.cat ? 'on' : ''}" data-c="${c.id}">${c.ic} ${c.name}</button>`).join(''); $('cats').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { ST.cat = b.dataset.c; save(); drawCats(); drawCard(); })); }
+    const SUB = { len: 'Convert length and distance units', area: 'Convert area units', mass: 'Convert mass and weight units', vol: 'Convert volume units for reagents and liquids', conc: 'Mass and molar concentrations, with molecular weight', temp: 'Convert °C, °F, K and °R', pres: 'Convert pressure units easily', spd: 'Convert speed units', time: 'Convert time units', data: 'Convert digital storage units' };
+    function drawCats() {
+      $('cats').innerHTML = CATS.map(c => `<button type="button" role="tab" class="cat ${c.id === ST.cat ? 'on' : ''}" data-c="${c.id}"><span class="ci">${c.ic}</span>${c.name}</button>`).join('');
+      $('cats').querySelectorAll('.cat').forEach(b => b.addEventListener('click', () => { ST.cat = b.dataset.c; save(); drawCats(); drawCard(); }));
+      const on = $('cats').querySelector('.on'); if (on) { const box = $('cats'); box.scrollLeft = on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2; }
+    }
+    $('aL').addEventListener('click', () => $('cats').scrollBy({ left: -220, behavior: 'smooth' }));
+    $('aR').addEventListener('click', () => $('cats').scrollBy({ left: 220, behavior: 'smooth' }));
     const opts = (c, sel) => c.u.map(u => `<option value="${esc(u.k)}" ${u.k === sel ? 'selected' : ''}>${esc(u.n)}</option>`).join('');
     function drawCard() {
       const c = CATS.find(x => x.id === ST.cat), s = get(c);
-      $('cv').innerHTML = `<h2>${c.ic} ${c.name}</h2>
-        <div class="cvrow"><div class="cvbox"><label for="ia">From</label><input id="ia" type="text" inputmode="decimal" autocomplete="off" value="${esc(s.a)}" /><select id="ua" aria-label="From unit">${opts(c, s.ua)}</select></div>
-        <button type="button" class="swap" id="sw" title="Swap units" aria-label="Swap units">⇄</button>
-        <div class="cvbox"><label for="ib">To</label><input id="ib" type="text" inputmode="decimal" autocomplete="off" /><select id="ub" aria-label="To unit">${opts(c, s.ub)}</select></div></div>
+      $('cv').innerHTML = `<div class="banner"><div class="bi">${c.ic}</div><div><b>${c.name === 'Pressure' ? 'Pressure Converter' : c.name + ' Converter'}</b><span>${SUB[c.id]}</span></div></div>
+        <div class="cvrow"><div class="cvbox"><label for="ia">From</label><div class="io"><input id="ia" type="text" inputmode="decimal" autocomplete="off" value="${esc(s.a)}" /><select id="ua" aria-label="From unit">${opts(c, s.ua)}</select></div></div>
+        <div class="swaprow"><i></i><button type="button" class="swap" id="sw" title="Swap units" aria-label="Swap units">⇅</button><i></i></div>
+        <div class="cvbox"><label for="ib">To</label><div class="io"><input id="ib" type="text" inputmode="decimal" autocomplete="off" /><select id="ub" aria-label="To unit">${opts(c, s.ub)}</select></div></div></div>
         ${c.mw ? `<div class="cvbox" style="max-width:360px"><label for="mw">Molecular weight (g/mol = Da) — needed for molar ↔ mass units</label><input id="mw" type="text" inputmode="decimal" placeholder="e.g. 58.44 for NaCl" value="${esc(s.mw)}" /></div><div class="hint" id="mwNote"></div>` : ''}
-        <table class="bd" id="bd"></table>`;
+        <h3 class="bdh">Common conversions</h3><table class="bd" id="bd"></table>`;
       const mwv = () => c.mw ? num($('mw').value) : 0;
       const fromA = () => { const v = num($('ia').value); s.a = $('ia').value; $('ib').value = isNaN(v) ? '' : fmtN(conv(c, v, s.ua, s.ub, mwv())).replace(' × 10^', 'e'); table(v); };
       const fromB = () => { const w = num($('ib').value); if (isNaN(w)) { $('ia').value = ''; s.a = ''; table(NaN); return; } const v = conv(c, w, s.ub, s.ua, mwv()); $('ia').value = fmtN(v).replace(' × 10^', 'e'); s.a = $('ia').value; table(v); };
       function table(v) {
         const need = c.mw && !(mwv() > 0), rows = c.u.map(u => { const r = conv(c, v, s.ua, u.k, mwv()), blocked = isNaN(r) && !isNaN(v) && need; return `<tr data-k="${esc(u.k)}" class="${u.k === s.ub ? 'to' : ''}"><td>${esc(u.n)}</td><td class="v">${blocked ? '<small>enter molecular weight</small>' : fmtN(r)}</td></tr>`; });
-        $('bd').innerHTML = rows.join(''); save();
+        $('bd').innerHTML = '<thead><tr><th>Unit</th><th>Value</th></tr></thead><tbody>' + rows.join('') + '</tbody>'; save();
         if (c.mw) $('mwNote').textContent = need ? 'Molar units (pM–M) convert only when the molecular weight is entered. ppm / ppb assume a dilute aqueous solution (1 mL ≈ 1 g).' : 'Molar ↔ mass conversion uses MW = ' + mwv() + ' g/mol.';
-        $('bd').querySelectorAll('tr').forEach(tr => tr.addEventListener('click', () => { const t = tr.querySelector('.v').textContent; if (/\d/.test(t)) VC.copy(t.replace(' × 10^', 'e'), tr.querySelector('.v')); }));
+        $('bd').querySelectorAll('tr[data-k]').forEach(tr => tr.addEventListener('click', () => { const t = tr.querySelector('.v').textContent; if (/\d/.test(t)) VC.copy(t.replace(' × 10^', 'e'), tr.querySelector('.v')); }));
       }
       $('ia').addEventListener('input', fromA); $('ib').addEventListener('input', fromB);
       $('ua').addEventListener('change', () => { s.ua = $('ua').value; fromA(); }); $('ub').addEventListener('change', () => { s.ub = $('ub').value; fromA(); });
