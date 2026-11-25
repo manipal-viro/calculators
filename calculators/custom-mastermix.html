@@ -31,7 +31,7 @@
     @media (max-width: 720px) { .meth { grid-template-columns: 1fr; } }
     .tg { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) 36px; gap: 8px; margin-bottom: 8px; align-items: center; }
     .tg.cv { grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) 36px; }
-    .cy { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.7fr) 36px; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .cy { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.7fr) 44px 36px; gap: 6px; margin-bottom: 6px; align-items: center; }
     .cy.h { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
     .tg button, .cy button { padding: 6px; }
     .rdt { display: flex; gap: 6px; margin: 14px 0 8px; }
@@ -65,6 +65,33 @@
     .fa { text-align: center; line-height: 1; font-size: 8pt; height: 2.6mm; overflow: hidden; }
     .sheet .yn { font-weight: 700; text-align: center; width: 24mm; }
     .sheet .gap { height: 3mm; }
+    /* ---- v2 worksheet design ---- */
+    .sheet .sp { padding: 0; font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 9.5pt; }
+    .sheet .h2 { text-align: center; border-top: 2.5px solid #000; border-bottom: 1px solid #000; padding: 3mm 0 2.5mm; margin-bottom: 5mm; position: relative; }
+    .sheet .h2::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2.2mm; border-bottom: 2.5px solid #000; }
+    .sheet .h2 .lab { font-size: 16pt; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .sheet .h2 .assay { font-size: 13pt; font-weight: 700; margin-top: 1mm; }
+    .sheet .h2 .cat { font-size: 8pt; letter-spacing: .1em; text-transform: uppercase; margin-top: .5mm; color: #333; }
+    .sheet .f2 { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #000; padding-top: 1.5mm; font-size: 10pt; }
+    .sheet .f2 .mid { font-size: 8pt; color: #444; }
+    .sheet .f2 .ul { display: inline-block; min-width: 48mm; border-bottom: 1px solid #000; }
+    .sheet table.pl { table-layout: fixed; width: 100%; margin-top: 7mm; }
+    .sheet table.pl th, .sheet table.pl td { height: 12.2mm; text-align: center; font-size: 13pt; padding: 0; }
+    .sheet table.pl th { background: #ececec !important; }
+    .sheet .sec2 { font-weight: 800; font-size: 10.5pt; text-transform: uppercase; letter-spacing: .08em; border-bottom: 2px solid #000; padding-bottom: 1mm; margin: 0 0 3mm; }
+    .sheet .st { font-weight: 700; font-size: 9pt; margin: 3mm 0 1.2mm; }
+    .sheet .c2 { display: grid; grid-template-columns: 1.05fr 1fr; gap: 10mm; align-items: start; margin-top: 8mm; }
+    .sheet table.mt th, .sheet table.mt td { height: 7mm; font-size: 9.5pt; padding: 1px 6px; }
+    .sheet table.mt th { background: #ececec !important; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .04em; }
+    .sheet table.mt td + td, .sheet table.mt th + th { text-align: center; }
+    .sheet table.mt tr.sub td { font-weight: 700; background: #f5f5f5 !important; }
+    .sheet table.cyt td { height: 8mm; } .sheet table.cyt td.mg { font-weight: 700; font-size: 11pt; }
+    .sheet .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; align-items: start; }
+    .sheet .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; align-items: start; margin-top: 5mm; }
+    .sheet .nest .st { margin: 1.5mm 0 1mm; } .sheet .nest .sec2 { margin-bottom: 1.5mm; }
+    .sheet .nest table.mt th, .sheet .nest table.mt td { height: 5.6mm; font-size: 9pt; }
+    .sheet .nest table.cyt td { height: 6.2mm; } .sheet .nest .h2 { margin-bottom: 3mm; }
+    .sheet .nest table.mt th { font-size: 7.5pt; }
     @media print {
       @page { size: A4 landscape; margin: 8mm; }
       .container > *:not(#sheet) { display: none !important; }
@@ -73,6 +100,7 @@
       #sheet .sp:last-child { page-break-after: auto; break-after: auto; }
       .sheet th, .sheet td { border: 1px solid #000 !important; }
       .sheet .cap { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .sheet th, .sheet tr.sub td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
   <script src="../js/common.js" defer></script>
@@ -106,15 +134,15 @@
     <div class="action-row no-print-x"><button type="button" class="secondary" id="cpy">Copy</button><button type="button" id="prt">Print worksheet (2 pages, landscape)</button><button type="button" class="secondary" id="prev">Preview sheet</button></div>
 
     <details class="no-print-x" id="pdet" style="margin-top:14px">
-      <summary>Print sheet details (date, test ID, Sr. no.)</summary>
+      <summary>Print sheet details (institute, date, test ID)</summary>
       <div class="row" style="margin-top:10px">
         <div class="field"><label for="dLab">Institute / lab name</label><input type="text" id="dLab" /></div>
         <div class="field"><label for="dCat">Test category</label><select id="dCat"><option>Commercial/Research</option><option>Commercial</option><option>Research</option></select></div>
         <div class="field"><label for="dDate">Date</label><input type="text" id="dDate" placeholder="today if empty" /></div>
         <div class="field"><label for="dTid">Test ID</label><input type="text" id="dTid" /></div>
-        <div class="field"><label for="dSr">Sr. No.</label><input type="text" id="dSr" /></div>
+        
       </div>
-      <p class="hint">Print uses A4 landscape: page 1 = plate template + reaction set-up, page 2 = workflow, cycling, result, validity and sign-off. Set margins to “Default/None” and tick “Background graphics” off.</p>
+      <p class="hint">Print uses A4 landscape: page 1 = header + 8×12 plate grid (date and Test ID in the footer), page 2 = master mix, cycling condition and dye table. Set margins to “Default/None” and tick “Background graphics” off.</p>
     </details>
 
     <details class="no-print-x" id="editor" style="margin-top:18px">
@@ -151,7 +179,7 @@
       <button type="button" class="secondary" id="rAdd">+ Add reagent</button>
 
       <div class="sec">Cycling conditions <span id="cyRd"></span></div>
-      <div class="cy h"><span>Step</span><span>Temperature</span><span>Time</span><span>Cycles</span><span></span></div>
+      <div class="cy h"><span>Step</span><span>Temperature</span><span>Time</span><span>Cycles</span><span title="Merge this step's cycles cell with the step above">Merge</span><span></span></div>
       <div id="eCy"></div>
       <button type="button" class="secondary" id="cyAdd">+ Add step</button>
 
@@ -252,41 +280,35 @@
 
     /* ---------- printable worksheet (A4 landscape, 2 pages) ---------- */
     function buildSheet(t, cs, rx) {
-      const ul = x => `<span class="ul">${esc(x || '')}&nbsp;</span>`, conv = t.type === 'conv';
+      const conv = t.type === 'conv', nest = cs.length > 1, today = new Date().toLocaleDateString('en-GB');
       const tg = t.targets.filter(x => x.n || x.dye || x.q || x.sz), tn = tg.length ? tg : [{ n: '' }];
-      const nest = cs.length > 1, today = new Date().toLocaleDateString('en-GB');
-      const hd = `<div class="sh-hd"><div>Date: ${esc(DET.date || today)}<br><b>Test ID:</b> ${ul(DET.tid)}</div><div class="c"><b>${esc(DET.lab)}</b><br><b>Template for ${esc(t.name)}</b><br><b>Test:- ${esc(DET.cat)}</b></div><div class="r"><b>Sr. NO.</b> ${ul(DET.sr)}</div></div>`;
-      const plate = '<table class="sh-plate"><tr><th></th>' + Array.from({ length: 12 }, (_, i) => `<th>${i + 1}</th>`).join('') + '</tr>' +
+      const hd = `<div class="h2"><div class="lab">${esc(DET.lab)}</div><div class="assay">${esc(t.name)}</div><div class="cat">${esc(DET.cat)}</div></div>`;
+      const ft = pg => `<div class="f2"><span>Date: <b>${esc(DET.date || today)}</b></span><span class="mid">Page ${pg} of 2</span><span>Test ID: <b class="ul">${esc(DET.tid || '')}&nbsp;</b></span></div>`;
+      const plate = '<table class="pl"><colgroup><col style="width:10mm">' + '<col>'.repeat(12) + '</colgroup><tr><th></th>' + Array.from({ length: 12 }, (_, i) => `<th>${i + 1}</th>`).join('') + '</tr>' +
         'ABCDEFGH'.split('').map(r => `<tr><th>${r}</th>${'<td></td>'.repeat(12)}</tr>`).join('') + '</table>';
-      const names = tg.map(x => x.n).filter(Boolean).join(', ');
-      const counts = `<table class="sh-t" style="width:62mm"><tr><th>Test</th><th>${esc(names || t.name)}</th></tr><tr><td>No template control</td><td></td></tr><tr><td>Positive control</td><td></td></tr><tr><td>Sample</td><td></td></tr><tr><td>Total Reaction (N)</td><td>${rx ? rx : ''}</td></tr></table>`;
       const rtab = (c, lbl) => {
-        const has = c.tot > 0, v = x => has ? f4(x) : '', vs = x => has && c.scale ? f4(x * c.scale) : '';
-        const hdr = c.rx ? `N = ${c.rx}${n(c.r.ovg) ? ' (+' + fmt(n(c.r.ovg), 3) + '%)' : ''}` : '(N+1 = _X)';
-        return `<table class="sh-t" style="width:${nest ? 98 : 120}mm">${lbl ? `<tr><td colspan="3" class="cap">${lbl}</td></tr>` : ''}<tr><th>Reagent</th><th style="width:18mm">Volume (1x)</th><th style="width:26mm">${hdr}</th></tr>` +
-          c.rs.map(x => `<tr><td>${esc(x.name).toUpperCase()}</td><td>${v(x.v)}</td><td>${vs(x.v)}</td></tr>`).join('') +
-          `<tr><td>MASTERMIX TOTAL</td><td>${v(c.mm)}</td><td>${vs(c.mm)}</td></tr><tr><td>TEMPLATE VOLUME</td><td>${v(c.tpl)}</td><td>${has && c.rx ? f4(c.tpl * c.rx) : ''}</td></tr><tr><td>TOTAL VOLUME</td><td>${v(c.tot)}</td><td>${has && c.rx ? f4(c.tot * c.rx) : ''}</td></tr></table>`;
+        const has = c.tot > 0, v = x => has && x !== 0 ? f4(x) : '', vs = x => has && c.scale && x !== 0 ? f4(x * c.scale) : '';
+        const hdr = c.rx ? `${c.rx} rxn${n(c.r.ovg) ? ' (+' + fmt(n(c.r.ovg), 3) + '%)' : ''}` : '(N+1 = _X)';
+        return `${lbl ? `<div class="st">${lbl}</div>` : ''}<table class="mt"><tr><th style="text-align:left">Reagent</th><th style="width:24mm">Volume (1x)</th><th style="width:34mm">${hdr}</th></tr>` +
+          c.rs.map(x => `<tr><td>${esc(x.name)}</td><td>${v(x.v)}</td><td>${vs(x.v)}</td></tr>`).join('') +
+          `<tr class="sub"><td>Master mix total</td><td>${v(c.mm)}</td><td>${vs(c.mm)}</td></tr><tr><td>Template volume</td><td>${v(c.tpl)}</td><td>${has && c.rx ? f4(c.tpl * c.rx) : ''}</td></tr><tr class="sub"><td>Total volume</td><td>${v(c.tot)}</td><td>${has && c.rx ? f4(c.tot * c.rx) : ''}</td></tr></table>`;
       };
-      const p1 = `<div class="sp">${hd}${plate}<div class="sh-u">REACTION SET UP</div><div class="sh-row"><div>${counts}</div>${cs.map((c, i) => `<div>${rtab(c, nest ? (i ? 'ROUND 2 — NESTED PCR' : 'ROUND 1 — OUTER PCR') : '')}</div>`).join('')}</div><div class="sh-pg">Page 1 of 2</div></div>`;
-
-      // page 2
-      const steps = ['Samples are assigned in template', 'In computer, program is loaded and samples are assigned same as in template', 'Arrange samples in sequence according to template', 'Take reagents for preparing reaction mixture from freezer', 'Add reaction mixture into plate/tube according to template', 'Keep back reagents in freezer', 'Add sample in reaction mixture according to assigned template'];
-      const flow = steps.map(x => `<div class="fb">${x}<i></i></div>`).join('<div class="fa">▼</div>');
-      const vcol = tn.map(x => `<th colspan="2">${esc(x.n || '')}</th>`).join('');
-      const valid = `<table style="margin-top:6mm"><tr><th colspan="${1 + tn.length * 2}">VALIDITY OF THE ASSAY</th></tr><tr><td>Test</td>${vcol}</tr>` +
-        ['NTC', 'PC'].map(k => `<tr><td>${k}</td>${tn.map(() => '<th>Valid</th><th>Invalid</th>').join('')}</tr>`).join('') + '</table>';
-      const cyt = (r, lbl) => `${lbl ? `<tr><td colspan="4" class="cap">${lbl}</td></tr>` : ''}<tr><th>Step</th><th>Temperature</th><th>Time</th><th>No. of Cycles</th></tr>` +
-        (r.cyc && r.cyc.length ? r.cyc : [stg(''), stg(''), stg('')]).map(x => `<tr><td>${esc(x.n)}</td><td>${esc(x.temp)}</td><td>${esc(x.time)}</td><td>${esc(x.cyc)}</td></tr>`).join('');
-      const cycle = `<table><tr><th colspan="3" style="text-align:left">CYCLING CONDITION IS SAME AS BELOW IN PROGRAMME: YES / NO</th><td class="yn">YES / NO</td></tr><tr><td colspan="4" style="padding:0;border:0"><table>${cyt(cs[0].r, nest ? 'ROUND 1 — OUTER PCR' : '')}${nest ? cyt(cs[1].r, 'ROUND 2 — NESTED PCR') : ''}</table></td></tr></table>`;
-      const res = `<table style="margin-top:4mm"><tr><th style="text-align:left">RESULT</th>${tn.map(x => `<th>${esc(x.n || '')}</th>`).join('')}</tr><tr><td>Negative sample (No.)</td>${tn.map(() => '<td></td>').join('')}</tr><tr><td>Positive sample (No.)</td>${tn.map(() => '<td></td>').join('')}</tr></table>`;
+      const cyt = (r, lbl) => {
+        const st = r.cyc && r.cyc.length ? r.cyc : [stg(''), stg(''), stg('')];
+        const span = st.map((x, i) => { if (!(x.mg && i)) { let k = 1; while (i + k < st.length && st[i + k].mg) k++; return k; } return 0; });
+        return `${lbl ? `<div class="st">${lbl}</div>` : ''}<table class="mt cyt"><tr><th style="text-align:left">Step</th><th>Temperature</th><th>Time</th><th>Cycles</th></tr>` +
+          st.map((x, i) => `<tr><td>${esc(x.n)}</td><td>${esc(x.temp)}</td><td>${esc(x.time)}</td>${span[i] ? `<td${span[i] > 1 ? ` rowspan="${span[i]}" class="mg"` : ''}>${esc(x.cyc)}</td>` : ''}</tr>`).join('') + '</table>';
+      };
       const quen = [...new Set(tg.map(x => x.q).filter(Boolean))].join(' / ') || 'None';
-      const dye = conv ? `<table style="margin-top:4mm"><tr><th colspan="2" style="text-align:left">TARGET / AMPLICON SIZE</th></tr>${tn.map(x => `<tr><td>${esc(x.n || '')}</td><td style="text-align:center"><b>${esc(x.sz ? x.sz + ' bp' : '')}</b></td></tr>`).join('')}</table>` :
-        `<table style="margin-top:4mm"><tr><th colspan="2" style="text-align:left">REPORTER DYE IS SAME AS BELOW IN PROGRAM: YES / NO</th><td class="yn">YES / NO</td></tr>` +
-        tn.map(x => `<tr><td>Reporter dye (${esc(x.n || '')})</td><td style="text-align:center;width:30mm"><b>${esc(x.dye || '')}</b></td><td></td></tr>`).join('') +
-        `<tr><td>Quencher</td><td style="text-align:center"><b>${esc(quen)}</b></td><td></td></tr><tr><td>Passive reference</td><td style="text-align:center"><b>${esc(t.passive || 'None')}</b></td><td></td></tr></table>`;
-      const sign = `<table style="margin-top:5mm"><tr><td style="width:36mm"><b>PCR cabinet ID</b></td><td>MAHE/MIV/EQP</td><td class="yn" style="width:22mm">Time</td><td style="width:90mm"></td></tr><tr><td><b>PCR workstation ID</b></td><td>MAHE/MIV/EQP</td><td class="yn">Time</td><td></td></tr><tr><td><b>Thermocycler ID</b></td><td>MAHE/MIV/EQP</td><td class="yn">Time</td><td></td></tr><tr><td><b>Test performed by</b></td><td></td><td class="yn">Sign</td><td></td></tr><tr><td><b>Test verified by</b></td><td></td><td class="yn">Sign</td><td></td></tr></table>` +
-        `<div style="margin-top:4mm">Run <b>ACCEPTED/ REJECTED</b> (Reasons if <b>REJECTED</b>: <span class="ul" style="min-width:170mm">&nbsp;</span> )</div>`;
-      const p2 = `<div class="sp"><div class="sh-cols"><div>${flow}${valid}</div><div>${cycle}${res}${dye}</div></div>${sign}<div class="sh-pg">Page 2 of 2 — ${esc(t.name)}</div></div>`;
+      const dye = conv ? `<div class="st">Targets / amplicon size</div><table class="mt"><tr><th style="text-align:left">Target</th><th>Amplicon size</th></tr>${tn.map(x => `<tr><td>${esc(x.n || '')}</td><td>${esc(x.sz ? x.sz + ' bp' : '')}</td></tr>`).join('')}</table>` :
+        `<div class="st">Reporter dye</div><table class="mt"><tr><th style="text-align:left">Target</th><th>Reporter dye</th><th>Quencher</th></tr>${tn.map(x => `<tr><td>${esc(x.n || '')}</td><td>${esc(x.dye || '')}</td><td>${esc(x.q || 'None')}</td></tr>`).join('')}<tr class="sub"><td colspan="2">Passive reference</td><td>${esc(t.passive || 'None')}</td></tr></table>`;
+      const p1 = `<div class="sp">${hd}${plate}${ft(1)}</div>`;
+      const mmH = cs.map((c, i) => rtab(c, nest ? (i ? 'Round 2 — nested PCR' : 'Round 1 — outer PCR') : '')).join('');
+      const body = nest ?
+        `<div class="sec2">Master mix</div><div class="g2">${cs.map((c, i) => `<div>${rtab(c, i ? 'Round 2 — nested PCR' : 'Round 1 — outer PCR')}</div>`).join('')}</div>` +
+        `<div class="g3"><div><div class="sec2">Cycling — round 1</div>${cyt(cs[0].r, '')}</div><div><div class="sec2">Cycling — round 2</div>${cyt(cs[1].r, '')}</div><div><div class="sec2">${conv ? 'Targets' : 'Dye'}</div>${dye}</div></div>` :
+        `<div class="c2"><div><div class="sec2">Master mix</div>${mmH}</div><div><div class="sec2">Cycling condition</div>${cyt(cs[0].r, '')}<div class="sec2" style="margin-top:7mm">${conv ? 'Targets' : 'Dye'}</div>${dye}</div></div>`;
+      const p2 = `<div class="sp ${nest ? 'nest' : ''}">${hd}${body}${ft(2)}</div>`;
       $('sheet').innerHTML = p1 + p2;
     }
 
@@ -326,7 +348,8 @@
       $('eRg').querySelectorAll('[data-xv]').forEach(i => i.addEventListener('input', () => { cur().extra[+i.dataset.xv].v = i.value; touch(); draw(); }));
       $('eRg').querySelectorAll('[data-xd]').forEach(b => b.addEventListener('click', () => { cur().extra.splice(+b.dataset.xd, 1); touch(); loadEditor(); draw(); }));
       // cycling (current round)
-      $('eCy').innerHTML = (r.cyc || []).map((x, i) => `<div class="cy"><input type="text" data-cn="${i}" value="${esc(x.n)}" placeholder="Step" /><input type="text" data-ct="${i}" value="${esc(x.temp)}" placeholder="95 °C" /><input type="text" data-cm="${i}" value="${esc(x.time)}" placeholder="30 s" /><input type="text" data-cc="${i}" value="${esc(x.cyc)}" placeholder="40" inputmode="numeric" /><button type="button" class="secondary" data-cd="${i}" aria-label="Remove step">✕</button></div>`).join('');
+      $('eCy').innerHTML = (r.cyc || []).map((x, i) => `<div class="cy"><input type="text" data-cn="${i}" value="${esc(x.n)}" placeholder="Step" /><input type="text" data-ct="${i}" value="${esc(x.temp)}" placeholder="95 °C" /><input type="text" data-cm="${i}" value="${esc(x.time)}" placeholder="30 s" /><input type="text" data-cc="${i}" value="${esc(x.cyc)}" placeholder="40" inputmode="numeric" /><label style="text-align:center" title="Merge cycles cell with the step above"><input type="checkbox" data-cg="${i}" ${x.mg && i ? 'checked' : ''} ${i ? '' : 'disabled'} /></label><button type="button" class="secondary" data-cd="${i}" aria-label="Remove step">✕</button></div>`).join('');
+      $('eCy').querySelectorAll('[data-cg]').forEach(i => i.addEventListener('change', () => { cur().cyc[+i.dataset.cg].mg = i.checked; touch(); draw(); }));
       [['cn', 'n'], ['ct', 'temp'], ['cm', 'time'], ['cc', 'cyc']].forEach(([a, k]) => $('eCy').querySelectorAll(`[data-${a}]`).forEach(i => i.addEventListener('input', () => { cur().cyc[+i.dataset[a]][k] = i.value; touch(); draw(); })));
       $('eCy').querySelectorAll('[data-cd]').forEach(b => b.addEventListener('click', () => { cur().cyc.splice(+b.dataset.cd, 1); touch(); loadEditor(); draw(); }));
     }
@@ -347,7 +370,7 @@
     $('cpy').addEventListener('click', () => VC.copy(window._txt || '', $('cpy')));
     $('prt').addEventListener('click', () => { draw(); window.print(); });
     $('prev').addEventListener('click', () => { const s = $('sheet'); s.classList.toggle('show'); $('prev').textContent = s.classList.contains('show') ? 'Hide preview' : 'Preview sheet'; if (s.classList.contains('show')) s.scrollIntoView({ behavior: 'smooth' }); });
-    [['dLab', 'lab'], ['dCat', 'cat'], ['dDate', 'date'], ['dTid', 'tid'], ['dSr', 'sr']].forEach(([id, k]) => { $(id).value = DET[k]; $(id).addEventListener('input', () => { DET[k] = $(id).value; VC.store.set('viro_sheet_det', DET); draw(); }); });
+    [['dLab', 'lab'], ['dCat', 'cat'], ['dDate', 'date'], ['dTid', 'tid']].forEach(([id, k]) => { $(id).value = DET[k]; $(id).addEventListener('input', () => { DET[k] = $(id).value; VC.store.set('viro_sheet_det', DET); draw(); }); });
     $('rxn').value = VC.store.get(KEY + '_rxn', '');
     fillSel(); loadEditor(); draw();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
