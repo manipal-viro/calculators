@@ -44,7 +44,7 @@
     .sheet.show .sp { border: 1px solid #94a3b8; margin-bottom: 12px; background: #fff; }
     /* ---- print worksheet (A4 landscape, 2 pages) ---- */
     .sheet, .sheet * { box-sizing: border-box; }
-    .sheet .sp { width: 281mm; height: 192mm; position: relative; overflow: hidden; padding: 0; font-family: 'Cambria', 'Times New Roman', serif; font-size: 8.5pt; color: #000; background: #fff; }
+    .sheet .sp { width: 281mm; height: 186mm; position: relative; overflow: hidden; padding: 0; font-family: 'Cambria', 'Times New Roman', serif; font-size: 8.5pt; color: #000; background: #fff; }
     .sheet table { border-collapse: collapse; width: 100%; }
     .sheet th, .sheet td { border: 1px solid #000; padding: 1px 4px; text-align: left; vertical-align: middle; height: 5mm; }
     .sheet th { font-weight: 700; text-align: center; background: #fff; color: #000; }
@@ -68,7 +68,7 @@
     .sheet .gap { height: 3mm; }
     /* ---- v2 worksheet design ---- */
     .sheet .sp { padding: 0; font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 9.5pt; }
-    .sheet .h2 { text-align: center; border-top: 2.5px solid #000; border-bottom: 1px solid #000; padding: 3mm 0 2.5mm; margin-bottom: 5mm; position: relative; }
+    .sheet .h2 { text-align: center; border-top: 2.5px solid #000; border-bottom: 1px solid #000; padding: 3mm 0 2.5mm; margin: 2mm 0 5mm; position: relative; }
     .sheet .h2::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2.2mm; border-bottom: 2.5px solid #000; }
     .sheet .h2 .lab { font-size: 16pt; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
     .sheet .h2 .assay { font-size: 13pt; font-weight: 700; margin-top: 1mm; }
@@ -76,8 +76,10 @@
     .sheet .f2 { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #000; padding-top: 1.5mm; font-size: 10pt; }
     .sheet .f2 .mid { font-size: 8pt; color: #444; }
     .sheet .f2 .ul { display: inline-block; min-width: 48mm; border-bottom: 1px solid #000; }
-    .sheet table.pl { table-layout: fixed; width: 100%; margin-top: 7mm; }
-    .sheet table.pl th, .sheet table.pl td { height: 12.2mm; text-align: center; font-size: 13pt; padding: 0; }
+    .sheet .sp.p1 { display: flex; flex-direction: column; }
+    .sheet .plw { flex: 1 1 auto; margin: 7mm 0 13mm; min-height: 0; }
+    .sheet table.pl { table-layout: fixed; width: 100%; height: 100%; }
+    .sheet table.pl th, .sheet table.pl td { height: auto; text-align: center; font-size: 13pt; padding: 0; }
     .sheet table.pl th { background: #ececec !important; }
     .sheet .sec2 { font-weight: 800; font-size: 10.5pt; text-transform: uppercase; letter-spacing: .08em; border-bottom: 2px solid #000; padding-bottom: 1mm; margin: 0 0 3mm; }
     .sheet .st { font-weight: 700; font-size: 9pt; margin: 3mm 0 1.2mm; }
@@ -87,6 +89,7 @@
     .sheet table.mt td + td, .sheet table.mt th + th { text-align: center; }
     .sheet table.mt tr.sub td { font-weight: 700; background: #f5f5f5 !important; }
     .sheet table.cyt td { height: 8mm; } .sheet table.cyt td.mg { font-weight: 700; font-size: 11pt; }
+    .sheet .gx { display: grid; gap: 7mm; align-items: start; }
     .sheet .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; align-items: start; }
     .sheet .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; align-items: start; margin-top: 5mm; }
     .sheet .nest .st { margin: 1.5mm 0 1mm; } .sheet .nest .sec2 { margin-bottom: 1.5mm; }
@@ -94,7 +97,7 @@
     .sheet .nest table.cyt td { height: 6.2mm; } .sheet .nest .h2 { margin-bottom: 3mm; }
     .sheet .nest table.mt th { font-size: 7.5pt; }
     @media print {
-      @page { size: A4 landscape; margin: 8mm; }
+      @page { size: A4 landscape; margin: 10mm 8mm; }
       .container > *:not(#sheet) { display: none !important; }
       #sheet { display: block !important; margin: 0 !important; overflow: visible !important; }
       #sheet .sp { border: 0 !important; margin: 0 !important; page-break-after: always; break-after: page; }
@@ -159,7 +162,6 @@
       </div>
       <div class="row">
         <div class="field"><label for="eType">PCR type</label><select id="eType"><option value="rt">Real-time PCR (qPCR)</option><option value="conv">Conventional PCR</option></select></div>
-        <div class="field" id="nestF"><label for="eNest">Runs</label><select id="eNest"><option value="0">Single run</option><option value="1">Nested — 2 runs (outer + nested)</option></select></div>
       </div>
 
       <div class="sec" id="tgT">Targets</div>
@@ -168,6 +170,11 @@
       <div class="field" id="passF" style="margin-top:10px;max-width:320px"><label for="ePass">Passive reference</label><input type="text" id="ePass" placeholder="e.g. ROX / None" /></div>
 
       <div class="rdt" id="rdTabs"></div>
+      <div class="row" id="setOpt" style="display:none">
+        <div class="field"><label for="eLbl">Master mix name (e.g. target / round)</label><input type="text" id="eLbl" placeholder="e.g. HSV1/2 or Round 2 (nested)" /></div>
+        <div class="field" id="sameF"><label for="eSame">Cycling condition</label><select id="eSame"><option value="1">Same as the first master mix</option><option value="0">Different (own cycling)</option></select></div>
+        <div class="field" id="delF"><label>&nbsp;</label><button type="button" class="secondary" id="setDel" style="color:#991b1b;border-color:#fca5a5">Remove this master mix</button></div>
+      </div>
       <div class="rcap" id="rdCap">Reaction set-up</div>
       <div class="row">
         <div class="field"><label for="eTot">Total volume per reaction (µL)</label><input type="number" id="eTot" min="0" step="any" inputmode="decimal" /></div>
@@ -201,15 +208,23 @@
     const fdt = ms => ms ? new Date(ms).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
     const stg = (n, cyc) => ({ n, temp: '', time: '', cyc: cyc || '' });
     const defCyc = type => type === 'conv' ? [stg('Initial denaturation', '1'), stg('Denaturation'), stg('Annealing'), stg('Extension'), stg('Final extension', '1')] : [stg('Reverse transcription / hold', '1'), stg('Denaturation'), stg('Annealing / Extension')];
-    const newRound = t => ({ tot: '', tpl: '', pp: 'sep', ovg: t.ovg || 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, hid: {}, extra: [], cyc: defCyc('conv') });
-    const ensure = t => { t.type = t.type || 'rt'; t.targets = t.targets || []; if (t.passive === undefined) t.passive = 'None'; if (!t.cyc) t.cyc = defCyc(t.type); t.nested = !!t.nested; if (t.nested && !t.r2) t.r2 = newRound(t); t.v = t.v || {}; t.extra = t.extra || []; return t; };
+    const newRound = (t, label) => ({ label: label || '', sameCyc: true, tot: '', tpl: '', pp: 'sep', ovg: t.ovg || 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, hid: {}, extra: [], cyc: defCyc('conv') });
+    const ensure = t => {
+      t.type = t.type || 'rt'; t.targets = t.targets || []; if (t.passive === undefined) t.passive = 'None'; if (!t.cyc) t.cyc = defCyc(t.type);
+      t.sets = t.sets || [];
+      if (t.r2 !== undefined) { if (t.nested && t.r2) { t.r2.label = t.r2.label || 'Round 2 — nested PCR'; t.r2.sameCyc = false; t.sets.unshift(t.r2); t.label = t.label || 'Round 1 — outer PCR'; } delete t.r2; delete t.nested; }
+      t.sets.forEach(x => { x.v = x.v || {}; x.extra = x.extra || []; x.hid = x.hid || {}; if (!x.cyc) x.cyc = defCyc('conv'); });
+      t.v = t.v || {}; t.extra = t.extra || []; return t;
+    };
+    const setsOf = t => [t].concat(t.sets);
+    const lblOf = (t, i) => setsOf(t).length > 1 ? ((i ? t.sets[i - 1].label : t.label) || 'Mix ' + (i + 1)) : '';
     const blank = name => ensure({ id: uid(), name: name || 'New test', tot: '', tpl: '', pp: 'sep', ovg: 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, extra: [], note: '', by: '', at: Date.now() });
     let D = VC.store.get(KEY, null);
     if (!D || !D.tests || !D.tests.length) { const t = blank('Test 1'); D = { tests: [t], cur: t.id, savedAt: 0 }; }
     D.tests.forEach(ensure);
     const T = () => D.tests.find(t => t.id === D.cur) || D.tests[0];
-    let ed = 1;                                          // round being edited (1 = outer / only run, 2 = nested run)
-    const cur = () => { const t = T(); return ed === 2 && t.nested && t.r2 ? t.r2 : t; };
+    let ed = 1;                                          // master mix being edited (1 = first, 2.. = additional)
+    const cur = () => { const t = T(); return ed > 1 && t.sets[ed - 2] ? t.sets[ed - 2] : t; };
     const n = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
     const DEF = t => [{ k: 'buf', name: 'PCR Buffer (MM)' }].concat(t.pp === 'mix' ? [{ k: 'ppm', name: 'Primer-Probe mix' }] : [{ k: 'fwd', name: 'Forward primer' }, { k: 'rev', name: 'Reverse primer' }, { k: 'probe', name: 'Probe' }], [{ k: 'enz', name: 'Enzyme' }]);
     const rows = t => {                                  // t = a round object; [{name, v, calc?}] in bench order
@@ -257,26 +272,26 @@
     function roundTable(c, title) {
       const r = c.r;
       return (title ? `<div class="rcap">${esc(title)}</div>` : '') + '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Reagent</th><th class="num">Per reaction (µL)</th><th class="num">' + (c.rx ? 'For ' + c.rx + ' rxn' + (c.rx > 1 ? 's' : '') + (n(r.ovg) ? ' (+' + fmt(n(r.ovg), 3) + ' %)' : '') + ' (µL)' : 'Enter reactions') + '</th></tr></thead><tbody>' +
-        c.rs.map(x => `<tr class="${x.calc ? 'nfw' : ''}"><td>${esc(x.name)}</td><td class="num">${f4(x.v)}</td><td class="num"><b>${c.scale ? f4(x.v * c.scale) : '—'}</b></td></tr>`).join('') +
+        c.rs.filter(x => !(x.calc && c.tot && !(x.v > 0))).map(x => `<tr class="${x.calc ? 'nfw' : ''}"><td>${esc(x.name)}</td><td class="num">${f4(x.v)}</td><td class="num"><b>${c.scale ? f4(x.v * c.scale) : '—'}</b></td></tr>`).join('') +
         `<tr class="tot"><td>Master mix total</td><td class="num">${f4(c.mm)}</td><td class="num">${c.scale ? f4(c.mm * c.scale) : '—'}</td></tr>` +
         (c.tpl ? `<tr><td>Template / sample (add per well)</td><td class="num">${f4(c.tpl)}</td><td class="num">${c.scale ? f4(c.tpl * c.rx) : '—'}</td></tr>` : '') +
         `<tr class="tot"><td>Total volume per single reaction</td><td class="num">${f4(c.tot)}</td><td class="num">${c.rx ? f4(c.tot * c.rx) : '—'}</td></tr></tbody></table></div>`;
     }
     function draw() {
       const t = T(), rx = Math.floor(n($('rxn').value));
-      const cs = [calcRound(t, rx)]; if (t.nested && t.r2) cs.push(calcRound(t.r2, rx));
+      const cs = setsOf(t).map(r => calcRound(r, rx));
       const warn = $('warn'); warn.style.display = 'none';
-      $('rTitle').textContent = t.name + ' — master mix' + (cs.length > 1 ? ' (round 1 / round 2)' : '');
+      $('rTitle').textContent = t.name + ' — master mix' + (cs.length > 1 ? ' (' + cs.length + ' master mixes)' : '');
       $('meta').textContent = (t.by ? 'Added by ' + t.by + ' · ' + fdt(t.at) : 'Added by: not recorded') + (t.editAt && (t.editAt !== t.at) ? '  |  Last edited by ' + (t.editBy || 'Unknown') + ' · ' + fdt(t.editAt) : '');
       $('procView').textContent = t.note ? 'Procedure:\n' + t.note : '';
       buildSheet(t, cs, rx);
       if (!cs[0].tot) { $('rVal').textContent = '—'; $('rSub').textContent = 'Set the total volume and reagent volumes under “Edit / add tests”.'; $('tbls').innerHTML = ''; return; }
-      const w = []; cs.forEach((c, i) => { if (c.nfw < -1e-9) w.push(`${cs.length > 1 ? 'Round ' + (i + 1) + ': ' : ''}reagents + template (${f4(c.others + c.tpl)} µL) exceed the total volume (${f4(c.tot)} µL) — check the volumes.`); });
+      const w = []; cs.forEach((c, i) => { if (c.nfw < -1e-9) w.push(`${cs.length > 1 ? lblOf(t, i) + ': ' : ''}reagents + template (${f4(c.others + c.tpl)} µL) exceed the total volume (${f4(c.tot)} µL) — check the volumes.`); });
       if (w.length) { warn.className = 'note err'; warn.textContent = w.join(' '); warn.style.display = ''; }
-      $('tbls').innerHTML = cs.map((c, i) => roundTable(c, cs.length > 1 ? (i ? 'Round 2 — nested PCR' : 'Round 1 — outer PCR') : '')).join('');
+      $('tbls').innerHTML = cs.map((c, i) => roundTable(c, lblOf(t, i))).join('');
       $('rVal').textContent = cs.map(c => c.scale ? f4(c.mm * c.scale) + ' µL' : '—').join('  ·  ');
-      $('rSub').textContent = cs.some(c => c.scale) ? cs.map((c, i) => `${cs.length > 1 ? 'Round ' + (i + 1) + ': ' : ''}dispense ${f4(c.mm)} µL per well${c.tpl ? ' + ' + f4(c.tpl) + ' µL template = ' + f4(c.tot) + ' µL' : ''}`).join(' | ') : 'Enter the number of reactions.';
-      window._txt = cs.map((c, i) => `${t.name}${cs.length > 1 ? ' — round ' + (i + 1) : ''} — ${rx} reactions${n(c.r.ovg) ? ' (+' + n(c.r.ovg) + ' %)' : ''}\n` + c.rs.map(x => `${x.name}: ${c.scale ? f4(x.v * c.scale) : f4(x.v)} µL`).join('\n') + `\nMaster mix total: ${c.scale ? f4(c.mm * c.scale) : f4(c.mm)} µL\nTotal per reaction: ${f4(c.tot)} µL`).join('\n\n');
+      $('rSub').textContent = cs.some(c => c.scale) ? cs.map((c, i) => `${cs.length > 1 ? lblOf(t, i) + ': ' : ''}dispense ${f4(c.mm)} µL per well${c.tpl ? ' + ' + f4(c.tpl) + ' µL template = ' + f4(c.tot) + ' µL' : ''}`).join(' | ') : 'Enter the number of reactions.';
+      window._txt = cs.map((c, i) => `${t.name}${cs.length > 1 ? ' — ' + lblOf(t, i) : ''} — ${rx} reactions${n(c.r.ovg) ? ' (+' + n(c.r.ovg) + ' %)' : ''}\n` + c.rs.filter(x => !(x.calc && c.tot && !(x.v > 0))).map(x => `${x.name}: ${c.scale ? f4(x.v * c.scale) : f4(x.v)} µL`).join('\n') + `\nMaster mix total: ${c.scale ? f4(c.mm * c.scale) : f4(c.mm)} µL\nTotal per reaction: ${f4(c.tot)} µL`).join('\n\n');
     }
 
     /* ---------- printable worksheet (A4 landscape, 2 pages) ---------- */
@@ -291,7 +306,7 @@
         const has = c.tot > 0, v = x => has && x !== 0 ? f4(x) : '', vs = x => has && c.scale && x !== 0 ? f4(x * c.scale) : '';
         const hdr = c.rx ? `${c.rx} rxn${n(c.r.ovg) ? ' (+' + fmt(n(c.r.ovg), 3) + '%)' : ''}` : '(N+1 = _X)';
         return `${lbl ? `<div class="st">${lbl}</div>` : ''}<table class="mt"><tr><th style="text-align:left">Reagent</th><th style="width:24mm">Volume (1x)</th><th style="width:34mm">${hdr}</th></tr>` +
-          c.rs.map(x => `<tr><td>${esc(x.name)}</td><td>${v(x.v)}</td><td>${vs(x.v)}</td></tr>`).join('') +
+          c.rs.filter(x => !(x.calc && has && !(x.v > 0))).map(x => `<tr><td>${esc(x.name)}</td><td>${v(x.v)}</td><td>${vs(x.v)}</td></tr>`).join('') +
           `<tr class="sub"><td>Master mix total</td><td>${v(c.mm)}</td><td>${vs(c.mm)}</td></tr><tr><td>Template volume</td><td>${v(c.tpl)}</td><td>${has && c.rx && c.tpl ? f4(c.tpl * c.rx) : ''}</td></tr><tr class="sub"><td>Total volume</td><td>${v(c.tot)}</td><td>${has && c.rx ? f4(c.tot * c.rx) : ''}</td></tr></table>`;
       };
       const fT = v => { v = String(v || '').trim(); return /^-?[\d.]+$/.test(v) ? v + ' °C' : esc(v); };
@@ -305,11 +320,15 @@
       const quen = [...new Set(tg.map(x => x.q).filter(Boolean))].join(' / ') || 'None';
       const dye = conv ? `<div class="st">Targets / amplicon size</div><table class="mt"><tr><th style="text-align:left">Target</th><th>Amplicon size</th></tr>${tn.map(x => `<tr><td>${esc(x.n || '')}</td><td>${esc(x.sz ? x.sz + ' bp' : '')}</td></tr>`).join('')}</table>` :
         `<div class="st">Reporter dye</div><table class="mt"><tr><th style="text-align:left">Target</th><th>Reporter dye</th><th>Quencher</th></tr>${tn.map(x => `<tr><td>${esc(x.n || '')}</td><td>${esc(x.dye || '')}</td><td>${esc(x.q || 'None')}</td></tr>`).join('')}<tr class="sub"><td colspan="2">Passive reference</td><td>${esc(t.passive || 'None')}</td></tr></table>`;
-      const p1 = `<div class="sp">${hd}${plate}${ft(1)}</div>`;
-      const mmH = cs.map((c, i) => rtab(c, nest ? (i ? 'Round 2 — nested PCR' : 'Round 1 — outer PCR') : '')).join('');
+      const p1 = `<div class="sp p1">${hd}<div class="plw">${plate}</div>${ft(1)}</div>`;
+      const mmH = cs.map((c, i) => rtab(c, lblOf(t, i))).join('');
+      // cycling groups: first mix + every mix that shares its cycling; each "different" mix has its own table
+      const groups = []; cs.forEach((c, i) => { if (i === 0) groups.push({ ids: [0], r: c.r }); else if (c.r.sameCyc !== false) groups[0].ids.push(i); else groups.push({ ids: [i], r: c.r }); });
+      const gl = g => nest ? g.ids.map(i => lblOf(t, i)).join(' + ') : '';
+      const dyeT = `<div class="sec2">${conv ? 'Targets' : 'Dye'}</div>${dye}`;
       const body = nest ?
-        `<div class="sec2">Master mix</div><div class="g2">${cs.map((c, i) => `<div>${rtab(c, i ? 'Round 2 — nested PCR' : 'Round 1 — outer PCR')}</div>`).join('')}</div>` +
-        `<div class="g3"><div><div class="sec2">Cycling — round 1</div>${cyt(cs[0].r, '')}</div><div><div class="sec2">Cycling — round 2</div>${cyt(cs[1].r, '')}</div><div><div class="sec2">${conv ? 'Targets' : 'Dye'}</div>${dye}</div></div>` :
+        `<div class="sec2">Master mix</div><div class="gx" style="grid-template-columns:repeat(${cs.length},minmax(0,1fr))">${cs.map((c, i) => `<div>${rtab(c, lblOf(t, i))}</div>`).join('')}</div>` +
+        `<div class="gx" style="margin-top:5mm;grid-template-columns:repeat(${groups.length + 1},minmax(0,1fr))">${groups.map(g => `<div><div class="sec2">Cycling${gl(g) ? ' — ' + esc(gl(g)) : ''}</div>${cyt(g.r, '')}</div>`).join('')}<div>${dyeT}</div></div>` :
         `<div class="c2"><div><div class="sec2">Master mix</div>${mmH}</div><div><div class="sec2">Cycling condition</div>${cyt(cs[0].r, '')}<div class="sec2" style="margin-top:7mm">${conv ? 'Targets' : 'Dye'}</div>${dye}</div></div>`;
       const p2 = `<div class="sp ${nest ? 'nest' : ''}">${hd}${body}${ft(2)}</div>`;
       $('sheet').innerHTML = p1 + p2;
@@ -320,8 +339,8 @@
     const touch = () => { stamp(T()); save(); };
     function loadEditor() {
       const t = T(), r = cur(), conv = t.type === 'conv';
-      if (ed === 2 && !t.nested) ed = 1;
-      $('eName').value = t.name; $('eNote').value = t.note || ''; $('eType').value = t.type; $('eNest').value = t.nested ? '1' : '0'; $('ePass').value = t.passive || '';
+      if (ed > 1 && !t.sets[ed - 2]) ed = 1;
+      $('eName').value = t.name; $('eNote').value = t.note || ''; $('eType').value = t.type; $('ePass').value = t.passive || '';
       $('eBy').value = t.by && t.by !== 'Unknown' ? t.by : '';
       $('eTot').value = r.tot; $('eTpl').value = r.tpl; $('ePP').value = r.pp; $('eOvg').value = r.ovg;
       $('passF').style.display = conv ? 'none' : '';
@@ -335,10 +354,16 @@
       $('eTg').querySelectorAll('[data-ts]').forEach(i => i.addEventListener('input', () => { T().targets[+i.dataset.ts].sz = i.value; touch(); draw(); }));
       $('eTg').querySelectorAll('[data-td]').forEach(b => b.addEventListener('click', () => { T().targets.splice(+b.dataset.td, 1); touch(); loadEditor(); draw(); }));
       // round tabs
-      $('rdTabs').innerHTML = t.nested ? `<button type="button" class="secondary ${ed === 1 ? 'on' : ''}" data-rd="1">Round 1 (outer)</button><button type="button" class="secondary ${ed === 2 ? 'on' : ''}" data-rd="2">Round 2 (nested)</button>` : '';
-      $('rdTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { ed = +b.dataset.rd; loadEditor(); }));
-      $('rdCap').textContent = t.nested ? (ed === 2 ? 'Round 2 (nested) — reaction set-up' : 'Round 1 (outer) — reaction set-up') : 'Reaction set-up';
-      $('cyRd').textContent = t.nested ? '— ' + (ed === 2 ? 'round 2' : 'round 1') : '';
+      const all = setsOf(t);
+      $('rdTabs').innerHTML = all.map((x, i) => `<button type="button" class="secondary ${ed === i + 1 ? 'on' : ''}" data-rd="${i + 1}">${esc(lblOf(t, i) || 'Master mix 1')}</button>`).join('') + '<button type="button" class="secondary" id="setAdd">+ Add master mix</button>';
+      $('rdTabs').querySelectorAll('[data-rd]').forEach(b => b.addEventListener('click', () => { ed = +b.dataset.rd; loadEditor(); }));
+      $('setAdd').addEventListener('click', () => { const t = T(); t.sets.push(newRound(t, 'Mix ' + (t.sets.length + 2))); if (!t.label) t.label = 'Mix 1'; ed = t.sets.length + 1; touch(); loadEditor(); draw(); });
+      $('setOpt').style.display = all.length > 1 ? '' : 'none';
+      $('eLbl').value = ed > 1 ? t.sets[ed - 2].label : (t.label || ''); $('sameF').style.display = $('delF').style.display = ed > 1 ? '' : 'none';
+      if (ed > 1) $('eSame').value = t.sets[ed - 2].sameCyc === false ? '0' : '1';
+      const shared = ed > 1 && t.sets[ed - 2].sameCyc !== false;
+      $('rdCap').textContent = all.length > 1 ? (lblOf(t, ed - 1) + ' — reaction set-up') : 'Reaction set-up';
+      $('cyRd').textContent = all.length > 1 ? '— ' + lblOf(t, ed - 1) : '';
       // reagents (current round)
       const base = rows(r).filter(x => !x.calc).filter(x => x.ex === undefined), gone = DEF(r).filter(d => (r.hid || {})[d.k]);
       $('eRg').innerHTML = base.map(x => `<div class="rg"><span>${esc(x.name)}</span><input type="number" min="0" step="any" inputmode="decimal" data-k="${x.k}" value="${esc(r.v[x.k])}" placeholder="µL" /><button type="button" class="secondary" data-hd="${x.k}" aria-label="Remove ${esc(x.name)} — not used" title="Not used in this test">✕</button></div>`).join('') +
@@ -351,7 +376,8 @@
       $('eRg').querySelectorAll('[data-xv]').forEach(i => i.addEventListener('input', () => { cur().extra[+i.dataset.xv].v = i.value; touch(); draw(); }));
       $('eRg').querySelectorAll('[data-xd]').forEach(b => b.addEventListener('click', () => { cur().extra.splice(+b.dataset.xd, 1); touch(); loadEditor(); draw(); }));
       // cycling (current round)
-      $('eCy').innerHTML = (r.cyc || []).map((x, i) => `<div class="cy"><input type="text" data-cn="${i}" value="${esc(x.n)}" placeholder="Step" /><div class="io"><input type="text" inputmode="decimal" data-ct="${i}" value="${esc(x.temp)}" placeholder="95" /><span>°C</span></div><div class="io"><input type="text" inputmode="decimal" data-cm="${i}" value="${esc(x.time)}" placeholder="30" /><select data-cu="${i}" aria-label="Time unit"><option value="s" ${x.tu === 'min' ? '' : 'selected'}>sec</option><option value="min" ${x.tu === 'min' ? 'selected' : ''}>min</option></select></div><input type="text" data-cc="${i}" value="${esc(x.cyc)}" placeholder="40" inputmode="numeric" /><label style="text-align:center" title="Merge cycles cell with the step above"><input type="checkbox" data-cg="${i}" ${x.mg && i ? 'checked' : ''} ${i ? '' : 'disabled'} /></label><button type="button" class="secondary" data-cd="${i}" aria-label="Remove step">✕</button></div>`).join('');
+      $('cyAdd').style.display = shared ? 'none' : '';
+      $('eCy').innerHTML = shared ? '<div class="hint">Uses the same cycling condition as the first master mix. Change “Cycling condition” above to give it its own.</div>' : (r.cyc || []).map((x, i) => `<div class="cy"><input type="text" data-cn="${i}" value="${esc(x.n)}" placeholder="Step" /><div class="io"><input type="text" inputmode="decimal" data-ct="${i}" value="${esc(x.temp)}" placeholder="95" /><span>°C</span></div><div class="io"><input type="text" inputmode="decimal" data-cm="${i}" value="${esc(x.time)}" placeholder="30" /><select data-cu="${i}" aria-label="Time unit"><option value="s" ${x.tu === 'min' ? '' : 'selected'}>sec</option><option value="min" ${x.tu === 'min' ? 'selected' : ''}>min</option></select></div><input type="text" data-cc="${i}" value="${esc(x.cyc)}" placeholder="40" inputmode="numeric" /><label style="text-align:center" title="Merge cycles cell with the step above"><input type="checkbox" data-cg="${i}" ${x.mg && i ? 'checked' : ''} ${i ? '' : 'disabled'} /></label><button type="button" class="secondary" data-cd="${i}" aria-label="Remove step">✕</button></div>`).join('');
       $('eCy').querySelectorAll('[data-cu]').forEach(i => i.addEventListener('change', () => { cur().cyc[+i.dataset.cu].tu = i.value; touch(); draw(); }));
       $('eCy').querySelectorAll('[data-cg]').forEach(i => i.addEventListener('change', () => { cur().cyc[+i.dataset.cg].mg = i.checked; touch(); draw(); }));
       [['cn', 'n'], ['ct', 'temp'], ['cm', 'time'], ['cc', 'cyc']].forEach(([a, k]) => $('eCy').querySelectorAll(`[data-${a}]`).forEach(i => i.addEventListener('input', () => { cur().cyc[+i.dataset[a]][k] = i.value; touch(); draw(); })));
@@ -361,7 +387,9 @@
     [['eTot', 'tot'], ['eTpl', 'tpl'], ['eOvg', 'ovg']].forEach(([id, k]) => $(id).addEventListener('input', () => { cur()[k] = $(id).value; touch(); draw(); }));
     $('ePP').addEventListener('change', () => { cur().pp = $('ePP').value; touch(); loadEditor(); draw(); });
     $('eType').addEventListener('change', () => { const t = T(), unt = c => (c || []).every(s => !s.temp && !s.time); t.type = $('eType').value; if (unt(t.cyc)) t.cyc = defCyc(t.type); touch(); loadEditor(); draw(); });
-    $('eNest').addEventListener('change', () => { const t = T(); t.nested = $('eNest').value === '1'; if (t.nested && !t.r2) t.r2 = newRound(t); if (!t.nested) ed = 1; touch(); loadEditor(); draw(); });
+    $('eLbl').addEventListener('input', () => { const t = T(); if (ed > 1) t.sets[ed - 2].label = $('eLbl').value; else t.label = $('eLbl').value; touch(); draw(); const bt = $('rdTabs').querySelector(`[data-rd="${ed}"]`); if (bt) bt.textContent = $('eLbl').value || 'Mix ' + ed; });
+    $('eSame').addEventListener('change', () => { const x = cur(); x.sameCyc = $('eSame').value === '1'; if (!x.sameCyc && !(x.cyc && x.cyc.length)) x.cyc = defCyc('conv'); touch(); loadEditor(); draw(); });
+    $('setDel').addEventListener('click', () => { const t = T(); if (ed < 2) return; if (!confirm('Remove master mix “' + (t.sets[ed - 2].label || 'Mix ' + ed) + '”?')) return; t.sets.splice(ed - 2, 1); ed = 1; touch(); loadEditor(); draw(); });
     $('tgAdd').addEventListener('click', () => { T().targets.push({ n: '', dye: '', q: 'None', sz: '' }); touch(); loadEditor(); draw(); });
     $('cyAdd').addEventListener('click', () => { cur().cyc.push(stg('')); touch(); loadEditor(); draw(); });
     $('tSel').addEventListener('change', () => { D.cur = $('tSel').value; ed = 1; VC.store.set(KEY, D); loadEditor(); draw(); });
