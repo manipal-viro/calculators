@@ -29,7 +29,51 @@
     textarea { width: 100%; min-height: 90px; }
     .big { font-size: 1.15rem; }
     @media (max-width: 720px) { .meth { grid-template-columns: 1fr; } }
-    @media print { .no-print-x { display: none !important; } }
+    .tg { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) 36px; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .tg.cv { grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) 36px; }
+    .cy { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.7fr) 36px; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .cy.h { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+    .tg button, .cy button { padding: 6px; }
+    .rdt { display: flex; gap: 6px; margin: 14px 0 8px; }
+    .rdt button { padding: 6px 14px; } .rdt button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .sec { font-weight: 800; font-size: .85rem; color: var(--accent-dark); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .03em; }
+    .rcap { font-weight: 800; color: var(--accent-dark); margin: 14px 0 4px; }
+    .sheet { display: none; }
+    .sheet.show { display: block; overflow-x: auto; margin-top: 12px; }
+    .sheet.show .sp { border: 1px solid #94a3b8; margin-bottom: 12px; background: #fff; }
+    /* ---- print worksheet (A4 landscape, 2 pages) ---- */
+    .sheet, .sheet * { box-sizing: border-box; }
+    .sheet .sp { width: 281mm; height: 192mm; position: relative; overflow: hidden; padding: 0; font-family: 'Cambria', 'Times New Roman', serif; font-size: 8.5pt; color: #000; background: #fff; }
+    .sheet table { border-collapse: collapse; width: 100%; }
+    .sheet th, .sheet td { border: 1px solid #000; padding: 1px 4px; text-align: left; vertical-align: middle; height: 5mm; }
+    .sheet th { font-weight: 700; text-align: center; background: #fff; color: #000; }
+    .sheet .cap { font-weight: 700; background: #eee !important; text-align: left; }
+    .sh-hd { display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: start; font-size: 9pt; margin-bottom: 2mm; }
+    .sh-hd .c { text-align: center; font-size: 10.5pt; line-height: 1.25; } .sh-hd .r { text-align: right; font-size: 10pt; }
+    .sheet .ul { display: inline-block; min-width: 32mm; border-bottom: 1px solid #000; }
+    .sh-plate th, .sh-plate td { height: 9.8mm; text-align: center; font-size: 12pt; }
+    .sh-plate th:first-child { width: 11mm; }
+    .sh-u { font-weight: 700; text-decoration: underline; margin: 2mm 0 1mm; font-size: 8pt; }
+    .sh-row { display: flex; gap: 8mm; align-items: flex-start; }
+    .sh-row > div { flex: 0 0 auto; }
+    .sh-t td:first-child { font-weight: 700; font-size: 8pt; }
+    .sh-t td, .sh-t th { height: 4.6mm; }
+    .sh-pg { position: absolute; left: 0; bottom: 0; font-size: 8pt; }
+    .sh-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; align-items: start; }
+    .fb { border: 1.5px solid #000; padding: 1.6mm 3mm; text-align: center; font-family: Calibri, Arial, sans-serif; font-size: 8.5pt; position: relative; }
+    .fb i { position: absolute; right: 0; top: 0; bottom: 0; width: 6mm; border-left: 1.5px solid #000; }
+    .fa { text-align: center; line-height: 1; font-size: 8pt; height: 2.6mm; overflow: hidden; }
+    .sheet .yn { font-weight: 700; text-align: center; width: 24mm; }
+    .sheet .gap { height: 3mm; }
+    @media print {
+      @page { size: A4 landscape; margin: 8mm; }
+      .container > *:not(#sheet) { display: none !important; }
+      #sheet { display: block !important; margin: 0 !important; overflow: visible !important; }
+      #sheet .sp { border: 0 !important; margin: 0 !important; page-break-after: always; break-after: page; }
+      #sheet .sp:last-child { page-break-after: auto; break-after: auto; }
+      .sheet th, .sheet td { border: 1px solid #000 !important; }
+      .sheet .cap { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style>
   <script src="../js/common.js" defer></script>
   <script src="../js/auth.js" defer></script>
@@ -55,11 +99,23 @@
       <div class="sub" id="rSub"></div>
     </div>
 
-    <div class="tbl-wrap"><table class="tbl" id="tbl"></table></div>
+    <div id="tbls"></div>
     <div class="note" id="warn" style="display:none"></div>
     <div id="meta" class="hint" style="margin-top:10px"></div>
     <div id="procView" class="hint" style="white-space:pre-wrap; margin-top:10px"></div>
-    <div class="action-row no-print-x"><button type="button" class="secondary" id="cpy">Copy</button><button type="button" class="secondary" onclick="window.print()">Print</button></div>
+    <div class="action-row no-print-x"><button type="button" class="secondary" id="cpy">Copy</button><button type="button" id="prt">Print worksheet (2 pages, landscape)</button><button type="button" class="secondary" id="prev">Preview sheet</button></div>
+
+    <details class="no-print-x" id="pdet" style="margin-top:14px">
+      <summary>Print sheet details (date, test ID, Sr. no.)</summary>
+      <div class="row" style="margin-top:10px">
+        <div class="field"><label for="dLab">Institute / lab name</label><input type="text" id="dLab" /></div>
+        <div class="field"><label for="dCat">Test category</label><select id="dCat"><option>Commercial/Research</option><option>Commercial</option><option>Research</option></select></div>
+        <div class="field"><label for="dDate">Date</label><input type="text" id="dDate" placeholder="today if empty" /></div>
+        <div class="field"><label for="dTid">Test ID</label><input type="text" id="dTid" /></div>
+        <div class="field"><label for="dSr">Sr. No.</label><input type="text" id="dSr" /></div>
+      </div>
+      <p class="hint">Print uses A4 landscape: page 1 = plate template + reaction set-up, page 2 = workflow, cycling, result, validity and sign-off. Set margins to “Default/None” and tick “Background graphics” off.</p>
+    </details>
 
     <details class="no-print-x" id="editor" style="margin-top:18px">
       <summary>Edit / add tests (saved automatically)</summary>
@@ -69,22 +125,42 @@
         <button type="button" class="secondary" id="tDel" style="color:#991b1b;border-color:#fca5a5">Delete</button>
       </div>
       <div class="row">
-        <div class="field"><label for="eName">Test name</label><input type="text" id="eName" placeholder="e.g. HBV, Dengue RT-PCR" /></div>
+        <div class="field"><label for="eName">Test name</label><input type="text" id="eName" placeholder="e.g. HSV1/2, VZV" /></div>
         <div class="field"><label for="eBy">Added by (person name)</label><input type="text" id="eBy" placeholder="Name of person adding this test" autocomplete="name" /></div>
-        <div class="field"><label for="eTot">Total volume per reaction (µL)</label><input type="number" id="eTot" min="0" step="any" inputmode="decimal" /></div>
-        <div class="field"><label for="eTpl">Template / sample per reaction (µL)</label><input type="number" id="eTpl" min="0" step="any" inputmode="decimal" /></div>
       </div>
       <div class="row">
+        <div class="field"><label for="eType">PCR type</label><select id="eType"><option value="rt">Real-time PCR (qPCR)</option><option value="conv">Conventional PCR</option></select></div>
+        <div class="field" id="nestF"><label for="eNest">Runs</label><select id="eNest"><option value="0">Single run</option><option value="1">Nested — 2 runs (outer + nested)</option></select></div>
+      </div>
+
+      <div class="sec" id="tgT">Targets</div>
+      <div id="eTg"></div>
+      <button type="button" class="secondary" id="tgAdd">+ Add target</button>
+      <div class="field" id="passF" style="margin-top:10px;max-width:320px"><label for="ePass">Passive reference</label><input type="text" id="ePass" placeholder="e.g. ROX / None" /></div>
+
+      <div class="rdt" id="rdTabs"></div>
+      <div class="rcap" id="rdCap">Reaction set-up</div>
+      <div class="row">
+        <div class="field"><label for="eTot">Total volume per reaction (µL)</label><input type="number" id="eTot" min="0" step="any" inputmode="decimal" /></div>
+        <div class="field"><label for="eTpl">Template / sample per reaction (µL)</label><input type="number" id="eTpl" min="0" step="any" inputmode="decimal" /></div>
         <div class="field"><label for="ePP">Primers &amp; probe</label><select id="ePP"><option value="sep">Separate: Forward, Reverse, Probe</option><option value="mix">Primer-Probe mix</option></select></div>
         <div class="field"><label for="eOvg">Extra volume (%)</label><input type="number" id="eOvg" min="0" step="any" inputmode="decimal" /></div>
       </div>
       <label style="font-weight:700;font-size:.85rem">Reagent volume per reaction (µL) — water is calculated automatically</label>
       <div id="eRg" style="margin-top:6px"></div>
       <button type="button" class="secondary" id="rAdd">+ Add reagent</button>
+
+      <div class="sec">Cycling conditions <span id="cyRd"></span></div>
+      <div class="cy h"><span>Step</span><span>Temperature</span><span>Time</span><span>Cycles</span><span></span></div>
+      <div id="eCy"></div>
+      <button type="button" class="secondary" id="cyAdd">+ Add step</button>
+
       <div class="field" style="margin-top:14px"><label for="eNote">Procedure / notes (shown under the result)</label><textarea id="eNote" placeholder="e.g. Thaw reagents on ice, vortex, spin down. Mix in a clean hood. Dispense 20 µL per well, add 5 µL template."></textarea></div>
     </details>
 
-    <div class="version-tag">Viro Calculator • v5.2</div>
+    <div class="sheet" id="sheet"></div>
+
+    <div class="version-tag">Viro Calculator • v5.6</div>
   </div>
 
   <script>
@@ -94,13 +170,20 @@
     const me = () => (window.VCAuth && VCAuth.state.user ? VCAuth.who() : '') || VC.store.get('viro_user_name', '') || 'Unknown';
     const stamp = t => { t.editBy = me(); t.editAt = Date.now(); };
     const fdt = ms => ms ? new Date(ms).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-    const blank = name => ({ id: uid(), name: name || 'New test', tot: '', tpl: '', pp: 'sep', ovg: 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, extra: [], note: '', by: '', at: Date.now() });
+    const stg = (n, cyc) => ({ n, temp: '', time: '', cyc: cyc || '' });
+    const defCyc = type => type === 'conv' ? [stg('Initial denaturation', '1'), stg('Denaturation'), stg('Annealing'), stg('Extension'), stg('Final extension', '1')] : [stg('Reverse transcription / hold', '1'), stg('Denaturation'), stg('Annealing / Extension')];
+    const newRound = t => ({ tot: '', tpl: '', pp: 'sep', ovg: t.ovg || 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, hid: {}, extra: [], cyc: defCyc('conv') });
+    const ensure = t => { t.type = t.type || 'rt'; t.targets = t.targets || []; if (t.passive === undefined) t.passive = 'None'; if (!t.cyc) t.cyc = defCyc(t.type); t.nested = !!t.nested; if (t.nested && !t.r2) t.r2 = newRound(t); t.v = t.v || {}; t.extra = t.extra || []; return t; };
+    const blank = name => ensure({ id: uid(), name: name || 'New test', tot: '', tpl: '', pp: 'sep', ovg: 0, v: { buf: '', fwd: '', rev: '', probe: '', ppm: '', enz: '' }, extra: [], note: '', by: '', at: Date.now() });
     let D = VC.store.get(KEY, null);
     if (!D || !D.tests || !D.tests.length) { const t = blank('Test 1'); D = { tests: [t], cur: t.id, savedAt: 0 }; }
+    D.tests.forEach(ensure);
     const T = () => D.tests.find(t => t.id === D.cur) || D.tests[0];
+    let ed = 1;                                          // round being edited (1 = outer / only run, 2 = nested run)
+    const cur = () => { const t = T(); return ed === 2 && t.nested && t.r2 ? t.r2 : t; };
     const n = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
     const DEF = t => [{ k: 'buf', name: 'PCR Buffer (MM)' }].concat(t.pp === 'mix' ? [{ k: 'ppm', name: 'Primer-Probe mix' }] : [{ k: 'fwd', name: 'Forward primer' }, { k: 'rev', name: 'Reverse primer' }, { k: 'probe', name: 'Probe' }], [{ k: 'enz', name: 'Enzyme' }]);
-    const rows = t => {                                  // [{name, v, calc?}] in bench order
+    const rows = t => {                                  // t = a round object; [{name, v, calc?}] in bench order
       const r = [{ k: 'nfw', name: 'NFW (Nuclease-Free Water)', calc: true }], h = t.hid || {};
       DEF(t).forEach(d => { if (!h[d.k]) r.push(d); });
       t.extra.forEach((e, i) => r.push({ k: 'x' + i, name: e.n || 'Reagent ' + (i + 1), ex: i }));
@@ -125,62 +208,146 @@
         if (!snap.exists()) { if (D.savedAt) push(); else setSync('ok', '🔒 Synced with ' + (st.deptName || st.dept)); return; }
         const r = snap.data();
         if (r.savedAt > D.savedAt) {
-          try { const nd = JSON.parse(r.json); if (nd && nd.tests && nd.tests.length) { const cur = D.cur; D = nd; D.cur = D.tests.some(t => t.id === cur) ? cur : D.tests[0].id; VC.store.set(KEY, D); fillSel(); loadEditor(); draw(); } } catch (e) { /* ignore */ }
+          try { const nd = JSON.parse(r.json); if (nd && nd.tests && nd.tests.length) { const cu = D.cur; D = nd; D.tests.forEach(ensure); ed = 1; D.cur = D.tests.some(t => t.id === cu) ? cu : D.tests[0].id; VC.store.set(KEY, D); fillSel(); loadEditor(); draw(); } } catch (e) { /* ignore */ }
           setSync('ok', '🔒 Synced (updated from another device)');
         } else if (r.savedAt < D.savedAt) push(); else setSync('ok', '🔒 Synced with ' + (st.deptName || st.dept));
       }, () => setSync('off', 'No access — saved on this device'));
     });
 
+    /* ---------- print-sheet details ---------- */
+    const DET = Object.assign({ lab: 'MANIPAL INSTITUTE OF VIROLOGY', cat: 'Commercial/Research', date: '', tid: '', sr: '' }, VC.store.get('viro_sheet_det', {}));
+
     /* ---------- prepare view ---------- */
-    function draw() {
-      const t = T(), rx = Math.floor(n($('rxn').value)), ovg = 1 + n(t.ovg) / 100;
-      const tot = n(t.tot), tpl = n(t.tpl), rs = rows(t);
-      const others = rs.filter(r => !r.calc).reduce((s, r) => s + r.v, 0), nfw = tot - tpl - others, mm = tot - tpl;
-      const warn = $('warn'); warn.style.display = 'none';
-      $('rTitle').textContent = t.name + ' — master mix';
-      $('meta').textContent = (t.by ? 'Added by ' + t.by + ' · ' + fdt(t.at) : 'Added by: not recorded') + (t.editAt && (t.editAt !== t.at) ? '  |  Last edited by ' + (t.editBy || 'Unknown') + ' · ' + fdt(t.editAt) : '');
-      if (!tot) { $('rVal').textContent = '—'; $('rSub').textContent = 'Set the total volume and reagent volumes under “Edit / add tests”.'; $('tbl').innerHTML = ''; $('procView').textContent = t.note || ''; return; }
-      if (nfw < -1e-9) { warn.className = 'note err'; warn.textContent = `Reagents + template (${fmt(others + tpl, 4)} µL) exceed the total volume (${fmt(tot, 4)} µL) — check the volumes.`; warn.style.display = ''; }
-      const f = v => fmt(v, 4);
+    const f4 = v => fmt(v, 4);
+    function calcRound(r, rx) {
+      const ovg = 1 + n(r.ovg) / 100, tot = n(r.tot), tpl = n(r.tpl), rs = rows(r);
+      const others = rs.filter(x => !x.calc).reduce((q, x) => q + x.v, 0), nfw = tot - tpl - others;
       rs[0].v = Math.max(0, nfw);
-      const scale = rx > 0 ? rx * ovg : 0;
-      $('tbl').innerHTML = '<thead><tr><th>Reagent</th><th class="num">Per reaction (µL)</th><th class="num">' + (rx ? 'For ' + rx + ' rxn' + (rx > 1 ? 's' : '') + (n(t.ovg) ? ' (+' + fmt(n(t.ovg), 3) + ' %)' : '') + ' (µL)' : 'Enter reactions') + '</th></tr></thead><tbody>' +
-        rs.map(r => `<tr class="${r.calc ? 'nfw' : ''}"><td>${esc(r.name)}</td><td class="num">${f(r.v)}</td><td class="num"><b>${scale ? f(r.v * scale) : '—'}</b></td></tr>`).join('') +
-        `<tr class="tot"><td>Master mix total</td><td class="num">${f(mm)}</td><td class="num">${scale ? f(mm * scale) : '—'}</td></tr>` +
-        (tpl ? `<tr><td>Template / sample (add per well)</td><td class="num">${f(tpl)}</td><td class="num">${scale ? f(tpl * rx) : '—'}</td></tr>` : '') +
-        `<tr class="tot"><td>Total volume per single reaction</td><td class="num">${f(tot)}</td><td class="num">${rx ? f(tot * rx) : '—'}</td></tr></tbody>`;
-      $('rVal').textContent = scale ? f(mm * scale) + ' µL' : '—';
-      $('rSub').textContent = scale ? `Dispense ${f(mm)} µL per well${tpl ? ' + ' + f(tpl) + ' µL template = ' + f(tot) + ' µL' : ''}` : 'Enter the number of reactions.';
+      return { r, rx, tot, tpl, rs, others, nfw, mm: tot - tpl, scale: rx > 0 ? rx * ovg : 0 };
+    }
+    function roundTable(c, title) {
+      const r = c.r;
+      return (title ? `<div class="rcap">${esc(title)}</div>` : '') + '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Reagent</th><th class="num">Per reaction (µL)</th><th class="num">' + (c.rx ? 'For ' + c.rx + ' rxn' + (c.rx > 1 ? 's' : '') + (n(r.ovg) ? ' (+' + fmt(n(r.ovg), 3) + ' %)' : '') + ' (µL)' : 'Enter reactions') + '</th></tr></thead><tbody>' +
+        c.rs.map(x => `<tr class="${x.calc ? 'nfw' : ''}"><td>${esc(x.name)}</td><td class="num">${f4(x.v)}</td><td class="num"><b>${c.scale ? f4(x.v * c.scale) : '—'}</b></td></tr>`).join('') +
+        `<tr class="tot"><td>Master mix total</td><td class="num">${f4(c.mm)}</td><td class="num">${c.scale ? f4(c.mm * c.scale) : '—'}</td></tr>` +
+        (c.tpl ? `<tr><td>Template / sample (add per well)</td><td class="num">${f4(c.tpl)}</td><td class="num">${c.scale ? f4(c.tpl * c.rx) : '—'}</td></tr>` : '') +
+        `<tr class="tot"><td>Total volume per single reaction</td><td class="num">${f4(c.tot)}</td><td class="num">${c.rx ? f4(c.tot * c.rx) : '—'}</td></tr></tbody></table></div>`;
+    }
+    function draw() {
+      const t = T(), rx = Math.floor(n($('rxn').value));
+      const cs = [calcRound(t, rx)]; if (t.nested && t.r2) cs.push(calcRound(t.r2, rx));
+      const warn = $('warn'); warn.style.display = 'none';
+      $('rTitle').textContent = t.name + ' — master mix' + (cs.length > 1 ? ' (round 1 / round 2)' : '');
+      $('meta').textContent = (t.by ? 'Added by ' + t.by + ' · ' + fdt(t.at) : 'Added by: not recorded') + (t.editAt && (t.editAt !== t.at) ? '  |  Last edited by ' + (t.editBy || 'Unknown') + ' · ' + fdt(t.editAt) : '');
       $('procView').textContent = t.note ? 'Procedure:\n' + t.note : '';
-      window._txt = `${t.name} — ${rx} reactions${n(t.ovg) ? ' (+' + n(t.ovg) + ' %)' : ''}\n` + rs.map(r => `${r.name}: ${scale ? f(r.v * scale) : f(r.v)} µL`).join('\n') + `\nMaster mix total: ${scale ? f(mm * scale) : f(mm)} µL\nTotal per reaction: ${f(tot)} µL`;
+      buildSheet(t, cs, rx);
+      if (!cs[0].tot) { $('rVal').textContent = '—'; $('rSub').textContent = 'Set the total volume and reagent volumes under “Edit / add tests”.'; $('tbls').innerHTML = ''; return; }
+      const w = []; cs.forEach((c, i) => { if (c.nfw < -1e-9) w.push(`${cs.length > 1 ? 'Round ' + (i + 1) + ': ' : ''}reagents + template (${f4(c.others + c.tpl)} µL) exceed the total volume (${f4(c.tot)} µL) — check the volumes.`); });
+      if (w.length) { warn.className = 'note err'; warn.textContent = w.join(' '); warn.style.display = ''; }
+      $('tbls').innerHTML = cs.map((c, i) => roundTable(c, cs.length > 1 ? (i ? 'Round 2 — nested PCR' : 'Round 1 — outer PCR') : '')).join('');
+      $('rVal').textContent = cs.map(c => c.scale ? f4(c.mm * c.scale) + ' µL' : '—').join('  ·  ');
+      $('rSub').textContent = cs.some(c => c.scale) ? cs.map((c, i) => `${cs.length > 1 ? 'Round ' + (i + 1) + ': ' : ''}dispense ${f4(c.mm)} µL per well${c.tpl ? ' + ' + f4(c.tpl) + ' µL template = ' + f4(c.tot) + ' µL' : ''}`).join(' | ') : 'Enter the number of reactions.';
+      window._txt = cs.map((c, i) => `${t.name}${cs.length > 1 ? ' — round ' + (i + 1) : ''} — ${rx} reactions${n(c.r.ovg) ? ' (+' + n(c.r.ovg) + ' %)' : ''}\n` + c.rs.map(x => `${x.name}: ${c.scale ? f4(x.v * c.scale) : f4(x.v)} µL`).join('\n') + `\nMaster mix total: ${c.scale ? f4(c.mm * c.scale) : f4(c.mm)} µL\nTotal per reaction: ${f4(c.tot)} µL`).join('\n\n');
+    }
+
+    /* ---------- printable worksheet (A4 landscape, 2 pages) ---------- */
+    function buildSheet(t, cs, rx) {
+      const ul = x => `<span class="ul">${esc(x || '')}&nbsp;</span>`, conv = t.type === 'conv';
+      const tg = t.targets.filter(x => x.n || x.dye || x.q || x.sz), tn = tg.length ? tg : [{ n: '' }];
+      const nest = cs.length > 1, today = new Date().toLocaleDateString('en-GB');
+      const hd = `<div class="sh-hd"><div>Date: ${esc(DET.date || today)}<br><b>Test ID:</b> ${ul(DET.tid)}</div><div class="c"><b>${esc(DET.lab)}</b><br><b>Template for ${esc(t.name)}</b><br><b>Test:- ${esc(DET.cat)}</b></div><div class="r"><b>Sr. NO.</b> ${ul(DET.sr)}</div></div>`;
+      const plate = '<table class="sh-plate"><tr><th></th>' + Array.from({ length: 12 }, (_, i) => `<th>${i + 1}</th>`).join('') + '</tr>' +
+        'ABCDEFGH'.split('').map(r => `<tr><th>${r}</th>${'<td></td>'.repeat(12)}</tr>`).join('') + '</table>';
+      const names = tg.map(x => x.n).filter(Boolean).join(', ');
+      const counts = `<table class="sh-t" style="width:62mm"><tr><th>Test</th><th>${esc(names || t.name)}</th></tr><tr><td>No template control</td><td></td></tr><tr><td>Positive control</td><td></td></tr><tr><td>Sample</td><td></td></tr><tr><td>Total Reaction (N)</td><td>${rx ? rx : ''}</td></tr></table>`;
+      const rtab = (c, lbl) => {
+        const has = c.tot > 0, v = x => has ? f4(x) : '', vs = x => has && c.scale ? f4(x * c.scale) : '';
+        const hdr = c.rx ? `N = ${c.rx}${n(c.r.ovg) ? ' (+' + fmt(n(c.r.ovg), 3) + '%)' : ''}` : '(N+1 = _X)';
+        return `<table class="sh-t" style="width:${nest ? 98 : 120}mm">${lbl ? `<tr><td colspan="3" class="cap">${lbl}</td></tr>` : ''}<tr><th>Reagent</th><th style="width:18mm">Volume (1x)</th><th style="width:26mm">${hdr}</th></tr>` +
+          c.rs.map(x => `<tr><td>${esc(x.name).toUpperCase()}</td><td>${v(x.v)}</td><td>${vs(x.v)}</td></tr>`).join('') +
+          `<tr><td>MASTERMIX TOTAL</td><td>${v(c.mm)}</td><td>${vs(c.mm)}</td></tr><tr><td>TEMPLATE VOLUME</td><td>${v(c.tpl)}</td><td>${has && c.rx ? f4(c.tpl * c.rx) : ''}</td></tr><tr><td>TOTAL VOLUME</td><td>${v(c.tot)}</td><td>${has && c.rx ? f4(c.tot * c.rx) : ''}</td></tr></table>`;
+      };
+      const p1 = `<div class="sp">${hd}${plate}<div class="sh-u">REACTION SET UP</div><div class="sh-row"><div>${counts}</div>${cs.map((c, i) => `<div>${rtab(c, nest ? (i ? 'ROUND 2 — NESTED PCR' : 'ROUND 1 — OUTER PCR') : '')}</div>`).join('')}</div><div class="sh-pg">Page 1 of 2</div></div>`;
+
+      // page 2
+      const steps = ['Samples are assigned in template', 'In computer, program is loaded and samples are assigned same as in template', 'Arrange samples in sequence according to template', 'Take reagents for preparing reaction mixture from freezer', 'Add reaction mixture into plate/tube according to template', 'Keep back reagents in freezer', 'Add sample in reaction mixture according to assigned template'];
+      const flow = steps.map(x => `<div class="fb">${x}<i></i></div>`).join('<div class="fa">▼</div>');
+      const vcol = tn.map(x => `<th colspan="2">${esc(x.n || '')}</th>`).join('');
+      const valid = `<table style="margin-top:6mm"><tr><th colspan="${1 + tn.length * 2}">VALIDITY OF THE ASSAY</th></tr><tr><td>Test</td>${vcol}</tr>` +
+        ['NTC', 'PC'].map(k => `<tr><td>${k}</td>${tn.map(() => '<th>Valid</th><th>Invalid</th>').join('')}</tr>`).join('') + '</table>';
+      const cyt = (r, lbl) => `${lbl ? `<tr><td colspan="4" class="cap">${lbl}</td></tr>` : ''}<tr><th>Step</th><th>Temperature</th><th>Time</th><th>No. of Cycles</th></tr>` +
+        (r.cyc && r.cyc.length ? r.cyc : [stg(''), stg(''), stg('')]).map(x => `<tr><td>${esc(x.n)}</td><td>${esc(x.temp)}</td><td>${esc(x.time)}</td><td>${esc(x.cyc)}</td></tr>`).join('');
+      const cycle = `<table><tr><th colspan="3" style="text-align:left">CYCLING CONDITION IS SAME AS BELOW IN PROGRAMME: YES / NO</th><td class="yn">YES / NO</td></tr><tr><td colspan="4" style="padding:0;border:0"><table>${cyt(cs[0].r, nest ? 'ROUND 1 — OUTER PCR' : '')}${nest ? cyt(cs[1].r, 'ROUND 2 — NESTED PCR') : ''}</table></td></tr></table>`;
+      const res = `<table style="margin-top:4mm"><tr><th style="text-align:left">RESULT</th>${tn.map(x => `<th>${esc(x.n || '')}</th>`).join('')}</tr><tr><td>Negative sample (No.)</td>${tn.map(() => '<td></td>').join('')}</tr><tr><td>Positive sample (No.)</td>${tn.map(() => '<td></td>').join('')}</tr></table>`;
+      const quen = [...new Set(tg.map(x => x.q).filter(Boolean))].join(' / ') || 'None';
+      const dye = conv ? `<table style="margin-top:4mm"><tr><th colspan="2" style="text-align:left">TARGET / AMPLICON SIZE</th></tr>${tn.map(x => `<tr><td>${esc(x.n || '')}</td><td style="text-align:center"><b>${esc(x.sz ? x.sz + ' bp' : '')}</b></td></tr>`).join('')}</table>` :
+        `<table style="margin-top:4mm"><tr><th colspan="2" style="text-align:left">REPORTER DYE IS SAME AS BELOW IN PROGRAM: YES / NO</th><td class="yn">YES / NO</td></tr>` +
+        tn.map(x => `<tr><td>Reporter dye (${esc(x.n || '')})</td><td style="text-align:center;width:30mm"><b>${esc(x.dye || '')}</b></td><td></td></tr>`).join('') +
+        `<tr><td>Quencher</td><td style="text-align:center"><b>${esc(quen)}</b></td><td></td></tr><tr><td>Passive reference</td><td style="text-align:center"><b>${esc(t.passive || 'None')}</b></td><td></td></tr></table>`;
+      const sign = `<table style="margin-top:5mm"><tr><td style="width:36mm"><b>PCR cabinet ID</b></td><td>MAHE/MIV/EQP</td><td class="yn" style="width:22mm">Time</td><td style="width:90mm"></td></tr><tr><td><b>PCR workstation ID</b></td><td>MAHE/MIV/EQP</td><td class="yn">Time</td><td></td></tr><tr><td><b>Thermocycler ID</b></td><td>MAHE/MIV/EQP</td><td class="yn">Time</td><td></td></tr><tr><td><b>Test performed by</b></td><td></td><td class="yn">Sign</td><td></td></tr><tr><td><b>Test verified by</b></td><td></td><td class="yn">Sign</td><td></td></tr></table>` +
+        `<div style="margin-top:4mm">Run <b>ACCEPTED/ REJECTED</b> (Reasons if <b>REJECTED</b>: <span class="ul" style="min-width:170mm">&nbsp;</span> )</div>`;
+      const p2 = `<div class="sp"><div class="sh-cols"><div>${flow}${valid}</div><div>${cycle}${res}${dye}</div></div>${sign}<div class="sh-pg">Page 2 of 2 — ${esc(t.name)}</div></div>`;
+      $('sheet').innerHTML = p1 + p2;
     }
 
     /* ---------- editor ---------- */
     function fillSel() { $('tSel').innerHTML = D.tests.map(t => `<option value="${t.id}">${esc(t.name || 'Untitled')}</option>`).join(''); $('tSel').value = T().id; }
+    const touch = () => { stamp(T()); save(); };
     function loadEditor() {
-      const t = T(); $('eName').value = t.name; $('eTot').value = t.tot; $('eTpl').value = t.tpl; $('ePP').value = t.pp; $('eOvg').value = t.ovg; $('eNote').value = t.note || '';
+      const t = T(), r = cur(), conv = t.type === 'conv';
+      if (ed === 2 && !t.nested) ed = 1;
+      $('eName').value = t.name; $('eNote').value = t.note || ''; $('eType').value = t.type; $('eNest').value = t.nested ? '1' : '0'; $('ePass').value = t.passive || '';
       $('eBy').value = t.by && t.by !== 'Unknown' ? t.by : '';
-      const base = rows(t).filter(r => !r.calc).filter(r => r.ex === undefined), gone = DEF(t).filter(d => (t.hid || {})[d.k]);
-      $('eRg').innerHTML = base.map(r => `<div class="rg"><span>${esc(r.name)}</span><input type="number" min="0" step="any" inputmode="decimal" data-k="${r.k}" value="${esc(t.v[r.k])}" placeholder="µL" /><button type="button" class="secondary" data-hd="${r.k}" aria-label="Remove ${esc(r.name)} — not used" title="Not used in this test">✕</button></div>`).join('') +
+      $('eTot').value = r.tot; $('eTpl').value = r.tpl; $('ePP').value = r.pp; $('eOvg').value = r.ovg;
+      $('passF').style.display = conv ? 'none' : '';
+      $('tgT').textContent = conv ? 'Targets (name · amplicon size)' : 'Targets (name · reporter dye · quencher)';
+      $('eTg').innerHTML = t.targets.map((x, i) => conv ?
+        `<div class="tg cv"><input type="text" data-tn="${i}" value="${esc(x.n || '')}" placeholder="Target name" /><input type="text" data-ts="${i}" value="${esc(x.sz || '')}" placeholder="Amplicon size (bp)" /><button type="button" class="secondary" data-td="${i}" aria-label="Remove target">✕</button></div>` :
+        `<div class="tg"><input type="text" data-tn="${i}" value="${esc(x.n || '')}" placeholder="Target name" /><input type="text" data-ty="${i}" value="${esc(x.dye || '')}" placeholder="Reporter dye (FAM, CY5…)" /><input type="text" data-tq="${i}" value="${esc(x.q || '')}" placeholder="Quencher (None)" /><button type="button" class="secondary" data-td="${i}" aria-label="Remove target">✕</button></div>`).join('');
+      $('eTg').querySelectorAll('[data-tn]').forEach(i => i.addEventListener('input', () => { T().targets[+i.dataset.tn].n = i.value; touch(); draw(); }));
+      $('eTg').querySelectorAll('[data-ty]').forEach(i => i.addEventListener('input', () => { T().targets[+i.dataset.ty].dye = i.value; touch(); draw(); }));
+      $('eTg').querySelectorAll('[data-tq]').forEach(i => i.addEventListener('input', () => { T().targets[+i.dataset.tq].q = i.value; touch(); draw(); }));
+      $('eTg').querySelectorAll('[data-ts]').forEach(i => i.addEventListener('input', () => { T().targets[+i.dataset.ts].sz = i.value; touch(); draw(); }));
+      $('eTg').querySelectorAll('[data-td]').forEach(b => b.addEventListener('click', () => { T().targets.splice(+b.dataset.td, 1); touch(); loadEditor(); draw(); }));
+      // round tabs
+      $('rdTabs').innerHTML = t.nested ? `<button type="button" class="secondary ${ed === 1 ? 'on' : ''}" data-rd="1">Round 1 (outer)</button><button type="button" class="secondary ${ed === 2 ? 'on' : ''}" data-rd="2">Round 2 (nested)</button>` : '';
+      $('rdTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { ed = +b.dataset.rd; loadEditor(); }));
+      $('rdCap').textContent = t.nested ? (ed === 2 ? 'Round 2 (nested) — reaction set-up' : 'Round 1 (outer) — reaction set-up') : 'Reaction set-up';
+      $('cyRd').textContent = t.nested ? '— ' + (ed === 2 ? 'round 2' : 'round 1') : '';
+      // reagents (current round)
+      const base = rows(r).filter(x => !x.calc).filter(x => x.ex === undefined), gone = DEF(r).filter(d => (r.hid || {})[d.k]);
+      $('eRg').innerHTML = base.map(x => `<div class="rg"><span>${esc(x.name)}</span><input type="number" min="0" step="any" inputmode="decimal" data-k="${x.k}" value="${esc(r.v[x.k])}" placeholder="µL" /><button type="button" class="secondary" data-hd="${x.k}" aria-label="Remove ${esc(x.name)} — not used" title="Not used in this test">✕</button></div>`).join('') +
         (gone.length ? `<div class="hint" style="margin:4px 0 8px">Removed: ${gone.map(d => `<button type="button" class="secondary" data-rs="${d.k}" style="padding:2px 8px;font-size:.75rem">+ ${esc(d.name)}</button>`).join(' ')}</div>` : '') +
-        t.extra.map((e, i) => `<div class="rg"><input type="text" data-xn="${i}" value="${esc(e.n)}" placeholder="Reagent name" /><input type="number" min="0" step="any" inputmode="decimal" data-xv="${i}" value="${esc(e.v)}" placeholder="µL" /><button type="button" class="secondary" data-xd="${i}" aria-label="Remove">✕</button></div>`).join('');
-      $('eRg').querySelectorAll('[data-hd]').forEach(b => b.addEventListener('click', () => { const t = T(); t.hid = t.hid || {}; t.hid[b.dataset.hd] = true; stamp(t); save(); loadEditor(); draw(); }));
-      $('eRg').querySelectorAll('[data-rs]').forEach(b => b.addEventListener('click', () => { const t = T(); delete t.hid[b.dataset.rs]; stamp(t); save(); loadEditor(); draw(); }));
-      $('eRg').querySelectorAll('[data-k]').forEach(i => i.addEventListener('input', () => { T().v[i.dataset.k] = i.value; stamp(T()); save(); draw(); }));
-      $('eRg').querySelectorAll('[data-xn]').forEach(i => i.addEventListener('input', () => { T().extra[+i.dataset.xn].n = i.value; stamp(T()); save(); draw(); }));
-      $('eRg').querySelectorAll('[data-xv]').forEach(i => i.addEventListener('input', () => { T().extra[+i.dataset.xv].v = i.value; stamp(T()); save(); draw(); }));
-      $('eRg').querySelectorAll('[data-xd]').forEach(b => b.addEventListener('click', () => { T().extra.splice(+b.dataset.xd, 1); save(); loadEditor(); draw(); }));
+        r.extra.map((e, i) => `<div class="rg"><input type="text" data-xn="${i}" value="${esc(e.n)}" placeholder="Reagent name" /><input type="number" min="0" step="any" inputmode="decimal" data-xv="${i}" value="${esc(e.v)}" placeholder="µL" /><button type="button" class="secondary" data-xd="${i}" aria-label="Remove">✕</button></div>`).join('');
+      $('eRg').querySelectorAll('[data-hd]').forEach(b => b.addEventListener('click', () => { const c = cur(); c.hid = c.hid || {}; c.hid[b.dataset.hd] = true; touch(); loadEditor(); draw(); }));
+      $('eRg').querySelectorAll('[data-rs]').forEach(b => b.addEventListener('click', () => { delete cur().hid[b.dataset.rs]; touch(); loadEditor(); draw(); }));
+      $('eRg').querySelectorAll('[data-k]').forEach(i => i.addEventListener('input', () => { cur().v[i.dataset.k] = i.value; touch(); draw(); }));
+      $('eRg').querySelectorAll('[data-xn]').forEach(i => i.addEventListener('input', () => { cur().extra[+i.dataset.xn].n = i.value; touch(); draw(); }));
+      $('eRg').querySelectorAll('[data-xv]').forEach(i => i.addEventListener('input', () => { cur().extra[+i.dataset.xv].v = i.value; touch(); draw(); }));
+      $('eRg').querySelectorAll('[data-xd]').forEach(b => b.addEventListener('click', () => { cur().extra.splice(+b.dataset.xd, 1); touch(); loadEditor(); draw(); }));
+      // cycling (current round)
+      $('eCy').innerHTML = (r.cyc || []).map((x, i) => `<div class="cy"><input type="text" data-cn="${i}" value="${esc(x.n)}" placeholder="Step" /><input type="text" data-ct="${i}" value="${esc(x.temp)}" placeholder="95 °C" /><input type="text" data-cm="${i}" value="${esc(x.time)}" placeholder="30 s" /><input type="text" data-cc="${i}" value="${esc(x.cyc)}" placeholder="40" inputmode="numeric" /><button type="button" class="secondary" data-cd="${i}" aria-label="Remove step">✕</button></div>`).join('');
+      [['cn', 'n'], ['ct', 'temp'], ['cm', 'time'], ['cc', 'cyc']].forEach(([a, k]) => $('eCy').querySelectorAll(`[data-${a}]`).forEach(i => i.addEventListener('input', () => { cur().cyc[+i.dataset[a]][k] = i.value; touch(); draw(); })));
+      $('eCy').querySelectorAll('[data-cd]').forEach(b => b.addEventListener('click', () => { cur().cyc.splice(+b.dataset.cd, 1); touch(); loadEditor(); draw(); }));
     }
-    [['eName', 'name'], ['eTot', 'tot'], ['eTpl', 'tpl'], ['eOvg', 'ovg'], ['eNote', 'note']].forEach(([id, k]) => $(id).addEventListener('input', () => { T()[k] = $(id).value; stamp(T()); if (k === 'name') fillSel(); save(); draw(); }));
-    $('ePP').addEventListener('change', () => { T().pp = $('ePP').value; stamp(T()); save(); loadEditor(); draw(); });
-    $('tSel').addEventListener('change', () => { D.cur = $('tSel').value; VC.store.set(KEY, D); loadEditor(); draw(); });
+    [['eName', 'name'], ['eNote', 'note'], ['ePass', 'passive']].forEach(([id, k]) => $(id).addEventListener('input', () => { T()[k] = $(id).value; stamp(T()); if (k === 'name') fillSel(); save(); draw(); }));
+    [['eTot', 'tot'], ['eTpl', 'tpl'], ['eOvg', 'ovg']].forEach(([id, k]) => $(id).addEventListener('input', () => { cur()[k] = $(id).value; touch(); draw(); }));
+    $('ePP').addEventListener('change', () => { cur().pp = $('ePP').value; touch(); loadEditor(); draw(); });
+    $('eType').addEventListener('change', () => { const t = T(), unt = c => (c || []).every(s => !s.temp && !s.time); t.type = $('eType').value; if (unt(t.cyc)) t.cyc = defCyc(t.type); touch(); loadEditor(); draw(); });
+    $('eNest').addEventListener('change', () => { const t = T(); t.nested = $('eNest').value === '1'; if (t.nested && !t.r2) t.r2 = newRound(t); if (!t.nested) ed = 1; touch(); loadEditor(); draw(); });
+    $('tgAdd').addEventListener('click', () => { T().targets.push({ n: '', dye: '', q: 'None', sz: '' }); touch(); loadEditor(); draw(); });
+    $('cyAdd').addEventListener('click', () => { cur().cyc.push(stg('')); touch(); loadEditor(); draw(); });
+    $('tSel').addEventListener('change', () => { D.cur = $('tSel').value; ed = 1; VC.store.set(KEY, D); loadEditor(); draw(); });
     $('rxn').addEventListener('input', () => { VC.store.set(KEY + '_rxn', $('rxn').value); draw(); });
-    $('tNew').addEventListener('click', () => { const t = blank(); t.by = window.VCAuth && VCAuth.state.user ? VCAuth.who() : ''; t.name = 'New test'; D.tests.push(t); D.cur = t.id; save(); fillSel(); loadEditor(); draw(); $('eName').select(); if (!t.by) $('eBy').placeholder = 'Enter your name — who is adding this test?'; });
+    $('tNew').addEventListener('click', () => { const t = blank(); t.by = window.VCAuth && VCAuth.state.user ? VCAuth.who() : ''; t.name = 'New test'; D.tests.push(t); D.cur = t.id; ed = 1; save(); fillSel(); loadEditor(); draw(); $('eName').select(); if (!t.by) $('eBy').placeholder = 'Enter your name — who is adding this test?'; });
     $('eBy').addEventListener('input', () => { const t = T(); t.by = $('eBy').value.trim(); VC.store.set('viro_user_name', t.by); save(); draw(); });
-    $('tDup').addEventListener('click', () => { const t = JSON.parse(JSON.stringify(T())); t.id = uid(); t.name += ' (copy)'; t.by = ''; t.at = Date.now(); delete t.editBy; delete t.editAt; D.tests.push(t); D.cur = t.id; save(); fillSel(); loadEditor(); draw(); });
-    $('tDel').addEventListener('click', () => { if (D.tests.length < 2) { alert('Keep at least one test.'); return; } if (!confirm('Delete test “' + T().name + '”? (also on your other devices)')) return; D.tests = D.tests.filter(t => t.id !== D.cur); D.cur = D.tests[0].id; save(); fillSel(); loadEditor(); draw(); });
-    $('rAdd').addEventListener('click', () => { T().extra.push({ n: '', v: '' }); save(); loadEditor(); draw(); });
+    $('tDup').addEventListener('click', () => { const t = JSON.parse(JSON.stringify(T())); t.id = uid(); t.name += ' (copy)'; t.by = ''; t.at = Date.now(); delete t.editBy; delete t.editAt; D.tests.push(t); D.cur = t.id; ed = 1; save(); fillSel(); loadEditor(); draw(); });
+    $('tDel').addEventListener('click', () => { if (D.tests.length < 2) { alert('Keep at least one test.'); return; } if (!confirm('Delete test “' + T().name + '”? (also on your other devices)')) return; D.tests = D.tests.filter(t => t.id !== D.cur); D.cur = D.tests[0].id; ed = 1; save(); fillSel(); loadEditor(); draw(); });
+    $('rAdd').addEventListener('click', () => { cur().extra.push({ n: '', v: '' }); touch(); loadEditor(); draw(); });
     $('cpy').addEventListener('click', () => VC.copy(window._txt || '', $('cpy')));
+    $('prt').addEventListener('click', () => { draw(); window.print(); });
+    $('prev').addEventListener('click', () => { const s = $('sheet'); s.classList.toggle('show'); $('prev').textContent = s.classList.contains('show') ? 'Hide preview' : 'Preview sheet'; if (s.classList.contains('show')) s.scrollIntoView({ behavior: 'smooth' }); });
+    [['dLab', 'lab'], ['dCat', 'cat'], ['dDate', 'date'], ['dTid', 'tid'], ['dSr', 'sr']].forEach(([id, k]) => { $(id).value = DET[k]; $(id).addEventListener('input', () => { DET[k] = $(id).value; VC.store.set('viro_sheet_det', DET); draw(); }); });
     $('rxn').value = VC.store.get(KEY + '_rxn', '');
     fillSel(); loadEditor(); draw();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
