@@ -96,6 +96,21 @@
     .sheet .nest table.mt th, .sheet .nest table.mt td { height: 5.6mm; font-size: 9pt; }
     .sheet .nest table.cyt td { height: 6.2mm; } .sheet .nest .h2 { margin-bottom: 3mm; }
     .sheet .nest table.mt th { font-size: 7.5pt; }
+    .cr { display: grid; grid-template-columns: minmax(0,1.3fr) 64px minmax(0,2.2fr); gap: 8px; align-items: center; margin-bottom: 6px; }
+    .cr.h { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+    .cr label { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+    .pst td, .pst th { padding: 4px 5px; } .pst input[type=text] { width: 100%; min-width: 74px; padding: 6px 8px; } .pst th { font-size: .72rem; text-transform: uppercase; }
+    .pst .pw { font-weight: 800; color: var(--accent-dark); white-space: nowrap; text-align: center; }
+    .pv { border-collapse: separate; border-spacing: 3px; width: 100%; table-layout: fixed; min-width: 560px; }
+    .pv th { font-size: .7rem; color: var(--muted); font-weight: 700; padding: 2px; }
+    .pv td { height: 38px; border-radius: 6px; background: #f1f5f9; font-size: .62rem; text-align: center; padding: 1px; overflow: hidden; line-height: 1.15; word-break: break-all; }
+    .pv td.s { background: var(--accent-soft); color: var(--accent-dark); font-weight: 700; } .pv td.c { background: #fde68a; color: #78350f; font-weight: 800; }
+    .sheet .wc { text-align: left; font-size: 7pt; line-height: 1.25; padding: 0.6mm 1.2mm; height: 100%; }
+    .sheet .wc b.id { display: block; font-size: 8.5pt; } .sheet .wc i { display: block; font-style: normal; font-size: 7pt; color: #222; }
+    .sheet .wc .tl { display: flex; justify-content: space-between; gap: 1mm; font-size: 6.8pt; }
+    .sheet .wc .tl b { font-size: 7.5pt; }
+    .sheet table.pl.sm .wc { font-size: 6pt; } .sheet table.pl.sm .wc .tl { font-size: 6pt; } .sheet table.pl.sm .wc b.id { font-size: 7.5pt; }
+    .sheet table.pl td { vertical-align: top; text-align: left; } .sheet table.pl td.ctl { background: #e4e4e4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     @media print {
       @page { size: A4 landscape; margin: 10mm 8mm; }
       .container > *:not(#sheet) { display: none !important; }
@@ -136,6 +151,26 @@
     <div id="meta" class="hint" style="margin-top:10px"></div>
     <div id="procView" class="hint" style="white-space:pre-wrap; margin-top:10px"></div>
     <div class="action-row no-print-x"><button type="button" class="secondary" id="cpy">Copy</button><button type="button" id="prt">Print worksheet (2 pages, landscape)</button><button type="button" class="secondary" id="prev">Preview sheet</button></div>
+
+    <details class="no-print-x" id="pldet" style="margin-top:14px">
+      <summary>Plate layout, sample numbers &amp; CT values</summary>
+      <p class="hint" style="margin-top:8px">Copy sample numbers from Excel and press <b>Ctrl+V</b> in the first “Sample no.” cell — every line fills the next cell down (you can also paste several columns: sample, type, CT values). Wells follow the lab order A1–H1, A2–H2… Plate data stays on this device and is not synced.</p>
+      <div class="sec">Controls</div>
+      <div class="cr h"><span>Control</span><span>Count</span><span>Wells (optional — e.g. A1, H8)</span></div>
+      <div id="plCtl"></div>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:.9rem"><input type="checkbox" id="plFillH" style="margin-top:3px" /><span>Place PC (and then IQC / standards) at row H of the last sample column — no extra column is used. <span class="hint">NTC goes to A1 with one empty well after it; gaps are dropped only when the plate is full.</span></span></label>
+      <div class="sec">Samples</div>
+      <div class="row" style="align-items:end">
+        <div class="field" style="max-width:260px"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="plSame" /> All samples are the same type</label><input type="text" id="plType" placeholder="Sample type, e.g. THS" /></div>
+      </div>
+      <div class="field" style="margin-top:8px"><label for="plBulk">Paste a list here instead (one sample per line)</label><textarea id="plBulk" rows="3" placeholder="AA0001&#10;AA0002&#10;…"></textarea></div>
+      <div class="btns" style="margin:8px 0"><button type="button" class="secondary" id="plLoad">Load as samples</button><button type="button" class="secondary" id="plMore">+ 10 rows</button><button type="button" class="secondary" id="plClear" style="color:#991b1b;border-color:#fca5a5">Clear samples &amp; CT</button></div>
+      <div class="note err" id="plWarn" style="display:none"></div>
+      <div class="tbl-wrap"><table class="tbl pst" id="plTbl"></table></div>
+      <div class="sec">Plate preview</div>
+      <div class="tbl-wrap"><table class="pv" id="plPv"></table></div>
+      <div id="plCCw"><div class="sec">Control CT values</div><div class="tbl-wrap"><table class="tbl pst" id="plCC"></table></div></div>
+    </details>
 
     <details class="no-print-x" id="pdet" style="margin-top:14px">
       <summary>Print sheet details (institute, date, test ID)</summary>
@@ -261,6 +296,117 @@
     /* ---------- print-sheet details ---------- */
     const DET = Object.assign({ lab: 'MANIPAL INSTITUTE OF VIROLOGY', cat: 'Commercial/Research', date: '', tid: '', sr: '' }, VC.store.get('viro_sheet_det', {}));
 
+    /* ---------- plate layout, samples and CT values (device-local) ---------- */
+    const PKEY = 'viro_mm_plate'; let PLS = VC.store.get(PKEY, {});
+    const blankS = () => ({ n: '', t: '', c: [] });
+    const newPlate = () => ({ s: Array.from({ length: 8 }, blankS), same: false, stype: '', fillH: true, ctl: { ntc: { on: true, cnt: 1, w: '' }, pc: { on: true, cnt: 1, w: '' }, iqc: { on: false, cnt: 1, w: '' }, std: { on: false, cnt: 5, w: '' } }, cc: {} });
+    const PL = () => { const id = T().id; if (!PLS[id]) PLS[id] = newPlate(); return PLS[id]; };
+    const plSave = () => VC.store.set(PKEY, PLS);
+    const WELLS = []; for (let c = 1; c <= 12; c++) for (const r of 'ABCDEFGH') WELLS.push(r + c);
+    const parseW = str => String(str || '').toUpperCase().split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+    const tgNames = () => T().targets.map(x => (x.n || '').trim()).filter(Boolean);
+    const CNAME = { ntc: 'NTC', pc: 'PC', iqc: 'IQC', std: 'STD' };
+    function plLayout(P) {
+      const smp = P.s.map((x, i) => ({ x, i })).filter(o => String(o.x.n).trim() !== '');
+      const map = {}, warn = [], used = new Set(), ctl = [], auto = { pre: [], post: [] }, sw = {};
+      ['ntc', 'pc', 'iqc', 'std'].forEach(k => {
+        const c = P.ctl[k]; if (!c.on) return;
+        const man = parseW(c.w), bad = man.filter(w => !WELLS.includes(w)), good = man.filter(w => WELLS.includes(w));
+        if (bad.length) warn.push('Invalid well: ' + bad.join(', ') + ' (use A1–H12).');
+        const cnt = good.length ? good.length : Math.max(1, Math.floor(n(c.cnt)) || 1);
+        for (let i = 0; i < cnt; i++) {
+          const it = { kind: k, label: cnt > 1 || k === 'std' ? CNAME[k] + ' ' + (i + 1) : CNAME[k] };
+          if (good[i]) { if (used.has(good[i])) warn.push('Well ' + good[i] + ' is assigned twice.'); else { used.add(good[i]); map[good[i]] = it; ctl.push({ ...it, w: good[i] }); } }
+          else (k === 'ntc' ? auto.pre : auto.post).push(it);
+        }
+      });
+      const free = WELLS.filter(w => !used.has(w)), nS = smp.length, preN = auto.pre.length, postN = auto.post.length;
+      const sim = (cfg, partial) => {
+        let i = 0, over = 0; const out = { pre: [], s: [], post: [] };
+        const put = a => { if (i >= free.length) { if (partial) { over++; return; } throw 0; } a.push(free[i++]); };
+        try {
+          for (let k = 0; k < preN; k++) put(out.pre);
+          if (preN && cfg.ga && (nS || postN)) i++;
+          for (let k = 0; k < nS; k++) put(out.s);
+          if (nS && postN) { if (cfg.h) { if (free[i - 1][0] !== 'H') { let j = i; while (j < free.length && free[j][0] !== 'H') j++; i = j; } } else if (cfg.gb) i++; }
+          for (let k = 0; k < postN; k++) put(out.post);
+        } catch (e) { return null; }
+        out.over = over; return out;
+      };
+      const tries = P.fillH ? [{ h: 1, ga: 1 }, { h: 0, ga: 1, gb: 1 }, { h: 0, ga: 1, gb: 0 }, { h: 0, ga: 0, gb: 0 }] : [{ ga: 1, gb: 1 }, { ga: 1, gb: 0 }, { ga: 0, gb: 0 }];
+      let res = null; for (const c of tries) { res = sim(c, false); if (res) break; }
+      if (!res) { res = sim({ ga: 0, gb: 0 }, true); warn.push('Not enough wells — ' + res.over + ' item(s) could not be placed on the plate.'); }
+      auto.pre.forEach((it, k) => { const w = res.pre[k]; if (w) { map[w] = it; ctl.push({ ...it, w }); } });
+      auto.post.forEach((it, k) => { const w = res.post[k]; if (w) { map[w] = it; ctl.push({ ...it, w }); } });
+      const seen = {};
+      smp.forEach((o, k) => { const w = res.s[k]; const nm = String(o.x.n).trim(); seen[nm] = (seen[nm] || 0) + 1; if (w) { map[w] = { kind: 's', label: nm, type: P.same ? P.stype : o.x.t, ct: o.x.c }; sw[o.i] = w; } });
+      const dup = Object.keys(seen).filter(k => seen[k] > 1); if (dup.length) warn.push('Duplicate sample numbers: ' + dup.slice(0, 6).join(', ') + (dup.length > 6 ? '…' : ''));
+      ctl.sort((a, b) => WELLS.indexOf(a.w) - WELLS.indexOf(b.w));
+      return { map, warn, ctl, sw, nS };
+    }
+    let plSig = '';
+    const plFields = () => (PL().same ? [] : ['t']).reduce((a, f) => a.concat(f), ['n']).concat(tgNames().map((_, i) => 'c' + i));
+    const setF = (x, f, v) => { if (f === 'n' || f === 't') x[f] = v; else x.c[+f.slice(1)] = v; };
+    const getF = (x, f) => f === 'n' || f === 't' ? (x[f] || '') : (x.c[+f.slice(1)] || '');
+    function rowHTML(i) {
+      const P = PL(), x = P.s[i], tg = tgNames();
+      return `<tr data-r="${i}"><td>${i + 1}</td><td class="pw" id="pw${i}"></td><td><input type="text" data-r="${i}" data-f="n" value="${esc(x.n)}" autocomplete="off" /></td>` + (P.same ? '' : `<td><input type="text" data-r="${i}" data-f="t" value="${esc(x.t)}" autocomplete="off" /></td>`) +
+        tg.map((_, k) => `<td><input type="text" inputmode="decimal" data-r="${i}" data-f="c${k}" value="${esc(x.c[k] || '')}" autocomplete="off" /></td>`).join('') + '</tr>';
+    }
+    function bindRow(tr) {
+      tr.querySelectorAll('input[data-f]').forEach(inp => {
+        inp.addEventListener('input', () => { const P = PL(), r = +inp.dataset.r; setF(P.s[r], inp.dataset.f, inp.value); if (r >= P.s.length - 1 && inp.value) addRows(1); plUpdate(); draw(); });
+        inp.addEventListener('paste', e => plPaste(e, +inp.dataset.r, inp.dataset.f));
+        inp.addEventListener('keydown', e => { if (e.key !== 'Enter') return; e.preventDefault(); const r = +inp.dataset.r + 1; if (r >= PL().s.length) addRows(1); const nx = $('plTbl').querySelector(`input[data-r="${r}"][data-f="${inp.dataset.f}"]`); if (nx) { nx.focus(); nx.select(); } });
+      });
+    }
+    function addRows(k) { const P = PL(), tb = $('plTbl').querySelector('tbody'); for (let j = 0; j < k; j++) { P.s.push(blankS()); tb.insertAdjacentHTML('beforeend', rowHTML(P.s.length - 1)); bindRow(tb.lastElementChild); } }
+    function plRender() {
+      const P = PL(), tg = tgNames();
+      $('plSame').checked = P.same; $('plType').value = P.stype; $('plType').style.display = P.same ? '' : 'none'; $('plFillH').checked = P.fillH;
+      $('plTbl').innerHTML = `<thead><tr><th>#</th><th>Well</th><th>Sample no.</th>${P.same ? '' : '<th>Type</th>'}${tg.map(x => `<th>CT ${esc(x)}</th>`).join('')}</tr></thead><tbody>${P.s.map((_, i) => rowHTML(i)).join('')}</tbody>`;
+      $('plTbl').querySelectorAll('tbody tr').forEach(bindRow);
+      const names = { ntc: 'NTC / NC', pc: 'PC', iqc: 'IQC', std: 'Standards' };
+      $('plCtl').innerHTML = ['ntc', 'pc', 'iqc', 'std'].map(k => { const c = P.ctl[k]; return `<div class="cr"><label><input type="checkbox" data-ck="${k}" ${c.on ? 'checked' : ''} /> ${names[k]}</label><input type="number" min="1" max="96" data-cn="${k}" value="${c.cnt}" ${c.on ? '' : 'disabled'} aria-label="${names[k]} count" /><input type="text" data-cw="${k}" value="${esc(c.w)}" placeholder="${k === 'ntc' ? 'auto → A1' : k === 'std' ? 'auto, or e.g. A1, B1, C1' : 'auto — after the samples'}" ${c.on ? '' : 'disabled'} /></div>`; }).join('');
+      $('plCtl').querySelectorAll('[data-ck]').forEach(i => i.addEventListener('change', () => { P.ctl[i.dataset.ck].on = i.checked; plRender(); plUpdate(); draw(); }));
+      $('plCtl').querySelectorAll('[data-cn]').forEach(i => i.addEventListener('input', () => { P.ctl[i.dataset.cn].cnt = i.value; plUpdate(); draw(); }));
+      $('plCtl').querySelectorAll('[data-cw]').forEach(i => i.addEventListener('input', () => { P.ctl[i.dataset.cw].w = i.value; plUpdate(); draw(); }));
+    }
+    function plPaste(e, r, f) {
+      const raw = (e.clipboardData || window.clipboardData).getData('text').replace(/\r/g, '').replace(/\n+$/, '');
+      if (!/[\n\t]/.test(raw)) return;
+      e.preventDefault(); const P = PL(), fl = plFields(), fi = Math.max(0, fl.indexOf(f));
+      raw.split('\n').forEach((line, ri) => { while (P.s.length <= r + ri) P.s.push(blankS()); line.split('\t').forEach((v, ci) => { const ff = fl[fi + ci]; if (ff) setF(P.s[r + ri], ff, v.trim()); }); });
+      while (P.s.length < 3 || P.s.slice(-2).some(x => x.n)) P.s.push(blankS());
+      plRender(); plUpdate(); draw();
+    }
+    function plUpdate() {
+      const P = PL(), L = plLayout(P), tg = tgNames();
+      P.s.forEach((_, i) => { const c = $('pw' + i); if (c) c.textContent = L.sw[i] || ''; });
+      const w = $('plWarn'); w.style.display = L.warn.length ? '' : 'none'; w.textContent = L.warn.join(' ');
+      $('plPv').innerHTML = '<tr><th></th>' + Array.from({ length: 12 }, (_, i) => `<th>${i + 1}</th>`).join('') + '</tr>' + 'ABCDEFGH'.split('').map(r => `<tr><th>${r}</th>${Array.from({ length: 12 }, (_, c) => { const o = L.map[r + (c + 1)]; return o ? `<td class="${o.kind === 's' ? 's' : 'c'}" title="${esc(o.label)}">${esc(o.label)}</td>` : '<td></td>'; }).join('')}</tr>`).join('');
+      const sig = JSON.stringify(L.ctl.map(c => c.label + c.w)) + '|' + tg.join(',');
+      $('plCCw').style.display = tg.length && L.ctl.length ? '' : 'none';
+      if (tg.length && L.ctl.length && sig !== plSig) {
+        plSig = sig;
+        $('plCC').innerHTML = `<thead><tr><th>Control</th><th>Well</th>${tg.map(x => `<th>CT ${esc(x)}</th>`).join('')}</tr></thead><tbody>${L.ctl.map(c => `<tr><td><b>${esc(c.label)}</b></td><td class="pw">${c.w}</td>${tg.map((_, k) => `<td><input type="text" inputmode="decimal" data-cl="${esc(c.label)}" data-k="${k}" value="${esc((P.cc[c.label] || [])[k] || '')}" /></td>`).join('')}</tr>`).join('')}</tbody>`;
+        $('plCC').querySelectorAll('input[data-cl]').forEach(i => i.addEventListener('input', () => { const P2 = PL(); (P2.cc[i.dataset.cl] = P2.cc[i.dataset.cl] || [])[+i.dataset.k] = i.value; plSave(); draw(); }));
+      }
+      plSave();
+    }
+    function plEnsure() { const sig = T().id + '|' + tgNames().join('\u0001'); if (sig !== plEnsure.sig) { plEnsure.sig = sig; plSig = ''; plRender(); plUpdate(); } }
+    $('plSame').addEventListener('change', () => { const P = PL(); P.same = $('plSame').checked; plRender(); plUpdate(); draw(); });
+    $('plType').addEventListener('input', () => { PL().stype = $('plType').value; plUpdate(); draw(); });
+    $('plFillH').addEventListener('change', () => { PL().fillH = $('plFillH').checked; plUpdate(); draw(); });
+    $('plMore').addEventListener('click', () => addRows(10));
+    $('plClear').addEventListener('click', () => { if (!confirm('Clear all sample numbers and CT values for this test?')) return; const P = PL(); P.s = Array.from({ length: 8 }, blankS); P.cc = {}; plSig = ''; plRender(); plUpdate(); draw(); });
+    $('plLoad').addEventListener('click', () => {
+      const raw = $('plBulk').value.replace(/\r/g, '').replace(/\n+$/, ''); if (!raw.trim()) return;
+      const P = PL(), fl = plFields(); P.s = [];
+      raw.split('\n').forEach(line => { const x = blankS(); line.split('\t').forEach((v, ci) => { if (fl[ci]) setF(x, fl[ci], v.trim()); }); P.s.push(x); });
+      P.s.push(blankS(), blankS()); $('plBulk').value = ''; plRender(); plUpdate(); draw();
+    });
+
     /* ---------- prepare view ---------- */
     const f4 = v => fmt(v, 4);
     function calcRound(r, rx) {
@@ -284,6 +430,7 @@
       $('rTitle').textContent = t.name + ' — master mix' + (cs.length > 1 ? ' (' + cs.length + ' master mixes)' : '');
       $('meta').textContent = (t.by ? 'Added by ' + t.by + ' · ' + fdt(t.at) : 'Added by: not recorded') + (t.editAt && (t.editAt !== t.at) ? '  |  Last edited by ' + (t.editBy || 'Unknown') + ' · ' + fdt(t.editAt) : '');
       $('procView').textContent = t.note ? 'Procedure:\n' + t.note : '';
+      plEnsure();
       buildSheet(t, cs, rx);
       if (!cs[0].tot) { $('rVal').textContent = '—'; $('rSub').textContent = 'Set the total volume and reagent volumes under “Edit / add tests”.'; $('tbls').innerHTML = ''; return; }
       const w = []; cs.forEach((c, i) => { if (c.nfw < -1e-9) w.push(`${cs.length > 1 ? lblOf(t, i) + ': ' : ''}reagents + template (${f4(c.others + c.tpl)} µL) exceed the total volume (${f4(c.tot)} µL) — check the volumes.`); });
@@ -300,8 +447,15 @@
       const tg = t.targets.filter(x => x.n || x.dye || x.q || x.sz), tn = tg.length ? tg : [{ n: '' }];
       const hd = `<div class="h2"><div class="lab">${esc(DET.lab)}</div><div class="assay">${esc(t.name)}</div><div class="cat">${esc(DET.cat)}</div></div>`;
       const ft = pg => pg === 2 ? `<div class="f2"><span></span><span class="mid">Page 2 of 2</span><span></span></div>` : `<div class="f2"><span>Date: <b>${esc(DET.date || today)}</b></span><span class="mid">Page ${pg} of 2</span><span>Test ID: <b class="ul">${esc(DET.tid || '')}&nbsp;</b></span></div>`;
-      const plate = '<table class="pl"><colgroup><col style="width:10mm">' + '<col>'.repeat(12) + '</colgroup><tr><th></th>' + Array.from({ length: 12 }, (_, i) => `<th>${i + 1}</th>`).join('') + '</tr>' +
-        'ABCDEFGH'.split('').map(r => `<tr><th>${r}</th>${'<td></td>'.repeat(12)}</tr>`).join('') + '</table>';
+      const P = PL(), lay = plLayout(P), tnm = tgNames();
+      const pcell = w => {
+        const o = lay.map[w]; if (!o) return '<td></td>';
+        const vals = o.kind === 's' ? (o.ct || []) : (P.cc[o.label] || []);
+        const ts = tnm.map((nm, ti) => `<div class="tl"><span>${esc(nm)}</span><b>${esc(vals[ti] || '')}</b></div>`).join('');
+        return `<td${o.kind === 's' ? '' : ' class="ctl"'}><div class="wc"><b class="id">${esc(o.label)}</b>${o.kind === 's' && o.type ? `<i>${esc(o.type)}</i>` : ''}${ts}</div></td>`;
+      };
+      const plate = `<table class="pl ${tnm.length > 3 ? 'sm' : ''}"><colgroup><col style="width:10mm">` + '<col>'.repeat(12) + '</colgroup><tr><th></th>' + Array.from({ length: 12 }, (_, i) => `<th>${i + 1}</th>`).join('') + '</tr>' +
+        'ABCDEFGH'.split('').map(r => `<tr><th>${r}</th>${Array.from({ length: 12 }, (_, c) => pcell(r + (c + 1))).join('')}</tr>`).join('') + '</table>';
       const rtab = (c, lbl) => {
         const has = c.tot > 0, v = x => has && x !== 0 ? f4(x) : '', vs = x => has && c.scale && x !== 0 ? f4(x * c.scale) : '';
         const hdr = c.rx ? `${c.rx} rxn${n(c.r.ovg) ? ' (+' + fmt(n(c.r.ovg), 3) + '%)' : ''}` : '(N+1 = _X)';
