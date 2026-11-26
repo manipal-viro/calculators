@@ -160,6 +160,11 @@
       <div id="plCtl"></div>
       <label style="display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:.9rem"><input type="checkbox" id="plFillH" style="margin-top:3px" /><span>Place PC (and then IQC / standards) at row H of the last sample column — no extra column is used. <span class="hint">NTC goes to A1 with one empty well after it; gaps are dropped only when the plate is full.</span></span></label>
       <div class="sec">Samples</div>
+      <div class="row">
+        <div class="field" style="max-width:300px"><label for="plGap">Spacing between samples</label><select id="plGap"><option value="0">No gap — every well in order</option><option value="1">One empty well between samples</option><option value="2">Two empty wells between samples</option></select></div>
+        <div class="field" style="max-width:300px"><label style="display:flex;gap:8px;align-items:center;margin-top:22px"><input type="checkbox" id="plCol" /> Also leave one empty column between sample columns</label></div>
+      </div>
+      <p class="hint">Example: “one empty well” + “empty column” gives C1, E1, G1, A3, C3, E3, G3… (NTC at A1). Choose whatever your lab prefers — the preview and print follow it.</p>
       <div class="row" style="align-items:end">
         <div class="field" style="max-width:260px"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="plSame" /> All samples are the same type</label><input type="text" id="plType" placeholder="Sample type, e.g. THS" /></div>
       </div>
@@ -299,7 +304,7 @@
     /* ---------- plate layout, samples and CT values (device-local) ---------- */
     const PKEY = 'viro_mm_plate'; let PLS = VC.store.get(PKEY, {});
     const blankS = () => ({ n: '', t: '', c: [] });
-    const newPlate = () => ({ s: Array.from({ length: 8 }, blankS), same: false, stype: '', fillH: true, ctl: { ntc: { on: true, cnt: 1, w: '' }, pc: { on: true, cnt: 1, w: '' }, iqc: { on: false, cnt: 1, w: '' }, std: { on: false, cnt: 5, w: '' } }, cc: {} });
+    const newPlate = () => ({ s: Array.from({ length: 8 }, blankS), same: false, stype: '', fillH: true, gap: 0, colSkip: false, ctl: { ntc: { on: true, cnt: 1, w: '' }, pc: { on: true, cnt: 1, w: '' }, iqc: { on: false, cnt: 1, w: '' }, std: { on: false, cnt: 5, w: '' } }, cc: {} });
     const PL = () => { const id = T().id; if (!PLS[id]) PLS[id] = newPlate(); return PLS[id]; };
     const plSave = () => VC.store.set(PKEY, PLS);
     const WELLS = []; for (let c = 1; c <= 12; c++) for (const r of 'ABCDEFGH') WELLS.push(r + c);
@@ -321,21 +326,27 @@
         }
       });
       const free = WELLS.filter(w => !used.has(w)), nS = smp.length, preN = auto.pre.length, postN = auto.post.length;
+      const step = 1 + Math.max(0, Math.min(3, Math.floor(n(P.gap)))), wi = w => WELLS.indexOf(w);
+      const slots = free.filter(w => (!P.colSkip || (+w.slice(1)) % 2 === 1) && (w.charCodeAt(0) - 65) % step === 0);
       const sim = (cfg, partial) => {
-        let i = 0, over = 0; const out = { pre: [], s: [], post: [] };
-        const put = a => { if (i >= free.length) { if (partial) { over++; return; } throw 0; } a.push(free[i++]); };
-        try {
-          for (let k = 0; k < preN; k++) put(out.pre);
-          if (preN && cfg.ga && (nS || postN)) i++;
-          for (let k = 0; k < nS; k++) put(out.s);
-          if (nS && postN) { if (cfg.h) { if (free[i - 1][0] !== 'H') { let j = i; while (j < free.length && free[j][0] !== 'H') j++; i = j; } } else if (cfg.gb) i++; }
-          for (let k = 0; k < postN; k++) put(out.post);
-        } catch (e) { return null; }
+        const out = { pre: [], s: [], post: [] }; let over = 0;
+        for (let k = 0; k < preN; k++) { if (k < free.length) out.pre.push(free[k]); else over++; }
+        const lastPre = out.pre.length ? wi(out.pre[out.pre.length - 1]) : -1;
+        let sl = slots.filter(w => wi(w) > lastPre);
+        if (preN && cfg.ga && step === 1 && (nS || postN)) sl = sl.slice(1);
+        for (let k = 0; k < nS; k++) { if (sl[k]) out.s.push(sl[k]); else over++; }
+        if (postN) {
+          const lastIdx = out.s.length ? wi(out.s[out.s.length - 1]) : lastPre, taken = new Set(out.pre.concat(out.s));
+          let rest = free.filter(w => wi(w) > lastIdx && !taken.has(w));
+          if (out.s.length) { if (cfg.h) { if (out.s[out.s.length - 1][0] !== 'H') { const j = rest.findIndex(w => w[0] === 'H'); if (j > 0) rest = rest.slice(j); } } else if (cfg.gb) rest = rest.slice(1); }
+          for (let k = 0; k < postN; k++) { if (rest[k]) out.post.push(rest[k]); else over++; }
+        }
+        if (over && !partial) return null;
         out.over = over; return out;
       };
       const tries = P.fillH ? [{ h: 1, ga: 1 }, { h: 0, ga: 1, gb: 1 }, { h: 0, ga: 1, gb: 0 }, { h: 0, ga: 0, gb: 0 }] : [{ ga: 1, gb: 1 }, { ga: 1, gb: 0 }, { ga: 0, gb: 0 }];
       let res = null; for (const c of tries) { res = sim(c, false); if (res) break; }
-      if (!res) { res = sim({ ga: 0, gb: 0 }, true); warn.push('Not enough wells — ' + res.over + ' item(s) could not be placed on the plate.'); }
+      if (!res) { res = sim({ ga: 0, gb: 0 }, true); warn.push('Not enough wells for the chosen spacing — ' + res.over + ' item(s) could not be placed. Reduce the spacing or the number of samples.'); }
       auto.pre.forEach((it, k) => { const w = res.pre[k]; if (w) { map[w] = it; ctl.push({ ...it, w }); } });
       auto.post.forEach((it, k) => { const w = res.post[k]; if (w) { map[w] = it; ctl.push({ ...it, w }); } });
       const seen = {};
@@ -363,7 +374,7 @@
     function addRows(k) { const P = PL(), tb = $('plTbl').querySelector('tbody'); for (let j = 0; j < k; j++) { P.s.push(blankS()); tb.insertAdjacentHTML('beforeend', rowHTML(P.s.length - 1)); bindRow(tb.lastElementChild); } }
     function plRender() {
       const P = PL(), tg = tgNames();
-      $('plSame').checked = P.same; $('plType').value = P.stype; $('plType').style.display = P.same ? '' : 'none'; $('plFillH').checked = P.fillH;
+      $('plSame').checked = P.same; $('plType').value = P.stype; $('plType').style.display = P.same ? '' : 'none'; $('plFillH').checked = P.fillH; $('plGap').value = String(P.gap || 0); $('plCol').checked = !!P.colSkip;
       $('plTbl').innerHTML = `<thead><tr><th>#</th><th>Well</th><th>Sample no.</th>${P.same ? '' : '<th>Type</th>'}${tg.map(x => `<th>CT ${esc(x)}</th>`).join('')}</tr></thead><tbody>${P.s.map((_, i) => rowHTML(i)).join('')}</tbody>`;
       $('plTbl').querySelectorAll('tbody tr').forEach(bindRow);
       const names = { ntc: 'NTC / NC', pc: 'PC', iqc: 'IQC', std: 'Standards' };
@@ -397,6 +408,8 @@
     function plEnsure() { const sig = T().id + '|' + tgNames().join('\u0001'); if (sig !== plEnsure.sig) { plEnsure.sig = sig; plSig = ''; plRender(); plUpdate(); } }
     $('plSame').addEventListener('change', () => { const P = PL(); P.same = $('plSame').checked; plRender(); plUpdate(); draw(); });
     $('plType').addEventListener('input', () => { PL().stype = $('plType').value; plUpdate(); draw(); });
+    $('plGap').addEventListener('change', () => { PL().gap = +$('plGap').value; plUpdate(); draw(); });
+    $('plCol').addEventListener('change', () => { PL().colSkip = $('plCol').checked; plUpdate(); draw(); });
     $('plFillH').addEventListener('change', () => { PL().fillH = $('plFillH').checked; plUpdate(); draw(); });
     $('plMore').addEventListener('click', () => addRows(10));
     $('plClear').addEventListener('click', () => { if (!confirm('Clear all sample numbers and CT values for this test?')) return; const P = PL(); P.s = Array.from({ length: 8 }, blankS); P.cc = {}; plSig = ''; plRender(); plUpdate(); draw(); });
