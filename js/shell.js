@@ -104,7 +104,7 @@
       SECTIONS.map(sec => `<div class="vc-side-sec">${esc(sec.t)}</div>` +
         sec.items.map(t => `<a class="vc-link${on(t)}" style="--c:${t.c}" href="${ROOT}${t.f}" title="${esc(t.n)}"><span class="ic">${t.ic}</span><span class="lbl">${esc(t.n)}</span></a>`).join('')).join('') +
       installBlock('vc-install vc-install-side') +
-      acct() + `<div class="vc-side-foot">v5.6</div>`;
+      acct() + `<div class="vc-side-foot">v5.7</div>`;
     body.prepend(side);
 
     /* ----- phone app header ----- */
@@ -147,4 +147,36 @@
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+
+  /* ---------- User guide (? Help button) ---------- */
+  (function help() {
+    const key = file.replace(/\.html?$/, '') || 'index';
+    const st = document.createElement('style');
+    st.textContent = '.vc-help-fab{position:fixed;right:16px;bottom:22px;z-index:9000;border:0;border-radius:999px;padding:10px 16px;font:700 .9rem system-ui,sans-serif;background:var(--accent-dark,#0f4c81);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer}' +
+      '@media(max-width:720px){.vc-help-fab{bottom:84px;right:12px;padding:10px 14px}}' +
+      '.vc-help-bg{position:fixed;inset:0;z-index:9500;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:14px}' +
+      '.vc-help{background:#fff;color:#0f172a;border-radius:16px;max-width:560px;width:100%;max-height:86vh;overflow:auto;padding:20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.35);font-family:system-ui,sans-serif;line-height:1.45}' +
+      '.vc-help h2{margin:0 0 6px;font-size:1.2rem}.vc-help h3{margin:16px 0 6px;font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-dark,#0f4c81)}' +
+      '.vc-help ol,.vc-help ul{margin:0;padding-left:20px}.vc-help li{margin:4px 0}.vc-help .x{float:right;border:0!important;background:#e2e8f0!important;color:#0f172a!important;box-shadow:none!important;border-radius:50%;width:32px;height:32px;padding:0!important;min-width:0;font-size:1rem;cursor:pointer;margin:0 0 8px 8px}' +
+      '@media print{.vc-help-fab,.vc-help-bg{display:none!important}}';
+    document.head.appendChild(st);
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'vc-help-fab'; btn.textContent = '? Help'; btn.setAttribute('aria-label', 'How to use this page');
+    document.body.appendChild(btn);
+    function show() {
+      const H = (window.VC_HELP || {})[key];
+      const bg = document.createElement('div'); bg.className = 'vc-help-bg';
+      bg.innerHTML = '<div class="vc-help" role="dialog" aria-modal="true"><button class="x" aria-label="Close">✕</button>' + (H ?
+        `<h2>${esc(H.t)}</h2><p>${esc(H.w)}</p><h3>How to use</h3><ol>${H.s.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` + (H.k && H.k.length ? `<h3>Tips</h3><ul>${H.k.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '') :
+        '<h2>Help</h2><p>No guide is available for this page yet.</p>') + '</div>';
+      const close = () => { bg.remove(); document.removeEventListener('keydown', onKey); };
+      const onKey = e => { if (e.key === 'Escape') close(); };
+      bg.addEventListener('click', e => { if (e.target === bg || e.target.classList.contains('x')) close(); });
+      document.addEventListener('keydown', onKey); document.body.appendChild(bg);
+    }
+    btn.addEventListener('click', () => {
+      if (window.VC_HELP) return show();
+      const sc = document.createElement('script'); sc.src = ROOT + 'js/help.js'; sc.onload = show; sc.onerror = show; document.head.appendChild(sc);
+    });
+  })();
 })();
